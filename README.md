@@ -9,7 +9,7 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 [![Facebook][facebook-image]][facebook-url]
 
-<img src='https://raw.githubusercontent.com/Supergiovane/node-red-contrib-ttsultimate/master/img/Readme.png' width="80%">
+<img src='https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/Readme.png' width="80%">
 
 <details><summary> VIEW SAMPLE CODE </summary>
 
@@ -33,7 +33,7 @@ If a previously music queue was playing, once the speech has finished, the node 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday).
 
 ## CHANGELOG
-* See <a href="https://github.com/Supergiovane/node-red-contrib-ttsultimate/blob/master/CHANGELOG.md">here the changelog</a>
+* See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
@@ -128,7 +128,7 @@ node.send({payload:"Warning. Intruder in the dinning room."};
 
 # OWNFILE NODE CONFIGURATION
 
-<img src='https://github.com/Supergiovane/node-red-contrib-ttsultimate/raw/master/img/sampleOwnFile.png' width="80%">
+<img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/sampleOwnFile.png' width="80%">
 
 
 
@@ -156,10 +156,10 @@ Select a file to be played. You can upload one or multiple files at the same tim
 
     
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
-[license-url]: https://github.com/Supergiovane/node-red-contrib-ttsultimate/master/LICENSE
-[npm-url]: https://npmjs.org/package/node-red-contrib-ttsultimate
-[npm-version-image]: https://img.shields.io/npm/v/node-red-contrib-ttsultimate.svg
-[npm-downloads-month-image]: https://img.shields.io/npm/dm/node-red-contrib-ttsultimate.svg
-[npm-downloads-total-image]: https://img.shields.io/npm/dt/node-red-contrib-ttsultimate.svg
+[license-url]: https://github.com/Supergiovane/node-red-contrib-tts-ultimate/master/LICENSE
+[npm-url]: https://npmjs.org/package/node-red-contrib-tts-ultimate
+[npm-version-image]: https://img.shields.io/npm/v/node-red-contrib-tts-ultimate.svg
+[npm-downloads-month-image]: https://img.shields.io/npm/dm/node-red-contrib-tts-ultimate.svg
+[npm-downloads-total-image]: https://img.shields.io/npm/dt/node-red-contrib-tts-ultimate.svg
 [facebook-image]: https://img.shields.io/badge/Visit%20me-Facebook-blue
 [facebook-url]: https://www.facebook.com/supergiovaneDev
