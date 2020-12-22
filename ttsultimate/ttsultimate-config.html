@@ -1,0 +1,111 @@
+<script type="text/javascript">
+    RED.nodes.registerType("ttsultimate-config", {
+        category: 'config',
+        defaults:
+        {
+            name: { value: "Config" },
+            noderedipaddress:
+            {
+                value: "",
+                required: true,
+                type: "text"
+            },
+            noderedport:
+            {
+                value: "1980",
+                required: true,
+                type: "text"
+            },
+            purgediratrestart: { value: "leave", required: true }
+        },
+        credentials: {
+            accessKey: { type: "text" },
+            secretKey: { type: "password" }
+        },
+        label: function () {
+            return this.name || "";
+        },
+        oneditprepare: function () {
+
+            if (typeof this.noderedipaddress === "undefined") {
+                // Put the default address of the machine
+                $.getJSON('ttsultimateGetEthAddress', (data) => {
+                    $("#node-config-input-noderedipaddress").val(data);
+                });
+            }
+            if (typeof this.noderedport === "undefined") {
+                // Put the default port 
+                $("#node-config-input-noderedport").val("1980");
+            }
+            if (typeof this.purgediratrestart === "undefined") {
+                // Put the default port 
+                $("#node-config-input-purgediratrestart").val("leave");
+            }
+
+        }
+    });
+</script>
+
+
+<script type="text/x-red" data-template-name="ttsultimate-config">
+    <div class="form-tips" style="margin-top: 8px;background-color:#ffcccc;text-align:center">If <b>YOU MUST RESTART NODE-RED</b><br/> AFTER EACH CHANGE IN THIS WINDOW!</div>
+    <br/>
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-user"></i> Name</label>
+        <input type="text" id="node-config-input-name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-accessKey"><i class="fa fa-user"></i> Polly Access key</label>
+        <input type="text" id="node-config-input-accessKey">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-secretKey"><i class="fa fa-user"></i> Polly Secret key</label>
+        <input type="password" id="node-config-input-secretKey">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-noderedipaddress"><i class="fa fa-globe"></i> Node-Red IP</label>
+        <input type="text" id="node-config-input-noderedipaddress">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-noderedport"><i class="fa fa-globe"></i> Webserver port, default 1980</label>
+        <input type="text" id="node-config-input-noderedport">
+        <div> <i>The node will create a webserver, listening on this port, to serve files to Sonos.<br/>Sonos will connect to this port ans starts playing.<br/>Please do not use 1880, that's the default node-red port.</i><br/>If you have more than one config node, do not use the same port,<br/>use for example 1981 instead.</div>
+    </div>
+   
+    <div class="form-row">
+        <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
+        <select id="node-config-input-purgediratrestart">
+            <option value="purge">Purge and delete the TTS cache folder at deploy or restart(default)</option>
+            <option value="leave">Leave the TTS cache folder untouched (not suggested if you have less disk space)</option>
+        </select>
+    </div>
+    
+</script>
+
+
+<script type="text/x-red" data-help-name="ttsultimate-config">
+    <p>
+        <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
+    </p>
+     <p>
+        Please see the <a href="https://github.com/Supergiovane/node-red-contrib-ttsultimate/blob/master/CHANGELOG.md">Changelog</a><br/>
+        Please read the <a href="https://github.com/Supergiovane/node-red-contrib-ttsultimate/blob/master/README.md">README</a><br/>
+    </p>
+    <p>
+        If you wish to use Amazon Polly for TTS, you need the free Amazon AWS credentials (AWS access key and AWS secret key).
+        <br/>If you wish to use the node only with your own audio files, leave the <code>Polly Access key</code> and <code>Polly Secret key</code> blank and use the <b>OwnFile</b> node. See the readme about that, there is an example.
+    </p>
+    <p>
+        <b>CONFIG:</b><br/>
+        <code>Polly Access key</code> AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the <b>OwnFile</b> node. Please see the below in this page.<br/>
+        <code>Polly Secret key</code>AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the  <b>OwnFile</b> node. Please see the below in this page.<br/>
+        <code>Node-Red IP</code> set IP of your node-red. This field is automatically filled with your current IP, but if your node-red is behind Redmatic or some other frontends, you need to insert here the public reachable IP ot these frontends.<br/>
+        <code>Webserver port</code> default 1980. If you are behind firewall, remember to forward this port.<br/>
+        <code>TTS Cache</code> Whether to delete or leave (default) in places the TTS files in the cache folder on each Deploy or Reboot of node-red. Leaving TTS files in che cache, may put you in a disk space trouble.
+    </p>
+
+    
+  
+
+</script>

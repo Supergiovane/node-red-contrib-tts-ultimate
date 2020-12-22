@@ -1,0 +1,402 @@
+<script type="text/x-red" data-help-name="ttsultimate">
+    <p>
+        <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
+    </p>
+    <p>
+        This node uses <a href="https://aws.amazon.com/polly/">Polly</a> TTS api and Node Sonos api and requires <b>NODE 8.9.x</b> or higher.
+    </p>
+    <p>
+        Please see the <a href="https://github.com/Supergiovane/node-red-contrib-ttsultimate/blob/master/CHANGELOG.md">Changelog</a><br/>
+        Please read the <a href="https://github.com/Supergiovane/node-red-contrib-ttsultimate/blob/master/README.md">README</a><br/>
+    </p>
+    <p>
+        <b>CONFIG:</b><br/>
+        <code>Polly Config</code> create a config with your AWS credentials. If you put incorrect credentials, you'll see this error in the node-red's debug window: "The security token included in the request is invalid."<br/>
+        <code>Polly Voice</code> select your preferred voice.<br/>
+        <code>Sonos Volume</code> set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume="40"; to the node)<br/>
+        <code>Sonos Hailing</code> before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it. You can upload and delete your own hailing sounds as well.<br/>
+        <code>Main Sonos player</code> Select your primary player coordinator. (It's advisable to reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server)<br/>
+        <code>Additional players</code> If you've more than one player, you can add players to the group. Your announcement will be played simultaneusly to all these players as well.<br/>
+        
+    </p>
+    <p>
+        <b>INPUT:</b><br/> 
+        <code>msg.volume</code> set the volume (values between "0" and "100" with quotes)<br/>
+        <code>msg.nohailing</code> doesn't play the Hailing sound prior to the message (values "true" or "1" with quotes)<br/>
+        <code>msg.payload</code> the text to be spoken (for example msg.payload = "Hello World!";)<br/>
+        <code>msg.sonoshailing</code> Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the <b>.mp3</b> extension.
+    <p>
+    <p>
+        <b>OUTPUT:</b><br/> 
+        <code>msg.completed</code> <b>true</b> when the node has finished playing, <b>false</b> if the node is playing<br/>
+        <code>msg.connectionerror</code> <b>true</b> when the node cannot connect to the Sonos device, <b>false</b> if the connection is restored.<br/>
+    <p>
+        <b>FEATURES:</b><br/> 
+        - TTS queues handling. If you send multiple payloads to the node, it'll handle it in his own queue.<br/>
+        - TTS caching. Amazon AWS charges you if you use Polly for a very high rate of text to speech request. The node caches the TTS, so if you requests the same TTS the second time, the node will take it from the cache instead of asking to the Amazon Polly service.<br/>
+        - Send a simple payload with the text you want to speech out. For example <code>node.send({payload:"Hello there!"});</code>.
+    </p>
+   
+
+
+
+</script>
+
+<script type="text/x-red" data-template-name="ttsultimate">
+
+    <div class="form-row">
+        <label for="node-input-config"><i class="icon-tag"></i> Polly Config</label>
+        <input type="text" id="node-input-config">
+    </div>
+
+<div id="allGUI">
+
+    <div class="form-row">
+        <label for="node-input-voice"><i class="icon-tag"></i> Polly Voice</label>
+        <select id="node-input-voice">
+            <option value='Joanna'>Joanna (en-US)</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label></label>
+        <input type="checkbox" id="node-input-ssml" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Enable SSML</label>
+    </div>
+   
+   
+    <div class="form-row">
+        <label for="node-input-sonosvolume"><i class="fa fa-volume-up"></i> Sonos Volume</label>
+        <input type="text" id="node-input-sonosvolume" style="width:150px"> 
+    </div>
+    <div class="form-row">
+        <label for="node-input-sonoshailing"><i class="fa fa-bell"></i> Sonos Hailing</label>
+        <select id="node-input-sonoshailing"></select> <input id="deleteSelectedFile" type="button" value="DELETE" style="width:100px">
+    </div>
+    <div class="form-row">
+        <label><i class="fa fa-upload"></i> Upload hail</label>
+        <input id="ownFileUpload" type="file" multiple="multiple">
+    </div>
+    <div class="form-row">
+        <label for="node-input-sonosipaddress"><i class="fa fa-globe"></i> Main Sonos Player</label>
+        <label style="width:200px;" id="node-input-sonosipaddress">Discovering.... wait...</label>
+    </div>
+   
+    <dt><i class="fa fa-code-fork"></i>&nbsp; Additional players</dt>
+    <div class="form-row node-input-rule-container-row">
+        <ol id="node-input-rule-container"></ol>
+    </div>
+    <div class="form-row">
+        <p>Press ADD, to add a player in the list.</p>
+    </div>
+</div>
+<div id="pleaseDeploy">
+    <p align="center"> <b>PLEASE SETUP THE CONFIG ABOVE<br/>THEN SAVE, DEPLOY AND RE-OPEN THIS WINDOW</b><br/>
+        EVEN IF NODE-RED TELLS YOU<br/>
+         THAT THE NODE ISN'T CORRECTLY CONFIGURED<br/>
+    TO ACCESS THE CONFIGURATION<br/>
+IF YOU'RE RUNNING NODE-RED IN DOCKER OR SIMILAR<br/>
+BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
+</div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('ttsultimate',
+        {
+            category: 'ttsultimate',
+            color: '#ffe6ff', // #ffe6ff
+            defaults:
+            {
+                name: { value: "" },
+                voice:
+                {
+                    value: "Ivy",
+                    required: false
+                },
+                ssml:
+                {
+                    value: false,
+                    required: false
+                },
+                sonosipaddress:
+                {
+                    value: "",
+                    required: false
+                },
+                sonosvolume:
+                {
+                    value: "20",
+                    required: true,
+                    type: "text"
+                },
+                sonoshailing:
+                {
+                    value: "Hailing_Hailing.mp3",
+                    required: false,
+                },
+                config:
+                {
+                    type: "ttsultimate-config",
+                    required: true
+                },
+                property: { value: "payload", required: true, validate: RED.validators.typedInput("propertyType") },
+                propertyType: { value: "msg" },
+                rules: { value: [] }
+            },
+            inputs: 1,
+            outputs: 1,
+            icon: "ttsultimate.png",
+            label: function () {
+                return this.name || "ttsultimate";
+            },
+            oneditprepare: function () {
+                var node = this;
+                // var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
+                // // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
+                // // ###########################
+                // $("#node-input-config").change(function () {
+                //     try {
+                //         oNodeServer = RED.nodes.node($(this).val());
+                //         if (typeof oNodeServer !== "undefined") {
+                //             $("#pleaseDeploy").hide();
+                //             $("#allGUI").show();
+                //         } else {
+                //             $("#allGUI").hide();
+                //         }
+                //     } catch (error) {
+                        
+                //     }
+                // });
+                // // ###########################
+
+                // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
+                $.getJSON('ttsultimateGetEthAddress', (data) => {
+                    $("#pleaseDeploy").hide();
+                    $("#allGUI").show();
+                }).fail(function (jqxhr) {
+                    $("#allGUI").hide();
+                });;
+
+
+                // 26/10/2020 Retrieve all avaiables polly voices
+                // #####################################
+                $('#node-input-voice')
+                    .find('option')
+                    .remove()
+                    .end();
+                $.getJSON("pollygetvoices", new Date().getTime(), (data) => {
+                    data.sort(compareVoices).forEach(oVoice => {
+                        $("#node-input-voice").append($("<option></option>")
+                            .attr("value", oVoice.id)
+                            .text(oVoice.name)
+                        )
+                    });
+                    $("#node-input-voice").val(node.voice);
+                });
+                function compareVoices(a, b) {
+                    // Use toUpperCase() to ignore character casing
+                    const bandA = a.name.toUpperCase();
+                    const bandB = b.name.toUpperCase();
+
+                    let comparison = 0;
+                    if (bandA > bandB) {
+                        comparison = 1;
+                    } else if (bandA < bandB) {
+                        comparison = -1;
+                    }
+                    return comparison;
+                }
+                // #####################################
+
+                // Refresh the combo
+                // #####################################
+                node.refreshHailingList = () => {
+                    return new Promise((resolve, reject) => {
+                        $('#node-input-sonoshailing')
+                            .find('option')
+                            .remove()
+                            .end();
+                        try {
+                            $.getJSON("getHailingFilesList", new Date().getTime(), (data) => {
+                                $("#node-input-sonoshailing").append($("<option></option>")
+                                    .attr("value", "0")
+                                    .text("Disable")
+                                )
+                                data.sort().forEach(oFile => {
+                                    $("#node-input-sonoshailing").append($("<option></option>")
+                                        .attr("value", oFile.filename)
+                                        .text(oFile.name)
+                                    )
+                                });
+                                $("#node-input-sonoshailing").val(typeof node.sonoshailing === "undefined" ? "Hailing_Hailing.mp3" : node.sonoshailing);
+                                resolve(true);
+                            });
+                        } catch (error) {
+                            return reject(error);
+                        }
+                    });
+                }
+                // #####################################
+
+
+                // 09/03/2020 Upload  file or files
+                // ##########################################################
+                $("#ownFileUpload").change(function (e) {
+                    var oFiles;
+                    oFiles = this.files;
+                    $.each(oFiles, function (i, file) {
+                        var fdata = new FormData();
+                        fdata.append("customHailing", file);
+
+                        $.ajax({
+                            url: "ttsultimateHailing",
+                            type: "POST",
+                            data: fdata, //add the FormData object to the data parameter
+                            processData: false, //tell jquery not to process data
+                            contentType: false,
+                            success: function (response, status, jqxhr) {
+                                // Refresh the combo
+                                // The only way is to wait some time, then refresh
+                                setTimeout(function () {
+                                    node.refreshHailingList().then((success, error) => {
+                                        $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
+                                        $("#node-input-sonoshailing").val("Hailing_" + file.name);
+                                    });;
+                                }, 500);
+                            },
+                            error: function (jqxhr, status, errorMessage) {
+                                //handle error
+                                alert("Error " + errorMessage + " " + status)
+                            }
+                        });
+                    });
+                });
+                // ##########################################################
+
+
+
+                // Delete selected file
+                // ##########################################################
+                $("#deleteSelectedFile").click(function () {
+                    $.getJSON('deleteHailingFile?FileName=' + $("#node-input-sonoshailing").val(), (data) => {
+                        node.refreshHailingList();
+                    });
+                });
+                // ##########################################################
+
+
+
+                // 20/03/2020 Coronavirus issue in Itay. Getting all Sonos Groups
+                // ##########################################################
+                $.getJSON('sonosgetAllGroups', (data) => {
+                    if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
+                        // Transform the dropdown to a simple input
+                        $("#node-input-sonosipaddress").replaceWith('<input type="text" id="node-input-sonosipaddress" style="width:150px">');
+                    } else {
+                        $("#node-input-sonosipaddress").replaceWith('<select id="node-input-sonosipaddress"></select>');
+                        data.sort().forEach(oGroup => {
+                            $("#node-input-sonosipaddress").append($("<option></option>")
+                                .attr("value", oGroup.host)
+                                .text(oGroup.name + " (" + oGroup.host + ")")
+                            )
+                        });
+                    }
+                    if (typeof node.sonosipaddress === "undefined" || node.sonosipaddress == "") {
+                        $("#node-input-sonosipaddress").val($("#node-input-sonosipaddress option:first").val());
+                    } else { $("#node-input-sonosipaddress").val(node.sonosipaddress) }
+                });
+                // ##########################################################
+
+
+                // 20/03/2020 ADDITIONAL PLAYERS
+                // ##########################################################
+                var previousValueType = { value: "prev", label: this._("switch.previous"), hasValue: false };
+                function resizeRule(rule) { }
+                $("#node-input-rule-container").css('min-height', '150px').css('min-width', '450px').editableList({
+                    addItem: function (container, i, opt) { // row, index, data
+                        // opt.r is: { topic: rowRuleTopic, devicename: rowRuleDeviceName, dpt:rowRuleDPT, send: rowRuleSend}
+
+                        if (!opt.hasOwnProperty('r')) {
+                            opt.r = {};
+                        }
+                        var rule = opt.r;
+                        if (!opt.hasOwnProperty('i')) {
+                            opt._i = Math.floor((0x99999 - 0x10000) * Math.random()).toString();
+                        }
+                        container.css({
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap'
+                        });
+
+
+                        var row = $('<div class="form-row"/>').appendTo(container);
+                        var oPlayer = $('<label>Discovering.... wait...</label>', { class: "rowRulePlayerHost", type: "text", style: "width:300px; margin-left: 5px; text-align: left;" }).appendTo(row);
+
+                        oPlayer.on("change", function () {
+                            resizeRule(container);
+                        });
+
+                        $.getJSON('sonosgetAllGroups', (data) => {
+                            if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
+                                // Transform the dropdown to a simple input
+                                oPlayer.remove();
+                                oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:300px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                            } else {
+                                oPlayer.remove();
+                                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:300px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                                data.sort().forEach(oGroup => {
+                                    oPlayer.append($("<option></option>")
+                                        .attr("value", oGroup.host)
+                                        .text(oGroup.name + " (" + oGroup.host + ")")
+                                    )
+                                });
+                            }
+                            oPlayer.val(rule.host);
+                        });
+
+                        //oPlayer.change();
+                    },
+                    removeItem: function (opt) {
+
+                    },
+                    resizeItem: resizeRule,
+                    sortItems: function (rules) {
+                    },
+                    sortable: true,
+                    removable: true
+                });
+
+                // 20/03/2020 For each rule, create a row
+                for (var i = 0; i < this.rules.length; i++) {
+                    var rule = this.rules[i];
+                    $("#node-input-rule-container").editableList('addItem', { r: rule, i: i });
+                }
+                // ##########################################################
+
+                node.refreshHailingList();
+
+            }, oneditsave: function () {
+                var node = this;
+
+                var rules = $("#node-input-rule-container").editableList('items');
+                node.rules = [];
+                rules.each(function (i) {
+                    var rule = $(this);
+                    var rowRulePlayerHost = rule.find(".rowRulePlayerHost").val();
+                    node.rules.push({ host: rowRulePlayerHost });
+                });
+                this.propertyType = $("#node-input-property").typedInput('type');
+            },
+            oneditresize: function (size) {
+                var node = this;
+
+                var rows = $("#dialog-form>div:not(.node-input-rule-container-row)");
+                var height = size.height;
+                for (var i = 0; i < rows.length; i++) {
+                    height -= $(rows[i]).outerHeight(true);
+                }
+                var editorRow = $("#dialog-form>div.node-input-rule-container-row");
+                height -= (parseInt(editorRow.css("marginTop")) + parseInt(editorRow.css("marginBottom")));
+                height += 16;
+                $("#node-input-rule-container").editableList('height', height);
+            }
+        });
+</script>

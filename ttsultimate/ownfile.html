@@ -1,0 +1,183 @@
+<script type="text/javascript">
+
+    RED.nodes.registerType("ownfile", {
+        category: 'ttsultimate',
+        defaults: {
+            name: { value: "" },
+            selectedFile: { value: "", required: true }
+        },
+        color: '#FFF9FF',
+        inputs: 1,
+        outputs: 1,
+        icon: 'file.png',
+        paletteLabel: 'Own File',
+        label: function () {
+            return this.name || this.selectedFile.replace("OwnFile_", '').replace(".mp3", '');
+        },
+        labelStyle: function () {
+            return this.name ? 'node_label_italic' : '';
+        },
+        oneditprepare: function () {
+            var node = this;
+
+            // refreshListaFiles
+            // ##########################################################
+            node.refreshListaFiles = () => {
+                return new Promise((resolve, reject) => {
+                    $("#node-input-selectedFile")
+                        .find('option')
+                        .remove()
+                        .end();
+                    try {
+                        $.getJSON('getOwnFilesList', new Date().getTime(), (data) => {
+                            data.sort().forEach(oFile => {
+                                $("#node-input-selectedFile").append($("<option></option>")
+                                    .attr("value", oFile.filename)
+                                    .text(oFile.name)
+                                )
+                            });
+                            $("#node-input-selectedFile").val(typeof node.selectedFile === "undefined" ? "" : node.selectedFile)
+                            resolve(true);
+                        });
+                    } catch (error) {
+                        return reject(error);
+                    }
+                });
+            }
+            // ##########################################################
+
+            // 27/02/2020 Upload  file or files
+            // ##########################################################
+            $("#ownFileUpload").change(function (e) {
+                var oFiles;
+                oFiles = this.files;
+                $.each(oFiles, function (i, file) {
+                    var fdata = new FormData();
+                    fdata.append("customTTS", file);
+
+                    $.ajax({
+                        url: "ttsultimateOwnFile",
+                        type: "POST",
+                        data: fdata, //add the FormData object to the data parameter
+                        processData: false, //tell jquery not to process data
+                        contentType: false,
+                        success: function (response, status, jqxhr) {
+                            // The only way is to wait some time, then refresh
+                            setTimeout(function () {
+                                node.refreshListaFiles().then((success, error) => {
+                                    $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
+                                    $("#node-input-selectedFile").val("OwnFile_" + file.name);
+                                });;
+                            }, 500);
+                        },
+                        error: function (jqxhr, status, errorMessage) {
+                            //handle error
+                            alert("Error " + errorMessage + " " + status)
+                        }
+                    });
+                });
+
+            });
+            // ##########################################################
+
+
+            // Delete selected file
+            // ##########################################################
+            $("#deleteSelectedFile").click(function () {
+                $.getJSON('deleteOwnFile?FileName=' + $("#node-input-selectedFile").val(), (data) => {
+                    // Refresh the combo
+                    node.refreshListaFiles();
+                });
+            });
+            // ##########################################################
+
+
+
+            // 28/02/2020 Delete all files
+            // ##########################################################
+            $("#deleteAllFiles").click(function () {
+                var checkResult = "Are you sure you want to delete all custom files?";
+                var myNotification = RED.notify(checkResult,
+                    {
+                        modal: true,
+                        fixed: true,
+                        type: 'info',
+                        buttons: [
+                            {
+                                text: "DELETE ALL",
+                                click: function (e) {
+                                    myNotification.close();
+                                    var checkResult = "The operation cannot be undone. Are you really sure to delete all custom files?";
+                                    var myNotification2 = RED.notify(checkResult,
+                                        {
+                                            modal: true,
+                                            fixed: true,
+                                            type: 'warning',
+                                            buttons: [
+                                                {
+                                                    text: "ABORT",
+                                                    click: function (e) {
+                                                        myNotification2.close();
+                                                    }
+                                                },
+                                                {
+                                                    text: "CONFIRM DELETE",
+                                                    click: function (e) {
+                                                        $.getJSON("deleteOwnFile?FileName=DELETEallFiles", (data) => {
+                                                            node.refreshListaFiles();
+                                                        });
+                                                        myNotification2.close();
+                                                    }
+                                                }]
+
+                                        });
+                                    myNotification.close();
+                                }
+                            },
+                            {
+                                text: "ABORT",
+                                click: function (e) {
+                                    myNotification.close();
+                                }
+                            }]
+
+                    });
+            });
+            // ##########################################################
+
+            node.refreshListaFiles();
+        }
+    });
+</script>
+
+
+<script type="text/x-red" data-template-name="ownfile">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Own File">
+    </div>
+    <div class="form-row">
+        <label for="node-input-selectedFile"><i class="fa fa-file-audio-o"></i> File to be played</label>
+        <select id="node-input-selectedFile"></select> <input id="deleteSelectedFile" type="button" value="DELETE" style="width:100px">
+    </div>
+    <div class="form-row">
+        <label><i class="fa fa-upload"></i> Upload files</label>
+        <input id="ownFileUpload" type="file" multiple="multiple">
+    </div>
+    <div class="form-row">
+        <label><i class="fa fa-file-audio-o"></i> ALL FILES</label>
+        <input id="deleteAllFiles" type="button" value="DELETE" style="width:100px">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ownfile">
+<p>This node allow you to play your own .mp3 file.<br/>
+Please view the <a href="https://github.com/Supergiovane/node-red-contrib-ttsultimate" target="_blank">README file</a>. You need to link the output of this node, to the input of your ttsultimate node.<br/>
+You can upload multiple files at once, but only mp3 files are allowed.</p>
+<p>INPUT MESSAGE<br/>
+<b>msg.payload = true</b> Begin play of the message<br/>
+<b>msg.selectedFile = "Garage door open"</b> Overrides the selected message and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your own files, in the node config window) and do not include the <b>.mp3</b> extenson.<br/>
+<br/>
+<p>OUTPUT MESSAGE<br/>
+Please directly link the output pin, to the input pin of the ttsultimate node.   
+</script>
