@@ -56,21 +56,36 @@ If a previously music queue was playing, once the speech has finished, the node 
 
 <br/>
 
-HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
+
 
 <br/><br/>
 
 # TTS-Ultimate CONFIG NODE
 
-**TTS Service**
+**TTS Service**<br/>
 You can choose between Amazon AWS (Polly) or Google TTS engines.
+<br/>
+<br/>
 
-    **Using Amazon AWS (Polly)**
-    **Polly Access key**
-    AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+* **TTS Service using Amazon AWS (Polly)**<br/>
+    > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
+   
+   **Polly Access key**<br/>
+   AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.<br/><br/>
+   **Polly Secret key**<br/>
+   AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+<br/>
+<br/><br/>
+* **TTS Service using Google TTS**<br/><br/>
+   **Google credentials file path**<br/>
+   Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
+   > [Select or create a Cloud Platform project](https://console.cloud.google.com/project)<br/>
+   > [Enable billing for your project](https://support.google.com/cloud/answer/6293499#enable-billing)<br/>
+   > [Enable the Google Cloud Text-to-Speech API](https://console.cloud.google.com/flows/enableapi?apiid=texttospeech.googleapis.com)<br/>
+   
 
-    **Polly Secret key**
-    AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+<br/>
+<br/>
 
 **Node-Red IP**<br/>
 set IP of your node-red machine.
