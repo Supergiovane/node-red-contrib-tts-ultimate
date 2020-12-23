@@ -134,7 +134,7 @@ node.send({payload:"Warning. Intruder in the dinning room."};
 
 # OWNFILE NODE CONFIGURATION
 
-<img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/sampleOwnFile.png' width="80%">
+<img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/of.png' width="80%">
 
 
 
