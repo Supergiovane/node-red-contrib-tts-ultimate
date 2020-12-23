@@ -11,8 +11,8 @@
     </p>
     <p>
         <b>CONFIG:</b><br/>
-        <code>Polly Config</code> create a config with your AWS credentials. If you put incorrect credentials, you'll see this error in the node-red's debug window: "The security token included in the request is invalid."<br/>
-        <code>Polly Voice</code> select your preferred voice.<br/>
+        <code>Config</code> create a config with your AWS credentials. If you put incorrect credentials, you'll see this error in the node-red's debug window: "The security token included in the request is invalid."<br/>
+        <code>Voice</code> select your preferred voice.<br/>
         <code>Sonos Volume</code> set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume="40"; to the node)<br/>
         <code>Sonos Hailing</code> before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it. You can upload and delete your own hailing sounds as well.<br/>
         <code>Main Sonos player</code> Select your primary player coordinator. (It's advisable to reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server)<br/>
@@ -45,14 +45,14 @@
 <script type="text/x-red" data-template-name="ttsultimate">
 
     <div class="form-row">
-        <label for="node-input-config"><i class="icon-tag"></i> Polly Config</label>
+        <label for="node-input-config"><i class="icon-tag"></i> Config</label>
         <input type="text" id="node-input-config">
     </div>
 
 <div id="allGUI">
 
     <div class="form-row">
-        <label for="node-input-voice"><i class="icon-tag"></i> Polly Voice</label>
+        <label for="node-input-voice"><i class="icon-tag"></i> Voice</label>
         <select id="node-input-voice">
             <option value='Joanna'>Joanna (en-US)</option>
         </select>
@@ -143,29 +143,24 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
             },
             inputs: 1,
             outputs: 1,
-            icon: "ttsultimate.png",
+            icon: "tts-icon.png",
             label: function () {
                 return this.name || "ttsultimate";
             },
             oneditprepare: function () {
                 var node = this;
-                // var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
-                // // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
-                // // ###########################
-                // $("#node-input-config").change(function () {
-                //     try {
-                //         oNodeServer = RED.nodes.node($(this).val());
-                //         if (typeof oNodeServer !== "undefined") {
-                //             $("#pleaseDeploy").hide();
-                //             $("#allGUI").show();
-                //         } else {
-                //             $("#allGUI").hide();
-                //         }
-                //     } catch (error) {
-                        
-                //     }
-                // });
-                // // ###########################
+                var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
+
+                // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
+                // ###########################
+                $("#node-input-config").change(function () {
+                    try {
+                        oNodeServer = RED.nodes.node($(this).val());
+                        getVoices();
+                    } catch (error) {
+                    }
+                });
+                // ###########################
 
                 // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
                 $.getJSON('ttsultimateGetEthAddress', (data) => {
@@ -178,32 +173,35 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
 
                 // 26/10/2020 Retrieve all avaiables polly voices
                 // #####################################
-                $('#node-input-voice')
-                    .find('option')
-                    .remove()
-                    .end();
-                $.getJSON("pollygetvoices", new Date().getTime(), (data) => {
-                    data.sort(compareVoices).forEach(oVoice => {
-                        $("#node-input-voice").append($("<option></option>")
-                            .attr("value", oVoice.id)
-                            .text(oVoice.name)
-                        )
+                function getVoices() {
+                    $('#node-input-voice')
+                        .find('option')
+                        .remove()
+                        .end();
+                    $.getJSON("ttsgetvoices?ttsservice=" + oNodeServer.ttsservice, new Date().getTime(), (data) => {
+                        data.sort(compareVoices).forEach(oVoice => {
+                            $("#node-input-voice").append($("<option></option>")
+                                .attr("value", oVoice.id)
+                                .text(oVoice.name)
+                            )
+                        });
+                        $("#node-input-voice").val(node.voice);
                     });
-                    $("#node-input-voice").val(node.voice);
-                });
-                function compareVoices(a, b) {
-                    // Use toUpperCase() to ignore character casing
-                    const bandA = a.name.toUpperCase();
-                    const bandB = b.name.toUpperCase();
+                    function compareVoices(a, b) {
+                        // Use toUpperCase() to ignore character casing
+                        const bandA = a.name.toUpperCase();
+                        const bandB = b.name.toUpperCase();
 
-                    let comparison = 0;
-                    if (bandA > bandB) {
-                        comparison = 1;
-                    } else if (bandA < bandB) {
-                        comparison = -1;
+                        let comparison = 0;
+                        if (bandA > bandB) {
+                            comparison = 1;
+                        } else if (bandA < bandB) {
+                            comparison = -1;
+                        }
+                        return comparison;
                     }
-                    return comparison;
                 }
+                getVoices();
                 // #####################################
 
                 // Refresh the combo

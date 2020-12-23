@@ -16,7 +16,9 @@
                 required: true,
                 type: "text"
             },
-            purgediratrestart: { value: "leave", required: true }
+            purgediratrestart: { value: "leave", required: true },
+            ttsservice: { value: "polly", required: true }
+
         },
         credentials: {
             accessKey: { type: "text" },
@@ -26,21 +28,84 @@
             return this.name || "";
         },
         oneditprepare: function () {
+            var node = this;
 
-            if (typeof this.noderedipaddress === "undefined") {
+            if (typeof node.noderedipaddress === "undefined") {
                 // Put the default address of the machine
                 $.getJSON('ttsultimateGetEthAddress', (data) => {
                     $("#node-config-input-noderedipaddress").val(data);
                 });
             }
-            if (typeof this.noderedport === "undefined") {
+            if (typeof node.noderedport === "undefined") {
                 // Put the default port 
                 $("#node-config-input-noderedport").val("1980");
             }
-            if (typeof this.purgediratrestart === "undefined") {
+            if (typeof node.purgediratrestart === "undefined") {
                 // Put the default port 
                 $("#node-config-input-purgediratrestart").val("leave");
             }
+
+            // 22/12/2020 Hide parts of the ui
+            // ##########################################################
+            $("#node-config-input-ttsservice").change(function (e) {
+                if ($("#node-config-input-ttsservice").val() == "polly") {
+                    $("#pollyForm").show();
+                    $("#GoogleForm").hide();
+                } else {
+                    $("#pollyForm").hide();
+                    $("#GoogleForm").show();
+                }
+            });
+            // ##########################################################
+
+            // 022/12/2020 Upload  file or files
+            // ##########################################################
+            $("#googleCredentialsPath").change(function (e) {
+                var oFiles;
+                oFiles = this.files;
+                $.each(oFiles, function (i, file) {
+                    var fdata = new FormData();
+                    fdata.append("googleCreds", file);
+
+                    $.ajax({
+                        url: "ttsultimatesavegooglecredentialsfile",
+                        type: "POST",
+                        data: fdata, //add the FormData object to the data parameter
+                        processData: false, //tell jquery not to process data
+                        contentType: false,
+                        success: function (response, status, jqxhr) {
+                            // Refresh the combo
+                            // The only way is to wait some time, then refresh
+                            let myNotification = RED.notify("Your credential file has been saved in the ttsultimategooglecredentials folder (into your .node-red directory) with name googlecredentials.json\n WARNING: This file contains your credentials to access google cloud API. Please be aware of this!",
+                                {
+                                    modal: true,
+                                    fixed: true,
+                                    type: 'info',
+                                    buttons: [
+                                        {
+                                            "text": "OK",
+                                            "class": "primary",
+                                            "click": function (e) {
+                                                myNotification.close();
+                                            }
+                                        }]
+                                });
+                        },
+                        error: function (jqxhr, status, errorMessage) {
+                            //handle error
+                            RED.notify("Problem saving credentials: " + errorMessage + ". PLEASE, SAVE THE NODE, DEPLOY AND REOPEN THIS WINDOW.",
+                                {
+                                    modal: false,
+                                    fixed: false,
+                                    type: 'error'
+                                });
+
+                        }
+                    });
+                });
+            });
+            // ##########################################################
+
 
         }
     });
@@ -56,23 +121,40 @@
     </div>
 
     <div class="form-row">
-        <label for="node-config-input-accessKey"><i class="fa fa-user"></i> Polly Access key</label>
-        <input type="text" id="node-config-input-accessKey">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-secretKey"><i class="fa fa-user"></i> Polly Secret key</label>
-        <input type="password" id="node-config-input-secretKey">
-    </div>
-    <div class="form-row">
         <label for="node-config-input-noderedipaddress"><i class="fa fa-globe"></i> Node-Red IP</label>
         <input type="text" id="node-config-input-noderedipaddress">
     </div>
     <div class="form-row">
         <label for="node-config-input-noderedport"><i class="fa fa-globe"></i> Webserver port, default 1980</label>
         <input type="text" id="node-config-input-noderedport">
-        <div> <i>The node will create a webserver, listening on this port, to serve files to Sonos.<br/>Sonos will connect to this port ans starts playing.<br/>Please do not use 1880, that's the default node-red port.</i><br/>If you have more than one config node, do not use the same port,<br/>use for example 1981 instead.</div>
+        <div class="form-tips" style="margin-top: 8px;background-color:yellow;text-align:center">Option above: do not use 1880 or any port already in use by node-red</div>
     </div>
-   
+
+    <div class="form-row">
+        <label for="node-config-input-ttsservice"><i class="fa fa-comments"></i> TTS Service</label>
+        <select id="node-config-input-ttsservice">
+            <option value="polly">Amazon Polly</option>
+            <option value="googletts">Google TTS</option>
+        </select>
+    </div>
+    
+    <div id="pollyForm">
+        <div class="form-row">
+            <label for="node-config-input-accessKey"><i class="fa fa-user"></i> AWS Access key</label>
+            <input type="text" id="node-config-input-accessKey">
+        </div>
+        <div class="form-row">
+            <label for="node-config-input-secretKey"><i class="fa fa-user"></i> AWS Secret key</label>
+            <input type="password" id="node-config-input-secretKey">
+        </div>
+    </div>
+    <div id="GoogleForm"
+        <div class="form-row">
+            <label><i class="fa fa-upload"></i> Google credentials file path</label>
+            <input id="googleCredentialsPath" type="file">
+        </div>
+    </div>
+    
     <div class="form-row">
         <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
         <select id="node-config-input-purgediratrestart">

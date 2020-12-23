@@ -4,17 +4,12 @@ const { clearInterval } = require('timers');
 module.exports = function (RED) {
     'use strict';
 
-    //var AWS = require('aws-sdk');
     var fs = require('fs');
     var MD5 = require('crypto-js').MD5;
     var util = require('util');
     var path = require('path');
     const sonos = require('sonos');
 
-
-    // AWS.config.update({
-    //     region: 'us-east-1'
-    // });
 
     function slug(_text) {
         var sRet = _text;
@@ -38,6 +33,7 @@ module.exports = function (RED) {
         sRet = sRet.toString().replace(/\^/g, "_fu_");
         sRet = sRet.toString().replace(/\|/g, "_pi_");
         sRet = sRet.toString().replace(/\"/g, "_dc_");
+        sRet = sRet.toString().replace(/\#/g, "_");
         // slug.charmap['.'] = '_stop_';
         // slug.charmap['?'] = '_qm_';
         // slug.charmap['!'] = '_em_';
@@ -71,7 +67,7 @@ module.exports = function (RED) {
         node.msg = {}; // 08/05/2019 Node message
         node.msg.completed = true;
         node.msg.connectionerror = true;
-        node.userDir = path.join(RED.settings.userDir, "ttsultimatestorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
+        node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
         node.oAdditionalSonosPlayers = []; // 20/03/2020 Contains other players to be grouped
         node.rules = config.rules || [{}];
         node.sNoderedURL = "";
@@ -336,17 +332,28 @@ module.exports = function (RED) {
                         if (!fs.existsSync(sFileToBePlayed)) {
                             node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from amazon...' });
                             try {
-                                // No file in cache. Wownload from Amazon.
-                                var params = {
-                                    OutputFormat: "mp3",
-                                    SampleRate: '22050',
-                                    Text: msg,
-                                    TextType: node.ssml ? 'ssml' : 'text',
-                                    VoiceId: node.voiceId
-                                };
-                                var data = await synthesizeSpeech([node.server.polly, params]);
+                                // No file in cache. Download from tts service
+                                var data;
+                                if (node.server.ttsservice === "polly") {
+                                    var params = {
+                                        OutputFormat: "mp3",
+                                        SampleRate: '22050',
+                                        Text: msg,
+                                        TextType: node.ssml ? 'ssml' : 'text',
+                                        VoiceId: node.voiceId
+                                    };
+                                    data = await synthesizeSpeechPolly([node.server.polly, params]);
+                                } else if (node.server.ttsservice === "googletts") {
+                                    // VoiceId is: name + "#" + languageCode + "#" + ssmlGender 
+                                    const params = {
+                                        voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
+                                        audioConfig: { audioEncoding: "MP3" },
+                                    };
+                                    params.input = node.ssml === "text" ? { text: msg } : { ssml: msg };
+                                    data = await synthesizeSpeechGoogle([node.server.googleTTS, params]);
+                                }
                                 // Save the downloaded file into the cache
-                                fs.writeFile(sFileToBePlayed, data.AudioStream, function (error, result) {
+                                fs.writeFile(sFileToBePlayed, data, function (error, result) {
                                     if (error) {
                                         node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
                                         throw (error);
@@ -579,33 +586,45 @@ module.exports = function (RED) {
 
         });
 
-        function synthesizeSpeech([polly, params]) {
+        // Amazon AWS Service
+        function synthesizeSpeechPolly([ttsService, params]) {
             return new Promise((resolve, reject) => {
-                polly.synthesizeSpeech(params, function (err, data) {
+                ttsService.synthesizeSpeech(params, function (err, data) {
                     if (err !== null) {
                         return reject(err);
                     }
-                    resolve(data);
+                    resolve(data.AudioStream);
+                });
+            });
+        }
+        // 23/12/2020 Google TTS Service
+        function synthesizeSpeechGoogle([ttsService, params]) {
+            return new Promise((resolve, reject) => {
+                ttsService.synthesizeSpeech(params, function (err, data) {
+                    if (err !== null) {
+                        return reject(err);
+                    }
+                    resolve(data.audioContent);
                 });
             });
         }
 
-
-        function getFilename(text, _iVoice, isSSML, extension) {
+        function getFilename(text, _sVoice, isSSML, extension) {
             // Slug the text.
             var basename = slug(text);
-
+            _sVoice = slug(_sVoice);
+            
             var ssml_text = isSSML ? '_ssml' : '';
 
             // Filename format: "text_voice.mp3"
-            var filename = util.format('%s_%s%s.%s', basename, _iVoice, ssml_text, extension);
+            var filename = util.format('%s_%s%s.%s', basename, _sVoice, ssml_text, extension);
 
             // If filename is too long, cut it and add hash
             if (filename.length > 250) {
                 var hash = MD5(basename);
 
                 // Filename format: "text_hash_voice.mp3"
-                var ending = util.format('_%s_%s%s.%s', hash, _iVoice, ssml_text, extension);
+                var ending = util.format('_%s_%s%s.%s', hash, _sVoice, ssml_text, extension);
                 var beginning = basename.slice(0, 250 - ending.length);
 
                 filename = beginning + ending;
@@ -617,8 +636,6 @@ module.exports = function (RED) {
         function notifyError(msg, err) {
             var errorMessage = err.message;
             // Output error to console
-            //RED.log.error('ttsultimate synthesizeSpeech: ' + errorMessage);
-            // Mark node as errounous
             node.setNodeStatus({
                 fill: 'red',
                 shape: 'dot',

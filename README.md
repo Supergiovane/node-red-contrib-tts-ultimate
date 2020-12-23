@@ -16,7 +16,7 @@
 > Adjust the nodes according to your setup
 
 ```js
-[{"id":"ce10dd92.7ccb4","type":"inject","z":"6cf31700.e19548","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":250,"y":240,"wires":[["8db04a6b.aa2458"]]},{"id":"8db04a6b.aa2458","type":"function","z":"6cf31700.e19548","name":"Via function","func":"// The simplest way\nmsg.payload=\"Benvenuti,Wilkommen,Wellcome!\";\nreturn msg;\n","outputs":1,"noerr":0,"x":390,"y":240,"wires":[["dcf2a25.b27346"]]},{"id":"dcf2a25.b27346","type":"ttsultimate","z":"6cf31700.e19548","name":"","voice":"18","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"25","sonoshailing":"Hailing_Hailing.mp3","config":"7182770d.79d208","propertyType":{},"rules":[],"x":630,"y":200,"wires":[[]],"icon":"node-red/leveldb.png"},{"id":"1c281b05.68270d","type":"inject","z":"6cf31700.e19548","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":250,"y":280,"wires":[["59ff5539.fbf224"]]},{"id":"59ff5539.fbf224","type":"function","z":"6cf31700.e19548","name":"Set volume","func":"// Set the Volume\nmsg.volume=\"60\"; // If not set, will take the volume from setting page\nmsg.payload=\"Benvenuti,Wilkommen,Wellcome!\";\nreturn msg;\n\n","outputs":1,"noerr":0,"x":390,"y":280,"wires":[["dcf2a25.b27346"]]},{"id":"bc42af4c.7eab3","type":"inject","z":"6cf31700.e19548","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":250,"y":320,"wires":[["b5e7507e.0adef"]]},{"id":"b5e7507e.0adef","type":"function","z":"6cf31700.e19548","name":"Array of messages","func":"// Create an array of messages\nvar aMessages=[];\n// Add random messages\naMessages.push({volume:\"50\",payload:\"Benvenuti.\"});\n// Wheater in Italy\naMessages.push({volume:\"40\",payload:\"http://media.ilmeteo.it/audio/2018-03-31.mp3\"});\n// Add random messages\naMessages.push({volume:\"30\",payload:\"Cambia la tua voce nei settaggi.\"});\nreturn [aMessages];\n","outputs":1,"noerr":0,"x":410,"y":320,"wires":[["dcf2a25.b27346"]]},{"id":"15120425.9bcc3c","type":"inject","z":"6cf31700.e19548","name":"Hello World","topic":"","payload":"Ciao Mondo! Come stai?","payloadType":"str","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":270,"y":200,"wires":[["dcf2a25.b27346"]]},{"id":"9f4872f4.12a4d8","type":"comment","z":"6cf31700.e19548","name":"Play text on Sonos. Single player or Group of players","info":"","x":380,"y":160,"wires":[]},{"id":"7182770d.79d208","type":"ttsultimate-config","z":"","name":"Config","noderedipaddress":"192.168.1.236","noderedport":"1980","accessKey":"","secretKey":"","purgediratrestart":"leave"}]
+[{"id":"569773ae.930abc","type":"inject","z":"344c547c.b230c4","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":230,"y":300,"wires":[["e066ce90.46f758"]]},{"id":"e066ce90.46f758","type":"function","z":"344c547c.b230c4","name":"Via function","func":"// The simplest way\nmsg.payload=\"Benvenuti,Wilkommen,Wellcome!\";\nreturn msg;\n","outputs":1,"noerr":0,"x":370,"y":300,"wires":[["3d9635bc.53c14a"]]},{"id":"c272b47c.41e238","type":"inject","z":"344c547c.b230c4","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":230,"y":340,"wires":[["2fcffdb7.1c76ea"]]},{"id":"2fcffdb7.1c76ea","type":"function","z":"344c547c.b230c4","name":"Set volume","func":"// Set the Volume\nmsg.volume=\"60\"; // If not set, will take the volume from setting page\nmsg.payload=\"Benvenuti,Wilkommen,Wellcome!\";\nreturn msg;\n\n","outputs":1,"noerr":0,"x":370,"y":340,"wires":[["3d9635bc.53c14a"]]},{"id":"2bd6fd7f.9b9ae2","type":"inject","z":"344c547c.b230c4","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":230,"y":380,"wires":[["aa3b6e42.669fc"]]},{"id":"aa3b6e42.669fc","type":"function","z":"344c547c.b230c4","name":"Array of messages","func":"// Create an array of messages\nvar aMessages=[];\n// Add random messages\naMessages.push({volume:\"50\",payload:\"Benvenuti.\"});\n// Wheater in Italy\naMessages.push({volume:\"40\",payload:\"http://media.ilmeteo.it/audio/2020-12-23.mp3\"});\n// Add random messages\naMessages.push({volume:\"30\",payload:\"Cambia la tua voce nei settaggi.\"});\nreturn [aMessages];\n","outputs":1,"noerr":0,"x":390,"y":380,"wires":[["3d9635bc.53c14a"]]},{"id":"3e0d9b5c.fe01b4","type":"inject","z":"344c547c.b230c4","name":"Hello World","topic":"","payload":"Ciao Mondo! Come stai?","payloadType":"str","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":250,"y":260,"wires":[["3d9635bc.53c14a"]]},{"id":"42e6fab4.e8d154","type":"comment","z":"344c547c.b230c4","name":"Play text on Sonos. Single player or Group of players","info":"","x":360,"y":220,"wires":[]},{"id":"3d9635bc.53c14a","type":"ttsultimate","z":"344c547c.b230c4","name":"","voice":"Brian","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"30","sonoshailing":"Hailing_Hailing.mp3","config":"557d8082.eb5a8","property":"payload","propertyType":{},"rules":[],"x":610,"y":260,"wires":[[]]},{"id":"557d8082.eb5a8","type":"ttsultimate-config","z":"","name":"Polly","noderedipaddress":"192.168.1.219","noderedport":"1980","purgediratrestart":"leave","ttsservice":"polly"}]
 ```
 </details>
 
@@ -24,8 +24,10 @@
 <br/>
 
 ## DESCRIPTION
+This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).
 This node transforms a text into a speech audio. It supports many voice languages. You can hear the voice through Sonos.<br/>
-This node uses <a href="https://aws.amazon.com/polly/">Polly</a> TTS and Sonos api. It supports PLAYERS GROUPING.<br/>
+It supports PLAYERS GROUPING.<br/>
+Multi TTS engines: Amazon Polly and Google TTS.<br/>
 You can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 If a previously music queue was playing, once the speech has finished, the node will resume the music queue at the exact track, at the exact seek time.<br/>
 **Node v.10.0.0 or newer is needed**.
@@ -49,7 +51,7 @@ If a previously music queue was playing, once the speech has finished, the node 
 <br/>
 
 > IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-> PORT USED BY THE NODE ARE 1980 AND 1400 (FOR SONOS DISCOVER). <br/>
+> PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 > PLEASE ALLOW MDNS AND UDP AS WELL
 
 <br/>
@@ -58,13 +60,17 @@ HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you c
 
 <br/><br/>
 
-# ttsultimate-CONFIG NODE
+# TTS-Ultimate CONFIG NODE
 
-**Polly Access key**
-AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+**TTS Service**
+You can choose between Amazon AWS (Polly) or Google TTS engines.
 
-**Polly Secret key**
-AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+    **Using Amazon AWS (Polly)**
+    **Polly Access key**
+    AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+
+    **Polly Secret key**
+    AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
 
 **Node-Red IP**<br/>
 set IP of your node-red machine.
@@ -137,7 +143,7 @@ node.send({payload:"Warning. Intruder in the dinning room."};
 > Adjust the nodes according to your setup
 
 ```js
-[{"id":"9389863f.c9e44","type":"ttsultimate","z":"2e6a2c30.383f64","name":"","voice":"51","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"25","sonoshailing":"Hailing_Hailing.mp3","config":"7182770d.79d208","propertyType":{},"rules":[],"x":660,"y":340,"wires":[[]]},{"id":"90a05585.bc514","type":"ownfile","z":"2e6a2c30.383f64","name":"","selectedFile":"OwnFile_Tur geoeffnet.mp3","x":310,"y":340,"wires":[["9389863f.c9e44"]]},{"id":"d416ac1c.e5c8b","type":"inject","z":"2e6a2c30.383f64","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":150,"y":340,"wires":[["90a05585.bc514"]]},{"id":"3b08c36d.aba304","type":"comment","z":"2e6a2c30.383f64","name":"You can upload your own voice messages and use it with ttsultimate","info":"","x":340,"y":300,"wires":[]},{"id":"b6061743.7f9ce","type":"ownfile","z":"2e6a2c30.383f64","name":"","selectedFile":"OwnFile_Tur geoeffnet.mp3","x":410,"y":400,"wires":[["9389863f.c9e44"]]},{"id":"6cac28fd.4088a8","type":"inject","z":"2e6a2c30.383f64","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":150,"y":400,"wires":[["fc569484.6604a8"]]},{"id":"fc569484.6604a8","type":"function","z":"2e6a2c30.383f64","name":"","func":"// Override the selected file.\nmsg.selectedFile=\"Porta aperta\"\nreturn msg;","outputs":1,"noerr":0,"x":270,"y":400,"wires":[["b6061743.7f9ce"]]},{"id":"7182770d.79d208","type":"ttsultimate-config","z":"","name":"Config","noderedipaddress":"192.168.1.236","noderedport":"1980","accessKey":"","secretKey":"","purgediratrestart":"leave"}]
+[{"id":"db0ea33.f1186e","type":"ttsultimate","z":"c6efd2b6.ab02e8","name":"","voice":"en-AU-Standard-A#en-AU#FEMALE","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"25","sonoshailing":"Hailing_Hailing.mp3","config":"4f941d61.f52c4c","propertyType":{},"rules":[],"x":670,"y":240,"wires":[[]]},{"id":"c7fb2970.271978","type":"ownfile","z":"c6efd2b6.ab02e8","name":"","selectedFile":"OwnFile_Tur geoeffnet.mp3","x":490,"y":220,"wires":[["db0ea33.f1186e"]]},{"id":"fef80c5b.49f9e","type":"inject","z":"c6efd2b6.ab02e8","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":130,"y":220,"wires":[["c7fb2970.271978"]]},{"id":"807f0f6c.6d59c","type":"comment","z":"c6efd2b6.ab02e8","name":"You can upload your own voice messages and use it with ttsultimate","info":"","x":310,"y":180,"wires":[]},{"id":"536e58b3.bb8468","type":"ownfile","z":"c6efd2b6.ab02e8","name":"","selectedFile":"OwnFile_Tur geoeffnet.mp3","x":490,"y":260,"wires":[["db0ea33.f1186e"]]},{"id":"26c339f9.346fbe","type":"inject","z":"c6efd2b6.ab02e8","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":130,"y":260,"wires":[["25016441.6447bc"]]},{"id":"25016441.6447bc","type":"function","z":"c6efd2b6.ab02e8","name":"Dynamically Select file","func":"// Override the selected file.\nmsg.selectedFile=\"Porta aperta\"\nreturn msg;","outputs":1,"noerr":0,"x":300,"y":260,"wires":[["536e58b3.bb8468"]]},{"id":"4f941d61.f52c4c","type":"ttsultimate-config","z":"","name":"GoogleTTS","noderedipaddress":"192.168.1.219","noderedport":"1980","purgediratrestart":"leave","ttsservice":"googletts"}]
 ```
 </details>
 

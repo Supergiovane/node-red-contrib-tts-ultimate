@@ -32,18 +32,19 @@
   "author": "Supergiovane",
   "license": "MIT",
   "bugs": {
-    "url": ""
+    "url": "https://github.com/Supergiovane/node-red-contrib-tts-ultimate"
   },
-  "homepage": "https://github.com/Supergiovane",
+  "homepage": "https://github.com/Supergiovane/node-red-contrib-tts-ultimate",
   "dependencies": {
-    "aws-sdk": "^2.454.0",
+    "aws-sdk": "2.816.0",
     "crypto-js": "^3.1.9-1",
     "fs": "0.0.1-security",
     "sonos": "1.14.0",
     "util": ">=0.10.1",
     "formidable": "1.2.2",
     "os": ">=0.1.1",
-    "path": ">=0.12.7"
+    "path": ">=0.12.7",
+    "@google-cloud/text-to-speech": "3.1.3"
   },
   "devDependencies": {
     "eslint": ">=4.18.2",

@@ -1,7 +1,8 @@
 module.exports = function (RED) {
     'use strict';
 
-    var AWS = require('aws-sdk');
+    const AWS = require('aws-sdk');
+    const GoogleTTS = require('@google-cloud/text-to-speech');
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
@@ -13,18 +14,13 @@ module.exports = function (RED) {
     });
 
     // Configuration Node Register
-    function PollyConfigNode(config) {
+    function TTSConfigNode(config) {
         RED.nodes.createNode(this, config);
         var node = this;
         node.noderedipaddress = typeof config.noderedipaddress === "undefined" ? "" : config.noderedipaddress;
-        var params = {
-            accessKeyId: node.credentials.accessKey,
-            secretAccessKey: node.credentials.secretKey,
-            apiVersion: '2016-06-10'
-        };
-        node.polly = new AWS.Polly(params);
-        node.userDir = path.join(RED.settings.userDir, "ttsultimatestorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
+        node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
+        node.ttsservice = config.ttsservice || "polly";
 
         // 03/06/2019 you can select the temp dir
         //#region "SETUP PATHS"
@@ -42,17 +38,22 @@ module.exports = function (RED) {
             }
         }
         if (!setupDirectory(node.userDir)) {
-            RED.log.error('ttsultimate: Unable to set up MAIN directory: ' + node.userDir);
+            RED.log.error('ttsultimate-config: Unable to set up MAIN directory: ' + node.userDir);
         }
         if (!setupDirectory(path.join(node.userDir, "ttsfiles"))) {
-            RED.log.error('ttsultimate: Unable to set up cache directory: ' + path.join(node.userDir, "ttsfiles"));
+            RED.log.error('ttsultimate-config: Unable to set up cache directory: ' + path.join(node.userDir, "ttsfiles"));
         } else {
-            RED.log.info('ttsultimate: TTS cache set to ' + path.join(node.userDir, "ttsfiles"));
+            RED.log.info('ttsultimate-config: TTS cache set to ' + path.join(node.userDir, "ttsfiles"));
+        }
+        if (!setupDirectory(path.join(node.userDir, "ttsultimategooglecredentials"))) {
+            RED.log.error('ttsultimate-config: Unable to set google creds directory: ' + path.join(node.userDir, "ttsultimategooglecredentials"));
+        } else {
+            RED.log.info('ttsultimate-config: google credentials path set to ' + path.join(node.userDir, "ttsultimategooglecredentials"));
         }
         if (!setupDirectory(path.join(node.userDir, "hailingpermanentfiles"))) {
-            RED.log.error('ttsultimate: Unable to set up hailing directory: ' + path.join(node.userDir, "hailingpermanentfiles"));
+            RED.log.error('ttsultimate-config: Unable to set up hailing directory: ' + path.join(node.userDir, "hailingpermanentfiles"));
         } else {
-            RED.log.info('ttsultimate: hailing path set to ' + path.join(node.userDir, "hailingpermanentfiles"));
+            RED.log.info('ttsultimate-config: hailing path set to ' + path.join(node.userDir, "hailingpermanentfiles"));
             // 09/03/2020 Copy defaults to the userDir
             fs.readdirSync(path.join(__dirname, "hailingpermanentfiles")).forEach(file => {
                 try {
@@ -61,9 +62,9 @@ module.exports = function (RED) {
             });
         }
         if (!setupDirectory(path.join(node.userDir, "ttspermanentfiles"))) {
-            RED.log.error('ttsultimate: Unable to set up permanent files directory: ' + path.join(node.userDir, "ttspermanentfiles"));
+            RED.log.error('ttsultimate-config: Unable to set up permanent files directory: ' + path.join(node.userDir, "ttspermanentfiles"));
         } else {
-            RED.log.info('ttsultimate: permanent files path set to ' + path.join(node.userDir, "ttspermanentfiles"));
+            RED.log.info('ttsultimate-config: permanent files path set to ' + path.join(node.userDir, "ttspermanentfiles"));
             // 09/03/2020 // Copy the samples of permanent files into the userDir
             fs.readdirSync(path.join(__dirname, "ttspermanentfiles")).forEach(file => {
                 try {
@@ -73,10 +74,33 @@ module.exports = function (RED) {
         }
         //#endregion
 
-        //#region SONOSPOLLY NODE
+
+        // 23/12/2020 Set environment path of googleTTS
+        //#region "INSTANTIATE SERVICE ENGINES"
+        var params = {
+            accessKeyId: node.credentials.accessKey,
+            secretAccessKey: node.credentials.secretKey,
+            apiVersion: '2016-06-10'
+        };
+        node.polly = new AWS.Polly(params);
+        
+        if (node.ttsservice === "googletts") {
+            try {
+                // Set the environment variable
+                RED.log.info("ttsultimate-config: Google credentials are stored in the file " + path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json"));
+                process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
+            } catch (error) {
+            }
+
+        }
+        node.googleTTS = new GoogleTTS.TextToSpeechClient();
+        //#endregion
+
+
+        //#region TTSULTIMATE NODE
         // ######################################################
         // 21/03/2019 Endpoint for retrieving the default IP
-        RED.httpAdmin.get("/ttsultimateGetEthAddress", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/ttsultimateGetEthAddress", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var oiFaces = oOS.networkInterfaces();
             var jListInterfaces = [];
             try {
@@ -102,7 +126,7 @@ module.exports = function (RED) {
         });
 
         // 20/03/2020 in the middle of coronavirus, get the sonos groups
-        RED.httpAdmin.get("/sonosgetAllGroups", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/sonosgetAllGroups", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var jListGroups = [];
             try {
                 const discovery = new sonos.AsyncDeviceDiscovery()
@@ -117,7 +141,7 @@ module.exports = function (RED) {
                         //return groups[0].CoordinatorDevice().togglePlayback()
                     })
                 }).catch(e => {
-                    RED.log.warn('ttsultimate: Error in discovery ' + e);
+                    RED.log.warn('ttsultimate-config: Error in discovery ' + e);
                     res.json("ERRORDISCOVERY");
                 })
             } catch (error) { }
@@ -125,7 +149,7 @@ module.exports = function (RED) {
 
 
         // 09/03/2020 Get list of filenames in hailing folder
-        RED.httpAdmin.get("/getHailingFilesList", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/getHailingFilesList", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var jListOwnFiles = [];
             var sName = "";
             try {
@@ -141,7 +165,7 @@ module.exports = function (RED) {
         });
 
         // 09/03/2020 Delete Hailing
-        RED.httpAdmin.get("/deleteHailingFile", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/deleteHailingFile", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             // Delete the file
             try {
                 var newPath = path.join(node.userDir, "hailingpermanentfiles", req.query.FileName);
@@ -165,40 +189,80 @@ module.exports = function (RED) {
             res.end;
         });
 
-        // 26/10/2020 Supergiovane, get the updated voice list from AWS. 
-        RED.httpAdmin.get("/pollygetvoices", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
-            // node.refreshVoices().then(function (resolve) {
-            //     res.json(resolve);
-            // }).catch(function (reject) { 
-            //     res.json(reject);
-            //  });
-            
+
+        // 22/12/2020 Receive the google credential and on the fly set the environment path
+        RED.httpAdmin.post("/ttsultimatesavegooglecredentialsfile", function (req, res) {
+            var form = new formidable.IncomingForm();
+            form.parse(req, function (err, fields, files) {
+                if (err) { };
+                // Allow only json
+                if (files.googleCreds.name.indexOf(".json") !== -1) {
+                    var newPath = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
+                    // Set the environment variable
+                    process.env.GOOGLE_APPLICATION_CREDENTIALS = newPath;
+                    fs.rename(files.googleCreds.path, newPath, function (err) { });
+                }
+            });
+            res.json({ status: 220 });
+            res.end;
+        });
+
+        // 26/10/2020 Supergiovane, get the updated voice list. 
+        RED.httpAdmin.get("/ttsgetvoices", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+            var ttsservice = req.query.ttsservice;// Retrieve the ttsservice engine
             var jListVoices = [];
-            try {
-                // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Polly.html#describeVoices-property
-                var jfiltroVoci = {
-                    //Engine: standard | neural,
-                    //IncludeAdditionalLanguageCodes: true 
-                    //LanguageCode: arb | cmn-CN | cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-MX | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | hi-IN | ko-KR | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR,
-                    //NextToken: "STRING_VALUE"
-                };
-                node.polly.describeVoices(jfiltroVoci, function (err, data) {
-                    if (err) {
-                        RED.log.warn('ttsultimate: Error getting polly voices ' + err);
-                        jListVoices.push({ name: "Error retrieving voices. Check your AWS credentials and restart node-red", id: "Ivy" })
-                        res.json(jListVoices)
-                    } else {
-                        for (let index = 0; index < data.Voices.length; index++) {
-                            const oVoice = data.Voices[index];
-                            jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender, id: oVoice.Id })
+
+            // 23/12/2020 Based on tts service engine, return appropriate voice list
+            if (ttsservice === "polly") {
+                try {
+                    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Polly.html#describeVoices-property
+                    var jfiltroVoci = {
+                        //Engine: standard | neural,
+                        //IncludeAdditionalLanguageCodes: true 
+                        //LanguageCode: arb | cmn-CN | cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-MX | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | hi-IN | ko-KR | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR,
+                        //NextToken: "STRING_VALUE"
+                    };
+                    node.polly.describeVoices(jfiltroVoci, function (err, data) {
+                        if (err) {
+                            RED.log.warn('ttsultimate-config: Error getting polly voices ' + err);
+                            jListVoices.push({ name: "Error retrieving voices. " + err, id: "Ivy" })
+                            res.json(jListVoices)
+                        } else {
+                            for (let index = 0; index < data.Voices.length; index++) {
+                                const oVoice = data.Voices[index];
+                                jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender, id: oVoice.Id })
+                            }
+                            res.json(jListVoices)
                         }
+                    });
+
+                } catch (error) {
+                    jListVoices.push({ name: "Error " + error, id: "Ivy" })
+                    res.json(jListVoices)
+                }
+            } else if (ttsservice === "googletts") {
+                async function listVoices() {
+                    try {
+                        const [result] = await node.googleTTS.listVoices({});
+                        const voices = result.voices;
+                        voices.forEach(oVoice => {
+                            oVoice.languageCodes.forEach(languageCode => {
+                                jListVoices.push({ name: languageCode + " " + oVoice.name + " - " + oVoice.ssmlGender, id: oVoice.name + "#" + languageCode + "#" + oVoice.ssmlGender })
+                            });
+                        });
+                        res.json(jListVoices)
+                    } catch (error) {
+                        RED.log.error('ttsultimate-config: Error getting google TTS voices ' + error.message);
+                        jListVoices.push({ name: "Error getting Google voices. " + error.message, id: "Ivy" })
                         res.json(jListVoices)
                     }
-                });
+                };
+                try {
+                    listVoices();
+                } catch (error) {
+                    RED.log.error('ttsultimate-config: listVoices: Error getting google TTS voices ' + error.message);
+                }
 
-            } catch (error) {
-                jListVoices.push({ name: "Error " + error, id: "Ivy" })
-                res.json(jListVoices)
             }
         });
 
@@ -226,7 +290,7 @@ module.exports = function (RED) {
         });
 
         // 27/02/2020 Get list of filenames starting with OwnFile_
-        RED.httpAdmin.get("/getOwnFilesList", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/getOwnFilesList", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var jListOwnFiles = [];
             var sName = "";
             try {
@@ -242,7 +306,7 @@ module.exports = function (RED) {
         });
 
         // 27/02/2020 Delete OwnFile_
-        RED.httpAdmin.get("/deleteOwnFile", RED.auth.needsPermission('PollyConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/deleteOwnFile", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             try {
                 if (req.query.FileName == "DELETEallFiles") {
                     // Delete all OwnFiles_
@@ -250,7 +314,7 @@ module.exports = function (RED) {
                         fs.readdir(path.join(node.userDir, "ttspermanentfiles"), (err, files) => {
                             files.forEach(function (file) {
                                 if (file.indexOf("OwnFile_") !== -1) {
-                                    RED.log.warn("ttsultimate: Deleted file " + path.join(node.userDir, "ttspermanentfiles", file));
+                                    RED.log.warn("ttsultimate-config: Deleted file " + path.join(node.userDir, "ttspermanentfiles", file));
                                     try {
                                         fs.unlinkSync(path.join(node.userDir, "ttspermanentfiles", file));
                                     } catch (error) { }
@@ -377,7 +441,7 @@ module.exports = function (RED) {
         node.on('close', function (done) {
             // 11/11/2019 Close the Webserver
             try {
-                node.oWebserver.close(function () { RED.log.info("ttsultimate: Webserver UP. Closing down."); });
+                node.oWebserver.close(function () { RED.log.info("ttsultimate-config: Webserver UP. Closing down."); });
             } catch (error) {
 
             }
@@ -389,7 +453,7 @@ module.exports = function (RED) {
 
 
     }
-    RED.nodes.registerType("ttsultimate-config", PollyConfigNode, {
+    RED.nodes.registerType("ttsultimate-config", TTSConfigNode, {
         credentials: {
             accessKey: { type: "text" },
             secretKey: { type: "password" }
