@@ -67,7 +67,7 @@
                                 node.refreshListaFiles().then((success, error) => {
                                     $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
                                     $("#node-input-selectedFile").val("OwnFile_" + file.name);
-                                });;
+                                });
                             }, 500);
                         },
                         error: function (jqxhr, status, errorMessage) {

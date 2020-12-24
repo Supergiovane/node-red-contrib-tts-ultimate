@@ -145,11 +145,13 @@ msg.payload = "Warning. Intruder in the dinning room.";
 
 ## OUTPUT MESSAGES FROM THE NODE
 
-**msg.completed**<br/>
-"true" when the node has finished playing, <b>false</b> if the node is playing<br/>
+The node has two output pins. The first pin is to signal play status, the second one, is to signal an error.
 
-**msg.connectionerror**<br/>
-"true" when the node cannot connect to the Sonos device, <b>false</b> if the connection is restored.<br/>
+**OUTPUT PIN 1**<br/>
+Payload is ***true*** when the node has finished playing, ***false*** if the node is playing<br/>
+
+**OUTPUT PIN 2**<br/>
+Payload is ***true*** when error occurs (for example, lost connection with Sonos Player), otherwise ***false***.<br/>
 
 
 <br/>

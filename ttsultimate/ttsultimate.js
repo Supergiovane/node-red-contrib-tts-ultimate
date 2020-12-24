@@ -97,7 +97,7 @@ module.exports = function (RED) {
                     node.flushQueue();
                     node.setNodeStatus({ fill: "green", shape: "dot", text: "Sonos is connected." });
                     node.msg.connectionerror = false;
-                    node.send({ connectionerror: node.msg.connectionerror });
+                    node.send([null, { payload: node.msg.connectionerror }]);
                 }
                 node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
 
@@ -107,7 +107,7 @@ module.exports = function (RED) {
                 // 11/12/2020 Set node output to signal connectio error
                 if (node.msg.connectionerror == false) {
                     node.msg.connectionerror = true;
-                    node.send({ connectionerror: node.msg.connectionerror });
+                    node.send([null, { payload: node.msg.connectionerror }]);
                 }
                 node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 10000);
             });
@@ -305,7 +305,7 @@ module.exports = function (RED) {
                     node.setNodeStatus({ fill: "red", shape: "ring", text: "Error grouping speakers: " + error.message });
                 }
 
-                node.send(node.msg);
+                node.send([{ payload: node.msg.completed }, null]);
 
 
                 while (node.tempMSGStorage.length > 0) {
@@ -330,11 +330,11 @@ module.exports = function (RED) {
                         sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
                         // Check if cached
                         if (!fs.existsSync(sFileToBePlayed)) {
-                            node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from amazon...' });
                             try {
                                 // No file in cache. Download from tts service
                                 var data;
                                 if (node.server.ttsservice === "polly") {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Amazon...' });
                                     var params = {
                                         OutputFormat: "mp3",
                                         SampleRate: '22050',
@@ -344,6 +344,7 @@ module.exports = function (RED) {
                                     };
                                     data = await synthesizeSpeechPolly([node.server.polly, params]);
                                 } else if (node.server.ttsservice === "googletts") {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google...' });
                                     // VoiceId is: name + "#" + languageCode + "#" + ssmlGender 
                                     const params = {
                                         voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
@@ -476,20 +477,14 @@ module.exports = function (RED) {
                     node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming music: " + error.message });
                 }
 
-                // Check if someone pushed a flow message while completing the playing
-                // if (node.oTimerCacheFlowMSG !== null) clearTimeout(node.oTimerCacheFlowMSG);
-                // node.oTimerCacheFlowMSG = setTimeout(() => {
-                //     if (node.tempMSGStorage.length > 0) {
-                //         HandleQueue();
-                //     } else {
+                // Signal end playing
                 setTimeout(() => {
                     node.msg.completed = true;
-                    node.send(node.msg);
+                    node.send([{ payload: node.msg.completed }, null]);
                     node.bBusyPlayingQueue = false
                     node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
                 }, 1000)
-                //     }
-                // }, 1000);
+
 
             } catch (error) {
                 // Should'nt be there
@@ -579,7 +574,7 @@ module.exports = function (RED) {
             clearTimeout(node.oTimerSonosConnectionCheck);
             if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
             node.msg.completed = true;
-            node.send(node.msg);
+            node.send([{ payload: node.msg.completed }, null]);
             node.setNodeStatus({ fill: "green", shape: "ring", text: "Shutdown" });
             node.flushQueue();
             done();
@@ -613,7 +608,7 @@ module.exports = function (RED) {
             // Slug the text.
             var basename = slug(text);
             _sVoice = slug(_sVoice);
-            
+
             var ssml_text = isSSML ? '_ssml' : '';
 
             // Filename format: "text_voice.mp3"

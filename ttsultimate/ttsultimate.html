@@ -89,12 +89,9 @@
     </div>
 </div>
 <div id="pleaseDeploy">
-    <p align="center"> <b>PLEASE SETUP THE CONFIG ABOVE<br/>THEN SAVE, DEPLOY AND RE-OPEN THIS WINDOW</b><br/>
-        EVEN IF NODE-RED TELLS YOU<br/>
-         THAT THE NODE ISN'T CORRECTLY CONFIGURED<br/>
-    TO ACCESS THE CONFIGURATION<br/>
-IF YOU'RE RUNNING NODE-RED IN DOCKER OR SIMILAR<br/>
-BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
+    <p align="center"> <b>PLEASE COMPLETE THE CONFIGURATION<br/> OF THE ABOVE CONFIG-NODE<br/>THEN SAVE, DEPLOY AND RE-OPEN THIS WINDOW</b><br/>
+    REMEMBER: IF YOU'RE RUNNING NODE-RED<br/> IN DOCKER, HOMEMATIC OR SIMILAR<br/>
+    BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
 </div>
 </script>
 
@@ -124,7 +121,7 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
                 sonosvolume:
                 {
                     value: "20",
-                    required: true,
+                    required: false,
                     type: "text"
                 },
                 sonoshailing:
@@ -135,14 +132,27 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
                 config:
                 {
                     type: "ttsultimate-config",
-                    required: true
+                    required: false
                 },
-                property: { value: "payload", required: true, validate: RED.validators.typedInput("propertyType") },
+                property: { value: "payload", required: false, validate: RED.validators.typedInput("propertyType") },
                 propertyType: { value: "msg" },
                 rules: { value: [] }
             },
             inputs: 1,
-            outputs: 1,
+            outputs: 2,
+            outputLabels: function (i) {
+                var ret = "";
+                switch (i) {
+                    case 0:
+                        return "Play Status";
+                        break;
+                    case 1:
+                        return "Error";
+                        break;
+                    default:
+                        break;
+                }
+            },
             icon: "tts-icon.png",
             label: function () {
                 return this.name || "TTS-ultimate";
@@ -162,13 +172,21 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
                 });
                 // ###########################
 
-                // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
-                $.getJSON('ttsultimateGetEthAddress', (data) => {
+                // 24/12/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
+                // !oNodeServer.hasOwnProperty("noderedipaddress") is when the config node exists, but not deployed
+                // oNodeServer.noderedipaddress === "" is when the config node has been deployed, but not configured
+                if (oNodeServer === null || !oNodeServer.hasOwnProperty("noderedipaddress")) {
+                    $("#pleaseDeploy").show();
+                    $("#allGUI").hide();
+                } else if (oNodeServer.hasOwnProperty("noderedipaddress") && oNodeServer.noderedipaddress === "") {
+                    // Config Node deployed but not configured
+                    $("#pleaseDeploy").html("<p align=\"center\"><b>GOOD, YOU'RE ALMOST DONE</b><br/>PLEASE FINISH CONFIGURING<br/>THE CONFIG NODE ABOVE,<br/><b>THEN SAVE AND FULL DEPLOY</b>.</p>");
+                    $("#pleaseDeploy").show();
+                    $("#allGUI").hide();
+                } else {
                     $("#pleaseDeploy").hide();
                     $("#allGUI").show();
-                }).fail(function (jqxhr) {
-                    $("#allGUI").hide();
-                });;
+                };
 
 
                 // 26/10/2020 Retrieve all avaiables polly voices
@@ -179,12 +197,33 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
                         .remove()
                         .end();
                     $.getJSON("ttsgetvoices?ttsservice=" + oNodeServer.ttsservice, new Date().getTime(), (data) => {
-                        data.sort(compareVoices).forEach(oVoice => {
+                        var aVoices = data.sort(compareVoices);
+                        for (let index = 0; index < aVoices.length; index++) {
+                            const oVoice = aVoices[index];
                             $("#node-input-voice").append($("<option></option>")
                                 .attr("value", oVoice.id)
                                 .text(oVoice.name)
                             )
-                        });
+                            if (oVoice.name.indexOf("ttsultimategooglecredentials") > -1) {
+                                // Cred file not present or invalid
+                                // The only way is to wait some time, then refresh
+                                let myNotification = RED.notify("Either you haven't uploaded the credential file, or the file is invalid. " + oVoice.name,
+                                    {
+                                        modal: true,
+                                        fixed: true,
+                                        type: 'error',
+                                        buttons: [
+                                            {
+                                                "text": "OK",
+                                                "class": "primary",
+                                                "click": function (e) {
+                                                    myNotification.close();
+                                                }
+                                            }]
+                                    });
+                                break;
+                            };
+                        };
                         $("#node-input-voice").val(node.voice);
                     });
                     function compareVoices(a, b) {
@@ -257,7 +296,7 @@ BE SURE TO FORWARD PORTS 1980 AND 1400 </p>
                                     node.refreshHailingList().then((success, error) => {
                                         $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
                                         $("#node-input-sonoshailing").val("Hailing_" + file.name);
-                                    });;
+                                    });
                                 }, 500);
                             },
                             error: function (jqxhr, status, errorMessage) {

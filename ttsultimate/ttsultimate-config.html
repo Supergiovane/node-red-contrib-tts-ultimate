@@ -7,17 +7,17 @@
             noderedipaddress:
             {
                 value: "",
-                required: true,
+                required: false,
                 type: "text"
             },
             noderedport:
             {
                 value: "1980",
-                required: true,
+                required: false,
                 type: "text"
             },
-            purgediratrestart: { value: "leave", required: true },
-            ttsservice: { value: "polly", required: true }
+            purgediratrestart: { value: "leave", required: false },
+            ttsservice: { value: "polly", required: false }
 
         },
         credentials: {
@@ -29,6 +29,15 @@
         },
         oneditprepare: function () {
             var node = this;
+
+            // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
+            $.getJSON('ttsultimateGetEthAddress', (data) => {
+                $("#pleaseDeploy").hide();
+                $("#allGUI").show();
+            }).fail(function (jqxhr) {
+                $("#pleaseDeploy").show();
+                $("#allGUI").hide();
+            });
 
             if (typeof node.noderedipaddress === "undefined") {
                 // Put the default address of the machine
@@ -113,54 +122,57 @@
 
 
 <script type="text/x-red" data-template-name="ttsultimate-config">
-    <div class="form-tips" style="margin-top: 8px;background-color:#ffcccc;text-align:center">If <b>YOU MUST RESTART NODE-RED</b><br/> AFTER EACH CHANGE IN THIS WINDOW!</div>
-    <br/>
-    <div class="form-row">
-        <label for="node-config-input-name"><i class="fa fa-user"></i> Name</label>
-        <input type="text" id="node-config-input-name">
+    <div id="pleaseDeploy">
+        <p align="center"> THIS IS YOUR FIRST CONFIG-NODE<br/> AND I NEED TO CREATE SOME THINGS<br/> BEFORE LETTING YOU PROCEED.<br/><b>PLEASE SAVE, FULL DEPLOY <br/>AND RE-OPEN THIS WINDOW</b><br/>
+            TO BE ABLE TO FINISH THE CONFIGURATION SETUP<br/>
+            </p>
     </div>
-
-    <div class="form-row">
-        <label for="node-config-input-noderedipaddress"><i class="fa fa-globe"></i> Node-Red IP</label>
-        <input type="text" id="node-config-input-noderedipaddress">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-noderedport"><i class="fa fa-globe"></i> Webserver port, default 1980</label>
-        <input type="text" id="node-config-input-noderedport">
-        <div class="form-tips" style="margin-top: 8px;background-color:yellow;text-align:center">Option above: do not use 1880 or any port already in use by node-red</div>
-    </div>
-
-    <div class="form-row">
-        <label for="node-config-input-ttsservice"><i class="fa fa-comments"></i> TTS Service</label>
-        <select id="node-config-input-ttsservice">
-            <option value="polly">Amazon Polly</option>
-            <option value="googletts">Google TTS</option>
-        </select>
-    </div>
-    
-    <div id="pollyForm">
+    <div id="allGUI">
+        <div class="form-tips" style="margin-top: 8px;background-color:#ffcccc;text-align:center">If <b>YOU MUST RESTART NODE-RED</b><br/> AFTER EACH CHANGE IN THIS WINDOW!</div>
+        <br/>
         <div class="form-row">
-            <label for="node-config-input-accessKey"><i class="fa fa-user"></i> AWS Access key</label>
-            <input type="text" id="node-config-input-accessKey">
+            <label for="node-config-input-name"><i class="fa fa-user"></i> Name</label>
+            <input type="text" id="node-config-input-name">
         </div>
         <div class="form-row">
-            <label for="node-config-input-secretKey"><i class="fa fa-user"></i> AWS Secret key</label>
-            <input type="password" id="node-config-input-secretKey">
+            <label for="node-config-input-noderedipaddress"><i class="fa fa-globe"></i> Node-Red IP</label>
+            <input type="text" id="node-config-input-noderedipaddress">
         </div>
-    </div>
-    <div id="GoogleForm"
         <div class="form-row">
-            <label><i class="fa fa-upload"></i> Google credentials file path</label>
-            <input id="googleCredentialsPath" type="file">
+            <label for="node-config-input-noderedport"><i class="fa fa-globe"></i> Webserver port, default 1980</label>
+            <input type="text" id="node-config-input-noderedport">
+            <div class="form-tips" style="margin-top: 8px;background-color:yellow;text-align:center">Option above: do not use 1880 or any port already in use by node-red</div>
         </div>
-    </div>
-    
-    <div class="form-row">
-        <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
-        <select id="node-config-input-purgediratrestart">
-            <option value="purge">Purge and delete the TTS cache folder at deploy or restart(default)</option>
-            <option value="leave">Leave the TTS cache folder untouched (not suggested if you have less disk space)</option>
-        </select>
+        <div class="form-row">
+            <label for="node-config-input-ttsservice"><i class="fa fa-comments"></i> TTS Service</label>
+            <select id="node-config-input-ttsservice">
+                <option value="polly">Amazon Polly</option>
+                <option value="googletts">Google TTS</option>
+            </select>&nbsp&nbsp<b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
+        </div>
+        <div id="pollyForm">
+            <div class="form-row">
+                <label for="node-config-input-accessKey"><i class="fa fa-user"></i> AWS Access key</label>
+                <input type="text" id="node-config-input-accessKey"><b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-secretKey"><i class="fa fa-user"></i> AWS Secret key</label>
+                <input type="password" id="node-config-input-secretKey">
+            </div>
+        </div>
+        <div id="GoogleForm">
+            <div class="form-row">
+                <label><i class="fa fa-upload"></i> Google credentials file path</label>
+                <input style="width:180px" id="googleCredentialsPath" type="file">
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
+            <select id="node-config-input-purgediratrestart">
+                <option value="purge">Purge and delete the TTS cache folder at deploy or restart(default)</option>
+                <option value="leave">Leave the TTS cache folder untouched (not suggested if you have less disk space)</option>
+            </select>
+        </div>
     </div>
     
 </script>
