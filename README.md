@@ -21,7 +21,6 @@
 </details>
 
 <br/>
-<br/>
 
 ## DESCRIPTION
 This node transforms a text into a speech audio. It supports many voice languages. You can hear the voice through Sonos.<br/>
