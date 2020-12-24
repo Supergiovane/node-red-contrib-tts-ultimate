@@ -119,24 +119,33 @@ Here you can add all additional players that will be grouped toghether to the *M
 
 # INPUT MESSAGES TO THE NODE <br/>
 
-**msg.volume** set the volume (values between "0" and "100" with quotes)</br>
-**msg.nohailing** temporarely doesn't play the Hailing sound prior to the message (values "true" or "1" with quotes)</br>
-**msg.payload** the text to be spoken (for example msg.payload = "Hello World!";). You can also play an mp3 stored on an http server, by passing the URL to the payload ( <code>msg.payload = "http://www.myserver.com/alarm.mp3"</code>)</br>
-**msg.sonoshailing** Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the <b>.mp3</b> extenson. For example *node.sonoshailing="ComputerCall"*<br/>
+**msg.volume**<br/>
+Set the volume (values between "0" and "100" with quotes)</br>
+
+**msg.nohailing**<br/>
+Temporarely doesn't play the Hailing sound prior to the message (values "true" or "1" with quotes)</br>
+
+**msg.payload** <br/>
+The text to be spoken (for example msg.payload = "Hello World!";). You can also play an mp3 stored on an http server, by passing the URL to the payload ( <code>msg.payload = "http://www.myserver.com/alarm.mp3"</code>)</br>
+
+**msg.sonoshailing**<br/>
+Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the <b>.mp3</b> extenson. For example *node.sonoshailing="ComputerCall"*<br/>
 
 *Example of using http mp3 in a function node*
 
 ```js
-node.send({sonoshailing:"ComputerCall"};
-node.send({payload:"http://192.125.22.44/intruderalarm.mp3"};
-node.send({payload:"Warning. Intruder in the dinning room."};
+msg.sonoshailing = "IntruderAlert";
+msg.payload = "http://192.125.22.44/intruderalarm.mp3";
+msg.payload = "Warning. Intruder in the dinning room.";
 ```
 
 # OUTPUT MESSAGES FROM THE NODE
 
-**msg.completed** "true" when the node has finished playing, <b>false</b> if the node is playing<br/>
-**msg.connectionerror** "true" when the node cannot connect to the Sonos device, <b>false</b> if the connection is restored.<br/>
+**msg.completed**<br/>
+"true" when the node has finished playing, <b>false</b> if the node is playing<br/>
 
+**msg.connectionerror**<br/>
+"true" when the node cannot connect to the Sonos device, <b>false</b> if the connection is restored.<br/>
 
 
 <br/><br/><br/>
@@ -166,8 +175,11 @@ Select a file to be played. You can upload one or multiple files at the same tim
 
 ## INPUT MESSAGE 
 
-**msg.payload = true** Begin play of the message <br/>
-**msg.selectedFile = "Garage door open"** Overrides the selected message and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your own files, in the node config window) and do not include the <b>.mp3</b> extenson.<br/>
+**msg.payload = true**<br/>
+Begin play of the message <br/>
+
+**msg.selectedFile = "Garage door open"** <br/>
+Overrides the selected message and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your own files, in the node config window) and do not include the <b>.mp3</b> extenson.<br/>
 
     
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
