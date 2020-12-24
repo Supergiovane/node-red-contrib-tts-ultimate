@@ -3,6 +3,12 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.3</b> 24 December 2020<br/>
+- NEW: Added output PIN to signal errors only.<br/>
+- CHANGE: now the errore are sent to Output PIN 2, to better separate the messages.<br/>
+- The setup process for newly created configuration nodes is yet more friendly.
+</p>
+<p>
 <b>Version 1.0.2</b> 24 December 2020<br/>
 - Cosmetic refinements.<br/>
 - Update path from SonosPollyTTS added in the README.<br/>
