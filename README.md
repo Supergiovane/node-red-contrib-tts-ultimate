@@ -24,43 +24,36 @@
 <br/>
 
 ## DESCRIPTION
-This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).
 This node transforms a text into a speech audio. It supports many voice languages. You can hear the voice through Sonos.<br/>
-It supports PLAYERS GROUPING.<br/>
-Multi TTS engines: Amazon Polly and Google TTS.<br/>
 You can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 If a previously music queue was playing, once the speech has finished, the node will resume the music queue at the exact track, at the exact seek time.<br/>
+This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 **Node v.10.0.0 or newer is needed**.
 
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday).
+[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 ## CHANGELOG
 * See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
+* **Amazon Voices and Google Voices** are both supported, wiht all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
-* **Automatic resume of music** queue.
-* **Automatic resume of radio station**. If a radio station support seeking, the node will resume the radio at exact seek time.
-* **TTS caching**. Amazon AWS charges you if you use Polly for a very high rate of text to speech request. The node caches the TTS, so if you requests the same TTS the second time, the node will take it from the cache instead of asking to the Amazon Polly service.
+* **Automatic resume of music** queue, including radio stations, at exact track, at exact time.
+* **TTS caching**. Amazon AWS and Google charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
 * **UPLOAD your own audio files**. You can upload your own audio files with OwnFile node.
-* **Can work offline**. You can use your own audio files to make the node works offline. If you use the node with the integrated TTS Polly, thank to the **offline cache**, once you played the TTS only one time, the node will cache this TTS and you can use it **even without internet connection**. 
+* **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
 * Send a simple payload with the text you want to speech out. For example <code>node.send({payload:"Hello there!"});</code>.
-* **Works with node-red in HTTP and in HTTPS** mode.
-
-<br/>
-
-> IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-> PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
-> PLEASE ALLOW MDNS AND UDP AS WELL
-
-<br/>
 
 
 
 <br/><br/>
 
-# TTS-Ultimate CONFIG NODE
+# CONFIGURATION NODE
+Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
+IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
+PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
+PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
 You can choose between Amazon AWS (Polly) or Google TTS engines.
@@ -70,9 +63,9 @@ You can choose between Amazon AWS (Polly) or Google TTS engines.
 * **TTS Service using Amazon AWS (Polly)**<br/>
     > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
    
-   **Polly Access key**<br/>
+   **AWS Access key**<br/>
    AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.<br/><br/>
-   **Polly Secret key**<br/>
+   **AWS Secret key**<br/>
    AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
 <br/>
 <br/><br/>
@@ -100,13 +93,13 @@ Leave the TTS cache folder untouched (not suggested if you have less disk space)
 
 
 
-# ttsultimate NODE
+# TTS-ULTIMATE NODE
 
-**Polly Config**<br/>
-Create a config with your AWS credentials. If you put incorrect credentials, you'll see this error in the node-red's debug window: *"The security token included in the request is invalid."*
+**Config**<br/>
+Select the CONFIG NODE, a config with your Amazon AWS or Gootle TTS credentials, as stated above.
 
-**Polly Voice**<br/>
-Select your preferred voice
+**Voice**<br/>
+Select your preferred voice. If you use Amazon, Polly voices will be displayed. If yoyu use Google TTS, google voices will be displayed.
 
 **Sonos Volume** <br/>
 set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume="40";</code> to the node)
@@ -117,7 +110,7 @@ before the first TTS message of the message queues, Sonos will play an "hailing"
 
 **Main Sonos Player** <br/>
 Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server).<br/>
-Starting from Version 1.1.16, it's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator.
+It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator.
 
 **Additional Players** <br/>
 Here you can add all additional players that will be grouped toghether to the *Main Sonos Player* coordinator group. You can add a player using the "ADD" button, below the list.

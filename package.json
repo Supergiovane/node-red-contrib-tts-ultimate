@@ -1,7 +1,7 @@
 {
   "name": "node-red-contrib-tts-ultimate",
-  "version": "2.1.0",
-  "description": "Node-Red TTS with Sonos and Amazon Polly, Google TTS or with your own local mp3 announcement files. Transforms the text in speech and hear it using Sonos player. Can work OFFLINE as well! This node is specific for security alarm announcement, doorbell, weather annoucement etc.",
+  "version": "1.0.0",
+  "description": "Transforms the text in speech and hear it using Sonos player. Works with Sonos + Amazon, Google or your own voice.",
   "main": "index.js",
   "scripts": {
     "test": "test"

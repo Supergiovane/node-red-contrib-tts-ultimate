@@ -4,13 +4,14 @@
 
 
 <p>
-<b>Version 2.1.0</b> December 2020<br/>
-- First release of TTS-Ultimate, based on SonosPollyTTS (now deprecated).
+<b>Version 1.0.0</b> 24 December 2020<br/>
+- First release of TTS-Ultimate, based on SonosPollyTTS (now deprecated).<br/>
+- NEW: support for both Amazon Polly and Google TTS.<br/>
 </p>
 <br/>
 <br/>
 <br/>
------------------ OLD SONOSPOLLYTTS NODE -----------------------
+--------- CHANGELOG BELOW COMES FROM OLD SONOSPOLLYTTS NODE -----------------------
 <p>
 <b>Version 2.0.5</b> December 2020<br/>
 - FIX: if you pass a numeric value as payload, the node thows an error in the status and the payload is not handled.</br>
