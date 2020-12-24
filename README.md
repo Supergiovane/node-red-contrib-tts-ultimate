@@ -100,7 +100,7 @@ Leave the TTS cache folder untouched (not suggested if you have less disk space)
 Select the CONFIG NODE, a config with your Amazon AWS or Gootle TTS credentials, as stated above.
 
 **Voice**<br/>
-Select your preferred voice. If you use Amazon, Polly voices will be displayed. If yoyu use Google TTS, google voices will be displayed.
+Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google TTS, google voices will be displayed.
 
 **Sonos Volume** <br/>
 set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume="40";</code> to the node)
