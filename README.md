@@ -153,6 +153,9 @@ Payload is ***true*** when the node has finished playing, ***false*** if the nod
 **OUTPUT PIN 2**<br/>
 Payload is ***true*** when error occurs (for example, lost connection with Sonos Player), otherwise ***false***.<br/>
 
+In this sample, you see the TTS-Ultimate node connected with two debug nodes, to catch the errors.
+
+<img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/error.png' width="80%">
 
 <br/>
 
