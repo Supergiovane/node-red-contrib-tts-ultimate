@@ -25,7 +25,7 @@
 
 ## DESCRIPTION
 This node transforms a text into a speech audio. It supports many voice languages. You can hear the voice through Sonos.<br/>
-You can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
+Uses Amazon Polly and Google TTS, but you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 If a previously music queue was playing, once the speech has finished, the node will resume the music queue at the exact track, at the exact seek time.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 **Node v.10.0.0 or newer is needed**.
@@ -69,6 +69,7 @@ You can choose between Amazon AWS (Polly) or Google TTS engines.
    AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
 <br/>
 <br/><br/>
+
 * **TTS Service using Google TTS**<br/><br/>
    **Google credentials file path**<br/>
    Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
