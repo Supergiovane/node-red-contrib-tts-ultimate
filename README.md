@@ -91,7 +91,7 @@ normally 1980. This is the IP of your machine, running node-red
 Purge and delete the TTS cache folder at deploy or restart(default): on each deploy or node-red restart, delete all tts files in the cache. This is useful not to run out of disk space, in case you've a lot of TTS speech files.<br/>
 Leave the TTS cache folder untouched (not suggested if you have less disk space): don't delete any tts file. Useful if you wish to keep the tts files, even in case of internet outages.
 
-
+<br/>
 
 # TTS-ULTIMATE NODE
 
@@ -147,13 +147,13 @@ msg.payload = "Warning. Intruder in the dinning room.";
 "true" when the node cannot connect to the Sonos device, <b>false</b> if the connection is restored.<br/>
 
 
-<br/><br/><br/>
+<br/>
 
 # OWNFILE NODE CONFIGURATION
 
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/of.png' width="80%">
 
-
+<br/>
 
 <details><summary> VIEW SAMPLE CODE</summary>
 

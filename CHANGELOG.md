@@ -15,7 +15,7 @@
 <br/>
 <br/>
 
-# --------- CHANGELOG BELOW COMES FROM OLD SONOSPOLLYTTS NODE -----------------------
+# -- CHANGELOG BELOW COMES FROM OLD SONOSPOLLYTTS NODE --
 
 <p>
 <b>Version 2.0.5</b> December 2020<br/>
