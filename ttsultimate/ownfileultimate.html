@@ -1,7 +1,7 @@
 <script type="text/javascript">
 
-    RED.nodes.registerType("ownfile", {
-        category: 'ttsultimate',
+    RED.nodes.registerType("ownfileultimate", {
+        category: 'TTSUltimate',
         defaults: {
             name: { value: "" },
             selectedFile: { value: "", required: true }
@@ -151,7 +151,7 @@
 </script>
 
 
-<script type="text/x-red" data-template-name="ownfile">
+<script type="text/x-red" data-template-name="ownfileultimate">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Own File">
@@ -170,7 +170,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="ownfile">
+<script type="text/x-red" data-help-name="ownfileultimate">
 <p>This node allow you to play your own .mp3 file.<br/>
 Please view the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate" target="_blank">README file</a>. You need to link the output of this node, to the input of your ttsultimate node.<br/>
 You can upload multiple files at once, but only mp3 files are allowed.</p>

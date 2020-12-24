@@ -6,7 +6,7 @@ module.exports = function (RED) {
     var fs = require('fs');
     var path = require('path');
 
-    function ownfile(config) {
+    function ownfileultimate(config) {
         RED.nodes.createNode(this, config);
         var node = this;
         node.selectedFile = config.selectedFile || "";
@@ -23,5 +23,5 @@ module.exports = function (RED) {
             }
         });
     }
-    RED.nodes.registerType("ownfile", ownfile);
+    RED.nodes.registerType("ownfileultimate", ownfileultimate);
 };

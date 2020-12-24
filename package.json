@@ -26,7 +26,7 @@
     "nodes": {
       "ttsultimate": "ttsultimate/ttsultimate.js",
       "ttsultimate-config": "ttsultimate/ttsultimate-config.js",
-      "ownfile": "ttsultimate/ownfile.js"
+      "ownfile": "ttsultimate/ownfileultimate.js"
     }
   },
   "author": "Supergiovane",
