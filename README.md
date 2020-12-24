@@ -117,7 +117,7 @@ It's possibile to group players, so your announcement can be played on all selec
 Here you can add all additional players that will be grouped toghether to the *Main Sonos Player* coordinator group. You can add a player using the "ADD" button, below the list.
 
 
-# INPUT MESSAGES TO THE NODE <br/>
+## INPUT MESSAGES TO THE NODE <br/>
 
 **msg.volume**<br/>
 Set the volume (values between "0" and "100" with quotes)</br>
@@ -139,7 +139,7 @@ msg.payload = "http://192.125.22.44/intruderalarm.mp3";
 msg.payload = "Warning. Intruder in the dinning room.";
 ```
 
-# OUTPUT MESSAGES FROM THE NODE
+## OUTPUT MESSAGES FROM THE NODE
 
 **msg.completed**<br/>
 "true" when the node has finished playing, <b>false</b> if the node is playing<br/>
