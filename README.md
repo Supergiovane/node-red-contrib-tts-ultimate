@@ -45,7 +45,14 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
 * Send a simple payload with the text you want to speech out. For example <code>node.send({payload:"Hello there!"});</code>.
 
-
+>
+> ***UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE***
+>
+> Supergiovane takes care about your brain and your time.<br/>
+> Install TTS-Ultimate. Both SonosPollyTTS and TTS-Ultimate can cohexist.<br/>
+> Then just delete your old SonosPollyTTS nodes and replace it with TTS-Ultimate nodes.<br/>
+> The cache will remain the same. Your own audio files and hailing files won't be touched. You'll find it again in TTS-Ultimate<br/>
+> 
 
 <br/><br/>
 

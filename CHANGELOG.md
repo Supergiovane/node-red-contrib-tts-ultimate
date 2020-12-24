@@ -3,8 +3,9 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
-<b>Version 1.0.1</b> 24 December 2020<br/>
+<b>Version 1.0.2</b> 24 December 2020<br/>
 - Cosmetic refinements.<br/>
+- Update path from SonosPollyTTS added in the README.<br/>
 </p>
 <p>
 <b>Version 1.0.0</b> 24 December 2020<br/>
