@@ -68,7 +68,7 @@ You can choose between Amazon AWS (Polly) or Google TTS engines.
    **AWS Secret key**<br/>
    AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
 <br/>
-<br/><br/>
+
 
 * **TTS Service using Google TTS**<br/><br/>
    **Google credentials file path**<br/>
