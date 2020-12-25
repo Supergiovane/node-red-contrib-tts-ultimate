@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.4</b> 25 December 2020<br/>
+- Added deprecation warning for old SonosPollyTTS users.<br/>
+</p>
+<p>
 <b>Version 1.0.3</b> 24 December 2020<br/>
 - NEW: Added output PIN to signal errors only.<br/>
 - CHANGE: now the errore are sent to Output PIN 2, to better separate the messages.<br/>
