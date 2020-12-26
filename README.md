@@ -33,7 +33,7 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
-* **Amazon Voices, Gooogle Translate Voices and Google TTS Voices** are all supported, wiht all avaiables languages and genders.
+* **Amazon Voices, Gooogle Translate Voices and Google TTS Voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
 * **Automatic resume of music** queue, including radio stations, at exact track, at exact time.
