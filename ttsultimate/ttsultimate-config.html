@@ -60,9 +60,12 @@
                 if ($("#node-config-input-ttsservice").val() == "polly") {
                     $("#pollyForm").show();
                     $("#GoogleForm").hide();
-                } else {
+                } else if ($("#node-config-input-ttsservice").val() == "googletts") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").show();
+                }else{
+                    $("#pollyForm").hide();
+                    $("#GoogleForm").hide();
                 }
             });
             // ##########################################################

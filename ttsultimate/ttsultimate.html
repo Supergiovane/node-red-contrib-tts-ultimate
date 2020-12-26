@@ -343,6 +343,7 @@
                 // ##########################################################
 
 
+                //#region ADDITIONAL PLAYERS
                 // 20/03/2020 ADDITIONAL PLAYERS
                 // ##########################################################
                 var previousValueType = { value: "prev", label: this._("switch.previous"), hasValue: false };
@@ -407,7 +408,8 @@
                     $("#node-input-rule-container").editableList('addItem', { r: rule, i: i });
                 }
                 // ##########################################################
-
+                //#endregion
+                
                 node.refreshHailingList();
 
             }, oneditsave: function () {
