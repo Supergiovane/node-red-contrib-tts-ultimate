@@ -5,6 +5,7 @@
 <p>
 <b>Version 1.0.4</b> 26 December 2020<br/>
 - NEW: added google translate engine. With this, you don't even need credentials. It works immediately.<br/>
+- Google translate engine accepts max 200 chars per row. Supergiovane makes you happy again. The node will automatically split single messages in many messages with lenght minor as 200 chars each.<br/>
 </p>
 <p>
 <b>Version 1.0.4</b> 25 December 2020<br/>

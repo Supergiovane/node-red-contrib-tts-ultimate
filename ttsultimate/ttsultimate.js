@@ -553,7 +553,41 @@ module.exports = function (RED) {
                 node.tempMSGStorage.push(hailingMSG);
                 node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Queued Hail' });
             }
-            node.tempMSGStorage.push(msg);
+
+            // 26/12/2020 Google Translate service allows only 200 char max. I must split the message
+            const iLimitTTSGoogleTranslate = 190;
+            if (node.server.ttsservice === "googletranslate") {
+                if (msg.payload.length >= iLimitTTSGoogleTranslate) {
+                    const aWords = msg.payload.split(" "); // Get all words
+                    var sTemp = "";
+                    for (let index = 0; index < aWords.length; index++) {
+                        const word = aWords[index];
+                        if (sTemp.length + word.length + 1 <= iLimitTTSGoogleTranslate) {
+                            sTemp += " " + word;
+                            console.log("Aggiungo " + sTemp);
+                        } else {
+                            // Limit reached, push this words and resets sTemp
+                            var oMsg = RED.util.cloneMessage(msg);
+                            oMsg.payload = sTemp;
+                            node.tempMSGStorage.push(oMsg);
+                            sTemp = word;
+                            console.log("BANANA " + JSON.stringify(oMsg));
+                        }
+                    }
+                    // Is there something remaining?
+                    if (sTemp !== "") {
+                        var oMsg = RED.util.cloneMessage(msg);
+                        oMsg.payload = sTemp;
+                        node.tempMSGStorage.push(oMsg);
+                        console.log("BANANA " + JSON.stringify(oMsg));
+                    }
+                } else {
+                    node.tempMSGStorage.push(msg);
+                }
+            } else {
+                node.tempMSGStorage.push(msg);
+            }
+
 
             // Starts main queue watching
             node.waitForQueue();
