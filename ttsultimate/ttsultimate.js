@@ -360,7 +360,7 @@ module.exports = function (RED) {
                                         voice: node.voiceId,
                                         slow: false // optional
                                     };
-                                    data = await synthesizeSpeechGoogleTranslate([node.server.googleTranslate, params]);
+                                    data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
                                 }
                                 // Save the downloaded file into the cache
                                 fs.writeFile(sFileToBePlayed, data, function (error, result) {
@@ -370,7 +370,7 @@ module.exports = function (RED) {
                                     }
                                 });
                             } catch (error) {
-                                node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading from amazon:' + error.message });
+                                node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
                                 sFileToBePlayed = "";
                             }
                         }
@@ -613,16 +613,15 @@ module.exports = function (RED) {
             });
         }
         // 26/12/2020 Google TTS Service
-        function synthesizeSpeechGoogleTranslate([ttsService, params]) {
-            return new Promise((resolve, reject) => {
-                ttsService.synthesize(params, function (err, data) {
-                    if (err !== null) {
-                        return reject(err);
-                    }
-                    resolve(data.audioContent);
-                });
-            });
-        }
+        async function synthesizeSpeechGoogleTranslate(ttsService, params) {
+            try {
+                const buffer = await ttsService.synthesize(params);
+                return (buffer);
+            } catch (error) {
+                throw (error);
+            }
+        };
+
 
         function getFilename(text, _sVoice, isSSML, extension) {
             // Slug the text.

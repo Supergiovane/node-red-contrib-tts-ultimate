@@ -3,7 +3,7 @@ module.exports = function (RED) {
 
     const AWS = require('aws-sdk');
     const GoogleTTS = require('@google-cloud/text-to-speech');
-    const GootleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
+    const GoogleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
@@ -95,7 +95,7 @@ module.exports = function (RED) {
 
         }
         node.googleTTS = new GoogleTTS.TextToSpeechClient();
-        node.googleTranslate = GootleTranslate;
+        node.googleTranslateTTS = GoogleTranslate;
         //#endregion
 
 
@@ -268,7 +268,7 @@ module.exports = function (RED) {
             } else if (ttsservice === "googletranslate") {
                 async function listVoices() {
                     try {
-                        const voices = node.googleTranslate.voices;
+                        const voices = node.googleTranslateTTS.voices;
                         voices.forEach(oVoice => {
                             jListVoices.push({ name: oVoice.name + " - " + oVoice.code, id: oVoice.code })
                         });

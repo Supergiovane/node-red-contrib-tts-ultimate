@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.4</b> 26 December 2020<br/>
+- NEW: added google translate engine. With this, you don't even need credentials. It works immediately.<br/>
+</p>
+<p>
 <b>Version 1.0.4</b> 25 December 2020<br/>
 - Added deprecation warning for old SonosPollyTTS users.<br/>
 </p>

@@ -22,9 +22,8 @@
 
 
 ## DESCRIPTION
-This node transforms a text into a speech audio. It supports many voice languages. You can hear the voice through Sonos.<br/>
-Uses Amazon Polly and Google TTS, but you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
-If a previously music queue was playing, once the speech has finished, the node will resume the music queue at the exact track, at the exact seek time.<br/>
+This node transforms a text into a speech audio. You can hear the voice through Sonos.<br/>
+Uses Amazon Polly and Google TTS voices (even without credentials nor registration), and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 **Node v.10.0.0 or newer is needed**.
 
@@ -34,7 +33,7 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
-* **Amazon Voices and Google Voices** are both supported, wiht all avaiables languages and genders.
+* **Amazon Voices, Gooogle Translate Voices and Google TTS Voices** are all supported, wiht all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
 * **Automatic resume of music** queue, including radio stations, at exact track, at exact time.
@@ -61,17 +60,23 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Amazon AWS (Polly) or Google TTS engines.
+You can choose between Google (without credentials), Amazon AWS (Polly) or Google TTS engines.
 <br/>
+<br/>
+
+* **TTS Service using Google (without credentials)**<br/>
+   This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
+   
 <br/>
 
 * **TTS Service using Amazon AWS (Polly)**<br/>
     > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
    
    **AWS Access key**<br/>
-   AWS access key credential. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.<br/><br/>
+   AWS access key credential
+   <br/><br/>
    **AWS Secret key**<br/>
-   AWS access Secret key. Optional. If you do not wish to use the Amazon Polly service or wish to use the node totally OFFLINE, leave it blank and use the **OwnFile** node. Please see the below in this page.
+   AWS access Secret key. 
 <br/>
 
 
@@ -89,28 +94,31 @@ You can choose between Amazon AWS (Polly) or Google TTS engines.
 set IP of your node-red machine.
 
 **Host Port**<br/>
-normally 1980. This is the IP of your machine, running node-red
+Default 1980. Choose a free port.
 
 **TTS Cache**
 <br/>
-Purge and delete the TTS cache folder at deploy or restart(default): on each deploy or node-red restart, delete all tts files in the cache. This is useful not to run out of disk space, in case you've a lot of TTS speech files.<br/>
-Leave the TTS cache folder untouched (not suggested if you have less disk space): don't delete any tts file. Useful if you wish to keep the tts files, even in case of internet outages.
-
+***Purge and delete the TTS cache folder at deploy or restart***<br/>
+On each deploy or node-red restart, delete all tts files in the cache. This is useful not to run out of disk space, in case you've a lot of TTS speech files.
+<br/>
+***Leave the TTS cache folder untouched*** (suggested only if you have enough disk space)<br/>
+Don't delete the files cached. Useful if you wish to keep the tts files, even in case of internet outages, node-red restart or reboots.
+<br/> 
 <br/>
 
 # TTS-ULTIMATE NODE
 
 **Config**<br/>
-Select the CONFIG NODE, a config with your Amazon AWS or Gootle TTS credentials, as stated above.
+Select the TTS SERVICE ENGINE NODE, as stated above.
 
 **Voice**<br/>
-Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google TTS, google voices will be displayed.
+Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
 
 **Sonos Volume** <br/>
-set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume="40";</code> to the node)
+Set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume="40";</code> to the node)
 
 **Sonos Hailing**<br/>
-before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it.
+Before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it.
 
 
 **Main Sonos Player** <br/>
@@ -140,6 +148,7 @@ Overrides the selected hailing and plays the filename you passed in. Please doub
 ```js
 msg.sonoshailing = "IntruderAlert";
 msg.payload = "http://192.125.22.44/intruderalarm.mp3";
+// OR
 msg.payload = "Warning. Intruder in the dinning room.";
 ```
 
