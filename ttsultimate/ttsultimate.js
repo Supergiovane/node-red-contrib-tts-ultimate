@@ -344,14 +344,23 @@ module.exports = function (RED) {
                                     };
                                     data = await synthesizeSpeechPolly([node.server.polly, params]);
                                 } else if (node.server.ttsservice === "googletts") {
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google...' });
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google TTS...' });
                                     // VoiceId is: name + "#" + languageCode + "#" + ssmlGender 
                                     const params = {
                                         voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
                                         audioConfig: { audioEncoding: "MP3" },
                                     };
                                     params.input = node.ssml === "text" ? { text: msg } : { ssml: msg };
-                                    data = await synthesizeSpeechGoogle([node.server.googleTTS, params]);
+                                    data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
+                                } else if (node.server.ttsservice === "googletranslate") {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google Translate...' });
+                                    // VoiceId is: code 
+                                    const params = {
+                                        text: msg,
+                                        voice: node.voiceId,
+                                        slow: false // optional
+                                    };
+                                    data = await synthesizeSpeechGoogleTranslate([node.server.googleTranslate, params]);
                                 }
                                 // Save the downloaded file into the cache
                                 fs.writeFile(sFileToBePlayed, data, function (error, result) {
@@ -593,9 +602,20 @@ module.exports = function (RED) {
             });
         }
         // 23/12/2020 Google TTS Service
-        function synthesizeSpeechGoogle([ttsService, params]) {
+        function synthesizeSpeechGoogleTTS([ttsService, params]) {
             return new Promise((resolve, reject) => {
                 ttsService.synthesizeSpeech(params, function (err, data) {
+                    if (err !== null) {
+                        return reject(err);
+                    }
+                    resolve(data.audioContent);
+                });
+            });
+        }
+        // 26/12/2020 Google TTS Service
+        function synthesizeSpeechGoogleTranslate([ttsService, params]) {
+            return new Promise((resolve, reject) => {
+                ttsService.synthesize(params, function (err, data) {
                     if (err !== null) {
                         return reject(err);
                     }

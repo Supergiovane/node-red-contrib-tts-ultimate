@@ -17,7 +17,7 @@
                 type: "text"
             },
             purgediratrestart: { value: "leave", required: false },
-            ttsservice: { value: "polly", required: false }
+            ttsservice: { value: "googletranslate", required: false }
 
         },
         credentials: {
@@ -148,6 +148,7 @@
             <select id="node-config-input-ttsservice">
                 <option value="polly">Amazon Polly</option>
                 <option value="googletts">Google TTS</option>
+                <option value="googletranslate">Google without authentication</option>                
             </select>&nbsp&nbsp<b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
         </div>
         <div id="pollyForm">

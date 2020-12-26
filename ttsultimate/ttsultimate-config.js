@@ -3,6 +3,7 @@ module.exports = function (RED) {
 
     const AWS = require('aws-sdk');
     const GoogleTTS = require('@google-cloud/text-to-speech');
+    const GootleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
@@ -83,7 +84,7 @@ module.exports = function (RED) {
             apiVersion: '2016-06-10'
         };
         node.polly = new AWS.Polly(params);
-        
+
         if (node.ttsservice === "googletts") {
             try {
                 // Set the environment variable
@@ -94,6 +95,7 @@ module.exports = function (RED) {
 
         }
         node.googleTTS = new GoogleTTS.TextToSpeechClient();
+        node.googleTranslate = GootleTranslate;
         //#endregion
 
 
@@ -253,7 +255,7 @@ module.exports = function (RED) {
                         res.json(jListVoices)
                     } catch (error) {
                         RED.log.error('ttsultimate-config: Error getting google TTS voices ' + error.message);
-                        jListVoices.push({ name: "Error getting Google voices. " + error.message, id: "Ivy" })
+                        jListVoices.push({ name: "Error getting Google TTS voices. " + error.message, id: "Ivy" })
                         res.json(jListVoices)
                     }
                 };
@@ -261,6 +263,26 @@ module.exports = function (RED) {
                     listVoices();
                 } catch (error) {
                     RED.log.error('ttsultimate-config: listVoices: Error getting google TTS voices ' + error.message);
+                }
+
+            } else if (ttsservice === "googletranslate") {
+                async function listVoices() {
+                    try {
+                        const voices = node.googleTranslate.voices;
+                        voices.forEach(oVoice => {
+                            jListVoices.push({ name: oVoice.name + " - " + oVoice.code, id: oVoice.code })
+                        });
+                        res.json(jListVoices)
+                    } catch (error) {
+                        RED.log.error('ttsultimate-config: Error getting google Translate voices ' + error.message);
+                        jListVoices.push({ name: "Error getting Google Translate voices. " + error.message, id: "Ivy" })
+                        res.json(jListVoices)
+                    }
+                };
+                try {
+                    listVoices();
+                } catch (error) {
+                    RED.log.error('ttsultimate-config: listVoices: Error getting google Translate voices ' + error.message);
                 }
 
             }
