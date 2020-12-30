@@ -4,8 +4,9 @@
 
 <p>
 <b>Version 1.0.6</b> December 2020<br/>
-- If you runnong node-red behind something like homeassistant, redmatic, etc.. and the user running node-red hasn't permission to write to the filesystem, a popup error will appear upon uploading of custom file.<br/>
+- If you run node-red behind something like homeassistant, redmatic, etc.. and the user running node-red hasn't permission to write to the filesystem, a popup error will appear upon uploading of custom file.<br/>
 - Removed some unwanted logs.<br/>
+- NEW: now the previous queue/radio is automatic selected, even if not previously playing<br/>
 </p>
 <p>
 <b>Version 1.0.5</b> 26 December 2020<br/>
