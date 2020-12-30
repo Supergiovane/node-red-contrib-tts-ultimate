@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.6</b> December 2020<br/>
+- If you runnong node-red behind something like homeassistant, redmatic, etc.. and the user running node-red hasn't permission to write to the filesystem, a popup error will appear upon uploading of custom file.<br/>
+- Removed some unwanted logs.<br/>
+</p>
+<p>
 <b>Version 1.0.5</b> 26 December 2020<br/>
 - NEW: added google translate engine. With this, you don't even need credentials. It works immediately.<br/>
 - Google translate engine accepts max 200 chars per row. Supergiovane makes you happy again. The node will automatically split single messages in many messages with lenght minor as 200 chars each.<br/>
@@ -31,7 +36,20 @@
 <br/>
 <br/>
 
-# -- CHANGELOG BELOW COMES FROM OLD SONOSPOLLYTTS NODE --
+# CHANGELOG BELOW COMES FROM OLD SONOSPOLLYTTS NODE
+
+>
+> ***UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE***
+>
+> Supergiovane takes care about your brain and your time.<br/>
+> Install TTS-Ultimate. Both SonosPollyTTS and TTS-Ultimate can cohexist.<br/>
+> Then just delete your old SonosPollyTTS nodes and replace it with TTS-Ultimate nodes.<br/>
+> The cache will remain the same. Your own audio files and hailing files won't be touched. You'll find it again in TTS-Ultimate<br/>
+> 
+
+<br/>
+<br/>
+
 
 <p>
 <b>Version 2.0.5</b> December 2020<br/>

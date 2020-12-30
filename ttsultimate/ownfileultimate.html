@@ -62,6 +62,23 @@
                         processData: false, //tell jquery not to process data
                         contentType: false,
                         success: function (response, status, jqxhr) {
+                            if (typeof response === "object" && response.status === 404) {
+                                let myNotification = RED.notify(response.message,
+                                    {
+                                        modal: true,
+                                        fixed: true,
+                                        type: 'error',
+                                        buttons: [
+                                            {
+                                                text: "Understood",
+                                                click: function (e) {
+                                                    myNotification.close();
+                                                }
+                                            }]
+
+                                    });
+                                return;
+                            }
                             // The only way is to wait some time, then refresh
                             setTimeout(function () {
                                 node.refreshListaFiles().then((success, error) => {
@@ -71,8 +88,20 @@
                             }, 500);
                         },
                         error: function (jqxhr, status, errorMessage) {
-                            //handle error
-                            alert("Error " + errorMessage + " " + status)
+                            let myNotification = RED.notify(errorMessage,
+                                {
+                                    modal: true,
+                                    fixed: true,
+                                    type: 'error',
+                                    buttons: [
+                                        {
+                                            text: "Understood",
+                                            click: function (e) {
+                                                myNotification.close();
+                                            }
+                                        }]
+
+                                });
                         }
                     });
                 });
@@ -152,6 +181,11 @@
 
 
 <script type="text/x-red" data-template-name="ownfileultimate">
+    <div class="form-row">
+        <b>OwnFile configuration</b>&nbsp&nbsp&nbsp&nbsp<span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help online</u></a></span>
+        <br/>
+        <br/>        
+    </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Own File">

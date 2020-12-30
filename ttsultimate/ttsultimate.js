@@ -188,98 +188,291 @@ module.exports = function (RED) {
         }
 
 
-        // 04/12/2020
+        // 30/12/2020 we are at the end of this crazy 2020
         function getMusicQueue() {
             return new Promise(function (resolve, reject) {
                 var oRet = null;
-                node.SonosClient.getCurrentState().then(state => {
-                    // A music queue is playing and no TTS is speaking?
-                    if (state.toString().toLowerCase() === "playing") {
-                        // Get current track
-                        node.SonosClient.currentTrack().then(track => {
-                            oRet = track;// .queuePosition || 1; // Get the current track  in the queue.
-                            //console.log("BANANA RADIO " + JSON.stringify(oRet));
-                            node.SonosClient.getVolume().then(volume => {
-                                oRet.currentVolume = volume; // Get the current volume
-                                //console.log("TRACK MUSIC: " + JSON.stringify(node.currMusicTrack));
-                                node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Playing music queue pos: ' + oRet.queuePosition });
-                                resolve(oRet);
-                            }).catch(err => {
-                                //console.log('ttsultimate: getVolume Error occurred %j', err);
-                                reject(err);
-                            })
+                node.SonosClient.currentTrack().then(track => {
+                    oRet = track;// .queuePosition || 1; // Get the current track  in the queue.
+                    node.SonosClient.getCurrentState().then(state => {
+                        // A music queue is playing and no TTS is speaking?
+                        oRet.state = state;
+                        node.SonosClient.getVolume().then(volume => {
+                            oRet.currentVolume = volume; // Get the current volume
+                            //console.log("TRACK MUSIC: " + JSON.stringify(node.currMusicTrack));
+                            node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Playing music queue pos: ' + oRet.queuePosition });
+                            resolve(oRet);
                         }).catch(err => {
+                            //console.log('ttsultimate: getVolume Error occurred %j', err);
                             reject(err);
-                            //console.log('ttsultimate: Error currentTrackoccurred %j', err);
                         })
-                    } else {
-                        resolve(null);
-                    };
+                    }).catch(err => {
+                        //console.log('ttsultimate: getCurrentState: Error occurred %j', err);
+                        reject(err);
+                    })
                 }).catch(err => {
-                    //console.log('ttsultimate: getCurrentState: Error occurred %j', err);
                     reject(err);
-                })
+                    //console.log('ttsultimate: Error currentTrackoccurred %j', err);
+                });
             });
+        };
 
+        // 30/12/2020 Supergiovane resume queue for radio, queue music, TV in , line in etc.
+        async function resumeMusicQueue(oTrack) {
+            if (oTrack !== null) {
+                // Do some checks on the track.
+                if (oTrack.uri.startsWith("x-sonosprog-http:")) {
+                    // Radio program (fake radio, is not a stream but a collection of tracks, like Apple Radio Pop Allenamenti)
+                    oTrack.trackType = "radioprogram";
+                } else if (oTrack.uri.startsWith("x-sonos-http:")) {
+                    // Real Radio Stream or music file queue?
+                    if (oTrack.hasOwnProperty("duration") && !isNaN(oTrack.duration) && oTrack.duration === 0) {
+                        // Radio stream (real)
+                        oTrack.trackType = "radio";
+                    } else {
+                        // Music file
+                        oTrack.trackType = "musicfile";
+                    }
+                } else if (oTrack.uri.startsWith("x-rincon-stream:")) {
+                    // Line input
+                    oTrack.trackType = "lineinput";
+                } else if (oTrack.uri.startsWith("x-sonos-htastream:")) {
+                    // Playbar
+                    oTrack.trackType = "playbar";
+                }
+               // console.log(oTrack)
+            } else {
+                // Track is null, nothing to resume.
+                return false;
+            }
+            // It's a radio station or a generic stream, not a queue.
+            try {
+                await node.SonosClient.setVolume(oTrack.currentVolume);
+            } catch (error) {
+                return error;
+            }
+            if (oTrack.trackType === "radio" || oTrack.trackType === "radioprogram") {
 
-        }
+                try {
+                    await node.SonosClient.play(oTrack.uri);
+                } catch (error) {
+                    return error;
+                }
+                try {
+                    await node.SonosClient.seek(oTrack.position);
+                } catch (error) {
+                    // Don't care
+                }
+
+            } else {
+
+                if (oTrack.trackType === "musicfile") { // This indicates that is an audio file or stream station
+                    try {
+                        await node.SonosClient.selectQueue();
+                    } catch (error) {
+                        return error;
+                    }
+                    try {
+                        await node.SonosClient.selectTrack(oTrack.queuePosition);
+                    } catch (error) {
+                        return error;
+                    }
+                    try {
+                        await node.SonosClient.seek(oTrack.position);
+                    } catch (error) {
+                        // Don't care
+                    }
+                    try {
+                        await node.SonosClient.play();
+                    } catch (error) {
+                        return error;
+                    }
+                } else if (oTrack.trackType === "lineinput" || oTrack.trackType === "playbar") {
+                    // Line in, TV in, etc...
+                    try {
+                        await node.SonosClient.setAVTransportURI(oTrack.uri);
+                    } catch (error) {
+                        return error;
+                    }
+                }
+            }
+            if (oTrack.state !== "playing") {
+                // 30/12/2020 Immedialtely stops the play
+                try {
+                    await node.SonosClient.pause();
+                } catch (error) {
+
+                }
+                setTimeout(() => { return true; }, 5000); // Wait some seconds 
+            } else {
+                setTimeout(() => { return true; }, 5000); // Wait some seconds to the music to start playing    
+            }
+        };
+        // function resumeMusicQueue(oTrack) {
+        //     return new Promise(function (resolve, reject) {
+        //         if (oTrack !== null) {
+        //             if (oTrack.hasOwnProperty("duration") && oTrack.duration === 0) {
+        //                 // It's a radio station or a generic stream, not a queue.
+        //                 node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
+        //                     node.SonosClient.play(oTrack.uri).then(success => {
+        //                         node.SonosClient.seek(oTrack.position).then(success => {
+        //                             if (oTrack.state !== "playing") {
+        //                                 // 30/12/2020 Immedialtely stops the play
+        //                                 node.SonosClient.pause().then(success => {
+        //                                     setTimeout(() => { resolve(true) }, 5000); // Wait some seconds 
+        //                                 }).catch(err => {
+        //                                     setTimeout(() => { resolve(true) }, 5000); // Wait some seconds 
+        //                                 });
+        //                             } else {
+        //                                 setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing    
+        //                             }
+        //                         }).catch(err => {
+        //                             // No problems, some radio stations does'nt have a position, because they're a stream.
+        //                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
+        //                         })
+        //                     }).catch(err => {
+        //                         //console.log('Error occurred PLAY %j', err)
+        //                         reject(err);
+        //                     })
+        //                 }).catch(err => {
+        //                     //console.log('Error occurred setVolume %j', err)
+        //                     reject(err);
+        //                 })
+        //             } else {
+        //                 // It's a music queue
+        //                 node.SonosClient.selectQueue().then(success => {
+        //                     node.SonosClient.selectTrack(oTrack.queuePosition).then(success => {
+        //                         node.SonosClient.seek(oTrack.position).then(success => {
+        //                             node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
+        //                                 node.SonosClient.play().then(success => {
+        //                                     if (oTrack.state !== "playing") {
+        //                                         // 30/12/2020 Immedialtely stops the play
+        //                                         node.SonosClient.pause().then(success => {
+        //                                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
+        //                                         }).catch(err => {
+        //                                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
+        //                                         });
+        //                                     } else {
+        //                                         setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing    
+        //                                     }
+        //                                 }).catch(err => {
+        //                                     //console.log('Error occurred PLAY %j', err)
+        //                                     reject(err);
+        //                                 })
+        //                             }).catch(err => {
+        //                                 //console.log('Error occurred setVolume %j', err)
+        //                                 reject(err);
+        //                             })
+        //                         }).catch(err => {
+        //                             //console.log('Error occurred SEEK %j', err)
+        //                             reject(err);
+        //                         })
+        //                     }).catch(err => {
+        //                         //console.log('Error occurred SELECTTRACK %j', err);
+        //                         reject(err);
+        //                     })
+        //                 }).catch(err => {
+        //                     //console.log('Error occurred %j', err);
+        //                     reject(err);
+        //                 })
+        //             }
+        //         } else {
+        //             resolve(false);
+        //         }
+        //     });
+        // };
 
         // 04/12/2020
-        function resumeMusicQueue(oTrack) {
-            return new Promise(function (resolve, reject) {
-                if (oTrack !== null) {
-                    if (oTrack.hasOwnProperty("duration") && oTrack.duration === 0) {
-                        // It's a radio station or a generic stream, not a queue.
-                        node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
-                            node.SonosClient.play(oTrack.uri).then(success => {
-                                node.SonosClient.seek(oTrack.position).then(success => {
-                                    setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-                                }).catch(err => {
-                                    // No problems, some radio station does'nt have a position.
-                                    setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-                                })
-                            }).catch(err => {
-                                //console.log('Error occurred PLAY %j', err)
-                                reject(err);
-                            })
-                        }).catch(err => {
-                            //console.log('Error occurred setVolume %j', err)
-                            reject(err);
-                        })
-                    } else {
-                        // It's a music queue
-                        node.SonosClient.selectQueue().then(success => {
-                            node.SonosClient.selectTrack(oTrack.queuePosition).then(success => {
-                                node.SonosClient.seek(oTrack.position).then(success => {
-                                    node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
-                                        node.SonosClient.play().then(success => {
-                                            setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-                                        }).catch(err => {
-                                            //console.log('Error occurred PLAY %j', err)
-                                            reject(err);
-                                        })
-                                    }).catch(err => {
-                                        //console.log('Error occurred setVolume %j', err)
-                                        reject(err);
-                                    })
-                                }).catch(err => {
-                                    //console.log('Error occurred SEEK %j', err)
-                                    reject(err);
-                                })
-                            }).catch(err => {
-                                //console.log('Error occurred SELECTTRACK %j', err);
-                                reject(err);
-                            })
-                        }).catch(err => {
-                            //console.log('Error occurred %j', err);
-                            reject(err);
-                        })
-                    }
-                } else {
-                    resolve(false);
-                }
-            });
-        }
+        // function getMusicQueue() {
+        //     return new Promise(function (resolve, reject) {
+        //         var oRet = null;
+        //         node.SonosClient.getCurrentState().then(state => {
+        //             // A music queue is playing and no TTS is speaking?
+        //             if (state.toString().toLowerCase() === "playing") {
+        //                 // Get current track
+        //                 node.SonosClient.currentTrack().then(track => {
+        //                     oRet = track;// .queuePosition || 1; // Get the current track  in the queue.
+        //                     console.log("BANANA GHRRGH " + JSON.stringify(oRet));
+        //                     RED.log.info("BANANA GHRRGH " + JSON.stringify(oRet));
+        //                     node.SonosClient.getVolume().then(volume => {
+        //                         oRet.currentVolume = volume; // Get the current volume
+        //                         //console.log("TRACK MUSIC: " + JSON.stringify(node.currMusicTrack));
+        //                         node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Playing music queue pos: ' + oRet.queuePosition });
+        //                         resolve(oRet);
+        //                     }).catch(err => {
+        //                         //console.log('ttsultimate: getVolume Error occurred %j', err);
+        //                         reject(err);
+        //                     })
+        //                 }).catch(err => {
+        //                     reject(err);
+        //                     //console.log('ttsultimate: Error currentTrackoccurred %j', err);
+        //                 })
+        //             } else {
+        //                 resolve(null);
+        //             };
+        //         }).catch(err => {
+        //             //console.log('ttsultimate: getCurrentState: Error occurred %j', err);
+        //             reject(err);
+        //         })
+        //     });
+        // }
+
+        // // 04/12/2020
+        // function resumeMusicQueue(oTrack) {
+        //     return new Promise(function (resolve, reject) {
+        //         if (oTrack !== null) {
+        //             if (oTrack.hasOwnProperty("duration") && oTrack.duration === 0) {
+        //                 // It's a radio station or a generic stream, not a queue.
+        //                 node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
+        //                     node.SonosClient.play(oTrack.uri).then(success => {
+        //                         node.SonosClient.seek(oTrack.position).then(success => {
+        //                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
+        //                         }).catch(err => {
+        //                             // No problems, some radio stations does'nt have a position, because they're a stream.
+        //                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
+        //                         })
+        //                     }).catch(err => {
+        //                         //console.log('Error occurred PLAY %j', err)
+        //                         reject(err);
+        //                     })
+        //                 }).catch(err => {
+        //                     //console.log('Error occurred setVolume %j', err)
+        //                     reject(err);
+        //                 })
+        //             } else {
+        //                 // It's a music queue
+        //                 node.SonosClient.selectQueue().then(success => {
+        //                     node.SonosClient.selectTrack(oTrack.queuePosition).then(success => {
+        //                         node.SonosClient.seek(oTrack.position).then(success => {
+        //                             node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
+        //                                 node.SonosClient.play().then(success => {
+        //                                     setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
+        //                                 }).catch(err => {
+        //                                     //console.log('Error occurred PLAY %j', err)
+        //                                     reject(err);
+        //                                 })
+        //                             }).catch(err => {
+        //                                 //console.log('Error occurred setVolume %j', err)
+        //                                 reject(err);
+        //                             })
+        //                         }).catch(err => {
+        //                             //console.log('Error occurred SEEK %j', err)
+        //                             reject(err);
+        //                         })
+        //                     }).catch(err => {
+        //                         //console.log('Error occurred SELECTTRACK %j', err);
+        //                         reject(err);
+        //                     })
+        //                 }).catch(err => {
+        //                     //console.log('Error occurred %j', err);
+        //                     reject(err);
+        //                 })
+        //             }
+        //         } else {
+        //             resolve(false);
+        //         }
+        //     });
+        // }
 
 
         // Handle the queue
@@ -365,6 +558,7 @@ module.exports = function (RED) {
                                 // Save the downloaded file into the cache
                                 fs.writeFile(sFileToBePlayed, data, function (error, result) {
                                     if (error) {
+                                        RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
                                         node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
                                         throw (error);
                                     }
@@ -571,7 +765,6 @@ module.exports = function (RED) {
                             oMsg.payload = sTemp;
                             node.tempMSGStorage.push(oMsg);
                             sTemp = word;
-                            console.log("BANANA " + JSON.stringify(oMsg));
                         }
                     }
                     // Is there something remaining?
@@ -579,7 +772,6 @@ module.exports = function (RED) {
                         var oMsg = RED.util.cloneMessage(msg);
                         oMsg.payload = sTemp;
                         node.tempMSGStorage.push(oMsg);
-                        console.log("BANANA " + JSON.stringify(oMsg));
                     }
                 } else {
                     node.tempMSGStorage.push(msg);
@@ -587,7 +779,6 @@ module.exports = function (RED) {
             } else {
                 node.tempMSGStorage.push(msg);
             }
-
 
             // Starts main queue watching
             node.waitForQueue();

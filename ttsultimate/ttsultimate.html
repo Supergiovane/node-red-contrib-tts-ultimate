@@ -43,14 +43,17 @@
 </script>
 
 <script type="text/x-red" data-template-name="ttsultimate">
-
+    <div class="form-row">
+        <b>TTS Ultimate configuration</b>&nbsp&nbsp&nbsp&nbsp<span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help online</u></a></span>
+        <br/>
+        <br/>        
+    </div>
     <div class="form-row">
         <label for="node-input-config"><i class="icon-tag"></i> Config</label>
         <input type="text" id="node-input-config">
     </div>
 
 <div id="allGUI">
-
     <div class="form-row">
         <label for="node-input-voice"><i class="icon-tag"></i> Voice</label>
         <select id="node-input-voice">
@@ -290,6 +293,23 @@
                             processData: false, //tell jquery not to process data
                             contentType: false,
                             success: function (response, status, jqxhr) {
+                                if (typeof response === "object" && response.status === 404) {
+                                    let myNotification = RED.notify(response.message,
+                                        {
+                                            modal: true,
+                                            fixed: true,
+                                            type: 'error',
+                                            buttons: [
+                                                {
+                                                    text: "Understood",
+                                                    click: function (e) {
+                                                        myNotification.close();
+                                                    }
+                                                }]
+
+                                        });
+                                    return;
+                                }
                                 // Refresh the combo
                                 // The only way is to wait some time, then refresh
                                 setTimeout(function () {
@@ -300,8 +320,20 @@
                                 }, 500);
                             },
                             error: function (jqxhr, status, errorMessage) {
-                                //handle error
-                                alert("Error " + errorMessage + " " + status)
+                                let myNotification = RED.notify(errorMessage,
+                                    {
+                                        modal: true,
+                                        fixed: true,
+                                        type: 'error',
+                                        buttons: [
+                                            {
+                                                text: "Understood",
+                                                click: function (e) {
+                                                    myNotification.close();
+                                                }
+                                            }]
+
+                                    });
                             }
                         });
                     });
@@ -409,7 +441,7 @@
                 }
                 // ##########################################################
                 //#endregion
-                
+
                 node.refreshHailingList();
 
             }, oneditsave: function () {

@@ -99,7 +99,7 @@ module.exports = function (RED) {
         //#endregion
 
 
-        //#region TTSULTIMATE NODE
+        //#region HTTP ENDPOINTS
         // ######################################################
         // 21/03/2019 Endpoint for retrieving the default IP
         RED.httpAdmin.get("/ttsultimateGetEthAddress", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
@@ -180,15 +180,19 @@ module.exports = function (RED) {
         RED.httpAdmin.post("/ttsultimateHailing", function (req, res) {
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
-                if (err) { };
-                // Allow only mp3
-                if (files.customHailing.name.indexOf(".mp3") !== -1) {
-                    var newPath = path.join(node.userDir, "hailingpermanentfiles", "Hailing_" + files.customHailing.name);
-                    fs.rename(files.customHailing.path, newPath, function (err) { });
+                try {
+                    if (files.customHailing.name.indexOf(".mp3") !== -1) {
+                        var newPath = path.join(node.userDir, "hailingpermanentfiles", "Hailing_" + files.customHailing.name);
+                        fs.renameSync(files.customHailing.path, newPath);
+                        res.json({ status: 220 });
+                        res.end;
+                    }
+                } catch (error) {
+                    RED.log.error("Upload Hailing " + error.message);
+                    res.json({ status: 404, message: "Unable to write to the filesystem. PLEASE CHECK THAT THE USER RUNNING NODE-RED, HAS PERMISSIONS TO WRITE TO THE FILESYSTEM." });
+                    res.end;
                 }
             });
-            res.json({ status: 220 });
-            res.end;
         });
 
 
@@ -291,9 +295,7 @@ module.exports = function (RED) {
         // ########################################################
         //#endregion
 
-
-
-        //#region OWNFILE NODE
+        //#region OWNFILE NODE HTTP ENDPOINTS
         // ######################################################
 
         // Receive new files from html
@@ -302,13 +304,19 @@ module.exports = function (RED) {
             form.parse(req, function (err, fields, files) {
                 if (err) { };
                 // Allow only mp3
-                if (files.customTTS.name.indexOf(".mp3") !== -1) {
-                    var newPath = path.join(node.userDir, "ttspermanentfiles", "OwnFile_" + files.customTTS.name);
-                    fs.rename(files.customTTS.path, newPath, function (err) { });
+                try {
+                    if (files.customTTS.name.indexOf(".mp3") !== -1) {
+                        var newPath = path.join(node.userDir, "ttspermanentfiles", "OwnFile_" + files.customTTS.name);
+                        fs.renameSync(files.customTTS.path, newPath);
+                        res.json({ status: 220 });
+                        res.end;
+                    }
+                } catch (error) {
+                    RED.log.error("OwnFile " + error.message);
+                    res.json({ status: 404, message: "Unable to write to the filesystem. PLEASE CHECK THAT THE USER RUNNING NODE-RED, HAS PERMISSIONS TO WRITE TO THE FILESYSTEM." });
+                    res.end;
                 }
             });
-            res.json({ status: 220 });
-            res.end;
         });
 
         // 27/02/2020 Get list of filenames starting with OwnFile_

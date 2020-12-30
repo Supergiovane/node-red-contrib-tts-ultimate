@@ -51,6 +51,15 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 > The cache will remain the same. Your own audio files and hailing files won't be touched. You'll find it again in TTS-Ultimate<br/>
 > 
 
+<br/>
+
+>
+> ***NOTE IF YOU CANNOT UPLOAD YOUR OWN FILES***
+>
+> If you're running node-red as "plugin" for homeassistant, redmatic etc...<br/>
+> You may expect not to be able to upload your own files. Please check that the user running node-red, has premission **to write to the filesystem**.<br/>
+> 
+
 <br/><br/>
 
 # CONFIGURATION NODE
