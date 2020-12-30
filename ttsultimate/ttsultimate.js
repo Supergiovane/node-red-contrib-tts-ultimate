@@ -221,26 +221,16 @@ module.exports = function (RED) {
         async function resumeMusicQueue(oTrack) {
             if (oTrack !== null) {
                 // Do some checks on the track.
-                if (oTrack.uri.startsWith("x-sonosprog-http:")) {
-                    // Radio program (fake radio, is not a stream but a collection of tracks, like Apple Radio Pop Allenamenti)
-                    oTrack.trackType = "radioprogram";
-                } else if (oTrack.uri.startsWith("x-sonos-http:")) {
-                    // Real Radio Stream or music file queue?
-                    if (oTrack.hasOwnProperty("duration") && !isNaN(oTrack.duration) && oTrack.duration === 0) {
-                        // Radio stream (real)
-                        oTrack.trackType = "radio";
-                    } else {
-                        // Music file
-                        oTrack.trackType = "musicfile";
-                    }
-                } else if (oTrack.uri.startsWith("x-rincon-stream:")) {
+                if (oTrack.hasOwnProperty("duration") && oTrack.duration === 0 || oTrack.uri.startsWith("x-sonosprog-http")) {
+                    // Stream
+                    oTrack.trackType = "stream";
+                } else if (oTrack.hasOwnProperty("duration") && isNaN(oTrack.duration)) {
                     // Line input
                     oTrack.trackType = "lineinput";
-                } else if (oTrack.uri.startsWith("x-sonos-htastream:")) {
-                    // Playbar
-                    oTrack.trackType = "playbar";
+                } else {
+                    // Music queue
+                    oTrack.trackType = "musicqueue";
                 }
-               // console.log(oTrack)
             } else {
                 // Track is null, nothing to resume.
                 return false;
@@ -251,7 +241,7 @@ module.exports = function (RED) {
             } catch (error) {
                 return error;
             }
-            if (oTrack.trackType === "radio" || oTrack.trackType === "radioprogram") {
+            if (oTrack.trackType === "stream") {
 
                 try {
                     await node.SonosClient.play(oTrack.uri);
@@ -263,10 +253,8 @@ module.exports = function (RED) {
                 } catch (error) {
                     // Don't care
                 }
-
             } else {
-
-                if (oTrack.trackType === "musicfile") { // This indicates that is an audio file or stream station
+                if (oTrack.trackType === "musicqueue") { // This indicates that is an audio file or stream station
                     try {
                         await node.SonosClient.selectQueue();
                     } catch (error) {
@@ -287,7 +275,7 @@ module.exports = function (RED) {
                     } catch (error) {
                         return error;
                     }
-                } else if (oTrack.trackType === "lineinput" || oTrack.trackType === "playbar") {
+                } else if (oTrack.trackType === "lineinput") {
                     // Line in, TV in, etc...
                     try {
                         await node.SonosClient.setAVTransportURI(oTrack.uri);
