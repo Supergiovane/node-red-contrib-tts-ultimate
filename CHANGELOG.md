@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.8</b> December 2020<br/>
+- FIS: fix EXDEV issue on some system, when uploading ownfiles or hailing files.<br/>
+</p>
+<p>
 <b>Version 1.0.7</b> December 2020<br/>
 - If you run node-red behind something like homeassistant, redmatic, etc.. and the user running node-red hasn't permission to write to the filesystem, a popup error will appear upon uploading of custom file.<br/>
 - Removed some unwanted logs.<br/>

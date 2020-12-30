@@ -183,7 +183,19 @@ module.exports = function (RED) {
                 try {
                     if (files.customHailing.name.indexOf(".mp3") !== -1) {
                         var newPath = path.join(node.userDir, "hailingpermanentfiles", "Hailing_" + files.customHailing.name);
-                        fs.renameSync(files.customHailing.path, newPath);
+                        // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
+                        // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
+                        // Instead of renaming it, i must copy the file and then delete the old one.
+                        try {
+                            fs.unlinkSync(newPath)
+                        } catch (error) {
+                        }
+                        fs.copyFileSync(files.customHailing.path, newPath)
+                        try {
+                            fs.unlinkSync(files.customHailing.path);
+                        } catch (error) {
+                            // Don't care
+                        }
                         res.json({ status: 220 });
                         res.end;
                     }
@@ -206,7 +218,19 @@ module.exports = function (RED) {
                     var newPath = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
                     // Set the environment variable
                     process.env.GOOGLE_APPLICATION_CREDENTIALS = newPath;
-                    fs.rename(files.googleCreds.path, newPath, function (err) { });
+                    // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
+                    // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
+                    // Instead of renaming it, i must copy the file and then delete the old one.
+                    try {
+                        fs.unlinkSync(newPath)
+                    } catch (error) {
+                    }
+                    fs.copyFileSync(files.googleCreds.path, newPath)
+                    try {
+                        fs.unlinkSync(files.googleCreds.path);
+                    } catch (error) {
+                        // Don't care
+                    }
                 }
             });
             res.json({ status: 220 });
@@ -307,7 +331,19 @@ module.exports = function (RED) {
                 try {
                     if (files.customTTS.name.indexOf(".mp3") !== -1) {
                         var newPath = path.join(node.userDir, "ttspermanentfiles", "OwnFile_" + files.customTTS.name);
-                        fs.renameSync(files.customTTS.path, newPath);
+                        // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
+                        // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
+                        // Instead of renaming it, i must copy the file and then delete the old one.
+                        try {
+                            fs.unlinkSync(newPath)
+                        } catch (error) {
+                        }
+                        fs.copyFileSync(files.customTTS.path, newPath)
+                        try {
+                            fs.unlinkSync(files.customTTS.path);
+                        } catch (error) {
+                            // Don't care
+                        }
                         res.json({ status: 220 });
                         res.end;
                     }
