@@ -758,7 +758,7 @@ module.exports = function (RED) {
                         const word = aWords[index];
                         if (sTemp.length + word.length + 1 <= iLimitTTSGoogleTranslate) {
                             sTemp += " " + word;
-                            console.log("Aggiungo " + sTemp);
+                            //console.log("Aggiungo " + sTemp);
                         } else {
                             // Limit reached, push this words and resets sTemp
                             var oMsg = RED.util.cloneMessage(msg);
