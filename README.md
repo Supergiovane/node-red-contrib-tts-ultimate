@@ -36,7 +36,7 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * **Amazon Voices, Gooogle Translate Voices and Google TTS Voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
-* **Automatic resume of music** queue, including radio stations, at exact track, at exact time.
+* **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time.
 * **TTS caching**. Amazon AWS and Google charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
 * **UPLOAD your own audio files**. You can upload your own audio files with OwnFile node.
 * **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
