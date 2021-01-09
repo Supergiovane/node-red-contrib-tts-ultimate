@@ -143,6 +143,7 @@ module.exports = function (RED) {
         // 20/03/2020 Join Coordinator queue
         node.groupSpeakers = () => {
             return new Promise(function (resolve, reject) {
+                if (node.oAdditionalSonosPlayers.length === 0) resolve(true);
                 // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
                 // You don't have to worry about who is the coordinator.
                 for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
@@ -156,7 +157,9 @@ module.exports = function (RED) {
                         reject(err);
                     });
                 };
-                resolve(true);
+                setTimeout(() => {
+                    resolve(true);
+                }, 1000);
             });
         }
         // 20/03/2020 Ungroup Coordinator queue
