@@ -3,8 +3,13 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.9</b> January 2020<br/>
+- Added a little delay after speakers grouping and before play, to leave Sonos time to complete the sync process.<br/>
+- NEW: you can now set the main player IP and group of players IPs via msg property. See the README on gitHub.<br/>
+</p>
+<p>
 <b>Version 1.0.8</b> December 2020<br/>
-- FIS: fix EXDEV issue on some system, when uploading ownfiles or hailing files.<br/>
+- FIX fix EXDEV issue on some system, when uploading ownfiles or hailing files.<br/>
 </p>
 <p>
 <b>Version 1.0.7</b> December 2020<br/>
