@@ -114,9 +114,8 @@ module.exports = function (RED) {
 
         }
 
-        // Create sonos client
+        // Create sonos client & groups 
         node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
-
         // 20/03/2020 Set the coorinator's zone name
         node.SonosClient.getName().then(info => {
             node.sSonosCoordinatorGroupName = info;
@@ -124,7 +123,6 @@ module.exports = function (RED) {
         }).catch(err => {
 
         });
-
         // Fill the node.oAdditionalSonosPlayers with all sonos object in the rules
         for (let index = 0; index < node.rules.length; index++) {
             const element = node.rules[index];
@@ -132,15 +130,15 @@ module.exports = function (RED) {
             RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host);
         }
 
+
         // 27/11/2019 Start the connection healty check
         node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
 
         node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Initialized.' });
 
 
-        // 20/03=2020 QUEUINPLAYERS
-        // ######################################################
         // 20/03/2020 Join Coordinator queue
+        // ######################################################
         node.groupSpeakers = () => {
             return new Promise(function (resolve, reject) {
                 if (node.oAdditionalSonosPlayers.length === 0) resolve(true);
@@ -153,15 +151,17 @@ module.exports = function (RED) {
                         element.setVolume(node.sSonosVolume).then(success => {
                         }).catch(err => { });
                     }).catch(err => {
-                        RED.log.warn('ttsultimate: Error joining device ' + err);
-                        reject(err);
+                        RED.log.warn("ttsultimate: Error joining device "  + err.message);
                     });
                 };
+                var b = false;
+                if (b===true) reject("fake");
                 setTimeout(() => {
                     resolve(true);
-                }, 1000);
+                }, 1500);
             });
-        }
+        }    
+        
         // 20/03/2020 Ungroup Coordinator queue
         node.ungroupSpeakers = () => {
             return new Promise(function (resolve, reject) {
@@ -690,6 +690,34 @@ module.exports = function (RED) {
         }
 
         node.on('input', function (msg) {
+
+            // 09/01/2021 Set the main player and groups IP on request
+            // *********************************
+            if (msg.hasOwnProperty("setConfig")) {
+                if (msg.setConfig.hasOwnProperty("setMainPlayerIP")) {
+                    node.sSonosIPAddress = msg.setConfig.setMainPlayerIP;
+                    RED.log.info("ttsultimate: new main player set by msg: " + node.sSonosIPAddress);
+                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Main Player changed to " + node.sSonosIPAddress });
+                    // RE-Create sonos client & groups 
+                    node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
+                    node.SonosClient.getName().then(info => {
+                        node.sSonosCoordinatorGroupName = info;
+                        RED.log.info("ttsultimate: new zone coordinator set by msg: " + JSON.stringify(info));
+                    }).catch(err => {
+                    });
+                };
+                if (msg.setConfig.hasOwnProperty("setPlayerGroupArray")) {
+                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Group players changed" });
+                    // Fill the node.oAdditionalSonosPlayers with all sonos IPs in the setPlayerGroupArray
+                    node.oAdditionalSonosPlayers = [];
+                    for (let index = 0; index < msg.setConfig.setPlayerGroupArray.length; index++) {
+                        const element = msg.setConfig.setPlayerGroupArray[index];
+                        node.oAdditionalSonosPlayers.push(new sonos.Sonos(element));
+                        RED.log.info("ttsultimate: new group player set by msg: " + element);
+                    }
+                };
+            };
+            // *********************************
 
             if (!msg.hasOwnProperty("payload")) {
                 notifyError(msg, 'msg.payload must be of type String');
