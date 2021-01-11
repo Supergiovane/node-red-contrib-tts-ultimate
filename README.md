@@ -178,6 +178,70 @@ In this sample, you see the TTS-Ultimate node connected with two debug nodes, to
 <br/>
 <br/>
 
+## CHANGE CONFIGURATION VIA MSG PROPERTY
+
+You can change the configuration of tts-ultimate, *via msg.setConfig* property.<br/>
+The property is a JSON object. 
+
+<img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/setConfig.png' width="80%">
+
+**msg.setConfig**<br/>
+This is the property where you can set all the things. It must be an Object.
+
+**setMainPlayerIP**<br/>
+Sets the main player IP. This will also be the coordinator if you have a group of players
+
+**setPlayerGroupArray**<br/>
+Sets the array of players beloging to the group, if any.<br/>
+If you have only one additional player, you need to ever put it into an array. See below.
+
+```js
+// Set player IP
+var config= {
+    setMainPlayerIP:"192.168.1.109"
+};
+msg.setConfig = config;
+return msg;
+```
+
+```js
+// Set player IP and additional players
+var config= {
+    setMainPlayerIP:"192.168.1.109",
+    setPlayerGroupArray:[
+        "192.168.1.110",
+        "192.168.1.111",
+        "192.168.1.112"
+    ]
+};
+msg.setConfig = config;
+return msg;
+```
+
+```js
+// If you have only one additional player
+var config= {
+    setMainPlayerIP:"192.168.1.109",
+    setPlayerGroupArray:["192.168.1.110"]
+};
+msg.setConfig = config;
+return msg;
+```
+
+<br/>
+
+<details><summary> VIEW SAMPLE CODE</summary>
+
+> Adjust the nodes according to your setup
+
+```js
+[{"id":"4b4514d.047366c","type":"ttsultimate","z":"235d8e3d.a7583a","name":"","voice":"de-DE","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"5","sonoshailing":"0","config":"feee307e.54bca","property":"payload","propertyType":{},"rules":[],"x":430,"y":360,"wires":[["2b2d7556.251d0a"],["2978fe86.e680aa"]]},{"id":"2b2d7556.251d0a","type":"debug","z":"235d8e3d.a7583a","name":"","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","statusVal":"","statusType":"auto","x":610,"y":340,"wires":[]},{"id":"2978fe86.e680aa","type":"debug","z":"235d8e3d.a7583a","name":"","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","statusVal":"","statusType":"auto","x":610,"y":380,"wires":[]},{"id":"9d9e06be.09718","type":"function","z":"235d8e3d.a7583a","name":"Change Config","func":"// Set the main player IP and each IP belonging to the player's group\nvar config= {\n    setMainPlayerIP:\"192.168.1.109\",\n    setPlayerGroupArray:[\n        \"192.168.1.110\",\n        \"192.168.1.111\",\n        \"192.168.1.112\"\n    ]\n};\nmsg.setConfig = config;\nreturn msg;","outputs":1,"noerr":0,"initialize":"","finalize":"","x":260,"y":360,"wires":[["4b4514d.047366c"]]},{"id":"c3da8b3a.e8f2c8","type":"inject","z":"235d8e3d.a7583a","name":"","props":[{"p":"payload"}],"repeat":"","crontab":"","once":false,"onceDelay":0.1,"topic":"","payload":"Hello","payloadType":"str","x":110,"y":360,"wires":[["9d9e06be.09718"]]},{"id":"c55b7140.4a7cc8","type":"comment","z":"235d8e3d.a7583a","name":"Change the player and/or group of players via msg property.","info":"","x":270,"y":300,"wires":[]},{"id":"feee307e.54bca","type":"ttsultimate-config","name":"Config","noderedipaddress":"192.168.1.161","noderedport":"1980","purgediratrestart":"leave","ttsservice":"googletranslate"}]
+```
+</details>
+
+<br/>
+<br/>
+
 # OWNFILE NODE CONFIGURATION
 
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/of.png' width="80%">
