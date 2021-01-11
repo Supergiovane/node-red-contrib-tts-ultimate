@@ -697,7 +697,7 @@ module.exports = function (RED) {
                 if (msg.setConfig.hasOwnProperty("setMainPlayerIP")) {
                     node.sSonosIPAddress = msg.setConfig.setMainPlayerIP;
                     RED.log.info("ttsultimate: new main player set by msg: " + node.sSonosIPAddress);
-                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Main Player changed to " + node.sSonosIPAddress });
+                    node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Main Player changed to " + node.sSonosIPAddress });
                     // RE-Create sonos client & groups 
                     node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
                     node.SonosClient.getName().then(info => {
@@ -707,7 +707,7 @@ module.exports = function (RED) {
                     });
                 };
                 if (msg.setConfig.hasOwnProperty("setPlayerGroupArray")) {
-                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Group players changed" });
+                    node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Group players changed" });
                     // Fill the node.oAdditionalSonosPlayers with all sonos IPs in the setPlayerGroupArray
                     node.oAdditionalSonosPlayers = [];
                     for (let index = 0; index < msg.setConfig.setPlayerGroupArray.length; index++) {
