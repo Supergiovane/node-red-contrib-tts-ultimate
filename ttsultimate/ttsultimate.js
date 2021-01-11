@@ -663,12 +663,12 @@ module.exports = function (RED) {
                 // Resume music
                 try {
                     if (oCurTrack !== null) {
-                        node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming music.." });
+                        node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
                         await resumeMusicQueue(oCurTrack);
-                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming music." });
+                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });
                     }
                 } catch (error) {
-                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming music: " + error.message });
+                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming queue: " + error.message });
                 }
 
                 // Signal end playing
