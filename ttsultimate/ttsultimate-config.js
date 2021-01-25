@@ -461,10 +461,11 @@ module.exports = function (RED) {
                     if (path.extname(query.f) === ".mp3" && path.dirname(path.dirname(query.f)).endsWith("/sonospollyttsstorage")) {
                         var readStream = fs.createReadStream(query.f);
                         readStream.on("error", function (error) {
-                            fine(error);
+                            RED.log.error("ttsultimate-config: Playsonos error opening stream : " + query.f + ' : ' + error);      
+                            res.end();
+                            return;
                         });
                         readStream.pipe(res);
-                        res.end();
                     }   else{
                         res.write("NOT ALLOWED");
                         res.end();
@@ -482,10 +483,7 @@ module.exports = function (RED) {
                 RED.log.error("ttsultimate-config: Playsonos RED.httpAdmin error: " + error + " on: " + query.f);
                 res.end();
             }
-            function fine(error) {
-                RED.log.error("ttsultimate-config: Playsonos error opening stream : " + query.f + ' : ' + error);
-                res.end();
-            }
+            
         }
 
 

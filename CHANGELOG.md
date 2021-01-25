@@ -3,7 +3,7 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
-<b>Version 1.0.11</b> January 2021<br/>
+<b>Version 1.0.12</b> January 2021<br/>
 - Fixed an issue in mp3 downloading. Thanks @AleksCee<br/>
 </p>
 <p>
