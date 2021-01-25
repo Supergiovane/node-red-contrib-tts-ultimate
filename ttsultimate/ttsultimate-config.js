@@ -457,8 +457,8 @@ module.exports = function (RED) {
                 res.setHeader('Content-Disposition', 'attachment; filename=tts.mp3')
                 if (fs.existsSync(query.f)) {
                     var readStream = fs.createReadStream(query.f);
-                    readStream.on("error", function (err) {
-                        fine(err);
+                    readStream.on("error", function (error) {
+                        fine(error);
                     });
                     readStream.pipe(res);
                     res.end;
@@ -470,10 +470,11 @@ module.exports = function (RED) {
 
             } catch (error) {
                 RED.log.error("ttsultimate-config: Playsonos RED.httpAdmin error: " + error + " on: " + query.f);
+                res.end();
             }
-            function fine(err) {
+            function fine(error) {
                 RED.log.error("ttsultimate-config: Playsonos error opening stream : " + query.f + ' : ' + error);
-                res.end;
+                res.end();
             }
         }
 

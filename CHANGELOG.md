@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.10</b> January 2021<br/>
+- Fixed a crash occurring when the TTS text to be played is a point ("."). Thanks @AleksCee<br/>
+</p>
+<p>
 <b>Version 1.0.9</b> January 2021<br/>
 - Added a little delay after speakers grouping and before play, to leave Sonos time to complete the sync process.<br/>
 - NEW: you can now set the main player IP and group of players IPs via msg property. See the README on gitHub.<br/>
