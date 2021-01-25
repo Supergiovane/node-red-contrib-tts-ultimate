@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.11</b> January 2021<br/>
+- Fixed an issue in mp3 downloading. Thanks @AleksCee<br/>
+</p>
+<p>
 <b>Version 1.0.10</b> January 2021<br/>
 - Fixed a crash occurring when the TTS text to be played is a point ("."). Thanks @AleksCee<br/>
 </p>

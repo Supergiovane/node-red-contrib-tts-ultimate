@@ -456,12 +456,22 @@ module.exports = function (RED) {
 
                 res.setHeader('Content-Disposition', 'attachment; filename=tts.mp3')
                 if (fs.existsSync(query.f)) {
-                    var readStream = fs.createReadStream(query.f);
-                    readStream.on("error", function (error) {
-                        fine(error);
-                    });
-                    readStream.pipe(res);
-                    res.end;
+                    // 26/01/2021 security check
+                    // File should be something like mydocs/.node-red/sonospollyttsstorage/ttsfiles/Hello_de-DE.mp3
+                    if (path.extname(query.f) === ".mp3" && path.dirname(path.dirname(query.f)).endsWith("/sonospollyttsstorage")) {
+                        var readStream = fs.createReadStream(query.f);
+                        readStream.on("error", function (error) {
+                            fine(error);
+                        });
+                        readStream.pipe(res);
+                        res.end();
+                    }   else{
+                        res.write("NOT ALLOWED");
+                        res.end();
+                    }
+                    
+                    // http://localhost:1980/tts?f=/etc/passwd                 
+                   
                 } else {
                     RED.log.error("ttsultimate-config: Playsonos RED.httpAdmin file not found: " + query.f);
                     res.write("File not found");
