@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.13</b> January 2021<br/>
+- NEW: priority property in TTS-Ultimate input message. You can now send a priority message that stops the TTS queue and takes over.<br/>
+- NEW: priority OwnFile. You can now send a priority OwnMessage that stops the TTS queue and takes over.<br/>
+</p>
+<p>
 <b>Version 1.0.12</b> January 2021<br/>
 - Fixed an issue in mp3 downloading. Thanks @AleksCee<br/>
 </p>
