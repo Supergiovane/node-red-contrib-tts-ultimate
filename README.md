@@ -152,13 +152,38 @@ The text to be spoken (for example msg.payload = "Hello World!";). You can also 
 **msg.sonoshailing**<br/>
 Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the <b>.mp3</b> extenson. For example *node.sonoshailing="ComputerCall"*<br/>
 
-*Example of using http mp3 in a function node*
+**msg.priority**<br/>
+If set to <b>true</b>, the inbound flow message will cancel the current TTS queue, will stop the current phrase being spoken and the node will play this priority message.<br/>
+If there are other priority messages in the queue, they will be retained and the inbound priority flow message is added to the queue.<br/>
+If the inbound priority flow message is the first in the priority queue, the hailing is played first (if the hailing has been enabled or if the hailing has been overridden by *node.sonoshailing*)<br/>
+
+*Examples*
 
 ```js
+// Play a message
+msg.payload = "Hello, the current temperature is 12°";
+return msg;
+```
+
+```js
+// Play a message, forcing no hailing
+msg.nohailing = true;
+msg.payload = "I won't disturb with my hailing, this time.";
+return msg;
+```
+
+```js
+// Play custom hailing and custom mp3 taken from anywhere
 msg.sonoshailing = "IntruderAlert";
 msg.payload = "http://192.125.22.44/intruderalarm.mp3";
-// OR
+return msg;
+```
+
+```js
+// Play priority message
+msg.priority = true;
 msg.payload = "Warning. Intruder in the dinning room.";
+return msg;
 ```
 
 ## OUTPUT MESSAGES FROM THE NODE
@@ -265,6 +290,10 @@ Node name
 **File to be player** <br/>
 Select a file to be played. You can upload one or multiple files at the same time via the "upload" button.
 
+**Priority**<br/>
+If set to <b>true</b>, the OwnFile message will cancel the current TTS queue, will stop the current phrase being spoken and the TTS-Ultimate node will play this priority message.<br/>
+Please refer to *msg.priority* msg input property of TTS-Ultimate for info on how this message will be handled<br/>
+
 ## INPUT MESSAGE 
 
 **msg.payload = true**<br/>
@@ -272,6 +301,11 @@ Begin play of the message <br/>
 
 **msg.selectedFile = "Garage door open"** <br/>
 Overrides the selected message and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your own files, in the node config window) and do not include the <b>.mp3</b> extenson.<br/>
+
+**msg.priority**<br/>
+If set to <b>true</b>, the OwnFile message will cancel the current TTS queue, will stop the current phrase being spoken and the TTS-Ultimate node will play this priority message.<br/>
+Please refer to *msg.priority* msg input property of TTS-Ultimate for info on how this message will be handled<br/>
+
 
 ![Logo](https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/madeinitaly.png)
     

@@ -4,7 +4,8 @@
         category: 'TTSUltimate',
         defaults: {
             name: { value: "" },
-            selectedFile: { value: "", required: true }
+            selectedFile: { value: "", required: true },
+            priority: { value: false }
         },
         color: '#FFF9FF',
         inputs: 1,
@@ -201,6 +202,10 @@
     <div class="form-row">
         <label><i class="fa fa-file-audio-o"></i> ALL FILES</label>
         <input id="deleteAllFiles" type="button" value="DELETE" style="width:100px">
+    </div>
+    <div class="form-row">
+        <label for="node-input-priority"><i class="fa fa-warning"></i> Priority</label>
+        <input type="checkbox" id="node-input-priority" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> This node has the priority</label>
     </div>
 </script>
 

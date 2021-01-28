@@ -74,6 +74,8 @@ module.exports = function (RED) {
         node.oTimerCacheFlowMSG = null; // 05/12/2020
         node.tempMSGStorage = []; // 04/12/2020 Temporary stores the flow messages
         node.bBusyPlayingQueue = false; // 04/12/2020 is busy during playing of the queue
+        node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
+
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
         }
@@ -151,17 +153,17 @@ module.exports = function (RED) {
                         element.setVolume(node.sSonosVolume).then(success => {
                         }).catch(err => { });
                     }).catch(err => {
-                        RED.log.warn("ttsultimate: Error joining device "  + err.message);
+                        RED.log.warn("ttsultimate: Error joining device " + err.message);
                     });
                 };
                 var b = false;
-                if (b===true) reject("fake");
+                if (b === true) reject("fake");
                 setTimeout(() => {
                     resolve(true);
                 }, 1500);
             });
-        }    
-        
+        }
+
         // 20/03/2020 Ungroup Coordinator queue
         node.ungroupSpeakers = () => {
             return new Promise(function (resolve, reject) {
@@ -187,6 +189,7 @@ module.exports = function (RED) {
             // Exit whatever cycle
             node.bTimeOutPlay = true;
             node.bBusyPlayingQueue = false;
+            node.currentMSGbeingSpoken = {};
             if (node.server.whoIsUsingTheServer === node.id) node.server.whoIsUsingTheServer = "";
         }
 
@@ -299,172 +302,6 @@ module.exports = function (RED) {
                 setTimeout(() => { return true; }, 5000); // Wait some seconds to the music to start playing    
             }
         };
-        // function resumeMusicQueue(oTrack) {
-        //     return new Promise(function (resolve, reject) {
-        //         if (oTrack !== null) {
-        //             if (oTrack.hasOwnProperty("duration") && oTrack.duration === 0) {
-        //                 // It's a radio station or a generic stream, not a queue.
-        //                 node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
-        //                     node.SonosClient.play(oTrack.uri).then(success => {
-        //                         node.SonosClient.seek(oTrack.position).then(success => {
-        //                             if (oTrack.state !== "playing") {
-        //                                 // 30/12/2020 Immedialtely stops the play
-        //                                 node.SonosClient.pause().then(success => {
-        //                                     setTimeout(() => { resolve(true) }, 5000); // Wait some seconds 
-        //                                 }).catch(err => {
-        //                                     setTimeout(() => { resolve(true) }, 5000); // Wait some seconds 
-        //                                 });
-        //                             } else {
-        //                                 setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing    
-        //                             }
-        //                         }).catch(err => {
-        //                             // No problems, some radio stations does'nt have a position, because they're a stream.
-        //                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-        //                         })
-        //                     }).catch(err => {
-        //                         //console.log('Error occurred PLAY %j', err)
-        //                         reject(err);
-        //                     })
-        //                 }).catch(err => {
-        //                     //console.log('Error occurred setVolume %j', err)
-        //                     reject(err);
-        //                 })
-        //             } else {
-        //                 // It's a music queue
-        //                 node.SonosClient.selectQueue().then(success => {
-        //                     node.SonosClient.selectTrack(oTrack.queuePosition).then(success => {
-        //                         node.SonosClient.seek(oTrack.position).then(success => {
-        //                             node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
-        //                                 node.SonosClient.play().then(success => {
-        //                                     if (oTrack.state !== "playing") {
-        //                                         // 30/12/2020 Immedialtely stops the play
-        //                                         node.SonosClient.pause().then(success => {
-        //                                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-        //                                         }).catch(err => {
-        //                                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-        //                                         });
-        //                                     } else {
-        //                                         setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing    
-        //                                     }
-        //                                 }).catch(err => {
-        //                                     //console.log('Error occurred PLAY %j', err)
-        //                                     reject(err);
-        //                                 })
-        //                             }).catch(err => {
-        //                                 //console.log('Error occurred setVolume %j', err)
-        //                                 reject(err);
-        //                             })
-        //                         }).catch(err => {
-        //                             //console.log('Error occurred SEEK %j', err)
-        //                             reject(err);
-        //                         })
-        //                     }).catch(err => {
-        //                         //console.log('Error occurred SELECTTRACK %j', err);
-        //                         reject(err);
-        //                     })
-        //                 }).catch(err => {
-        //                     //console.log('Error occurred %j', err);
-        //                     reject(err);
-        //                 })
-        //             }
-        //         } else {
-        //             resolve(false);
-        //         }
-        //     });
-        // };
-
-        // 04/12/2020
-        // function getMusicQueue() {
-        //     return new Promise(function (resolve, reject) {
-        //         var oRet = null;
-        //         node.SonosClient.getCurrentState().then(state => {
-        //             // A music queue is playing and no TTS is speaking?
-        //             if (state.toString().toLowerCase() === "playing") {
-        //                 // Get current track
-        //                 node.SonosClient.currentTrack().then(track => {
-        //                     oRet = track;// .queuePosition || 1; // Get the current track  in the queue.
-        //                     console.log("BANANA GHRRGH " + JSON.stringify(oRet));
-        //                     RED.log.info("BANANA GHRRGH " + JSON.stringify(oRet));
-        //                     node.SonosClient.getVolume().then(volume => {
-        //                         oRet.currentVolume = volume; // Get the current volume
-        //                         //console.log("TRACK MUSIC: " + JSON.stringify(node.currMusicTrack));
-        //                         node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Playing music queue pos: ' + oRet.queuePosition });
-        //                         resolve(oRet);
-        //                     }).catch(err => {
-        //                         //console.log('ttsultimate: getVolume Error occurred %j', err);
-        //                         reject(err);
-        //                     })
-        //                 }).catch(err => {
-        //                     reject(err);
-        //                     //console.log('ttsultimate: Error currentTrackoccurred %j', err);
-        //                 })
-        //             } else {
-        //                 resolve(null);
-        //             };
-        //         }).catch(err => {
-        //             //console.log('ttsultimate: getCurrentState: Error occurred %j', err);
-        //             reject(err);
-        //         })
-        //     });
-        // }
-
-        // // 04/12/2020
-        // function resumeMusicQueue(oTrack) {
-        //     return new Promise(function (resolve, reject) {
-        //         if (oTrack !== null) {
-        //             if (oTrack.hasOwnProperty("duration") && oTrack.duration === 0) {
-        //                 // It's a radio station or a generic stream, not a queue.
-        //                 node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
-        //                     node.SonosClient.play(oTrack.uri).then(success => {
-        //                         node.SonosClient.seek(oTrack.position).then(success => {
-        //                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-        //                         }).catch(err => {
-        //                             // No problems, some radio stations does'nt have a position, because they're a stream.
-        //                             setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-        //                         })
-        //                     }).catch(err => {
-        //                         //console.log('Error occurred PLAY %j', err)
-        //                         reject(err);
-        //                     })
-        //                 }).catch(err => {
-        //                     //console.log('Error occurred setVolume %j', err)
-        //                     reject(err);
-        //                 })
-        //             } else {
-        //                 // It's a music queue
-        //                 node.SonosClient.selectQueue().then(success => {
-        //                     node.SonosClient.selectTrack(oTrack.queuePosition).then(success => {
-        //                         node.SonosClient.seek(oTrack.position).then(success => {
-        //                             node.SonosClient.setVolume(oTrack.currentVolume).then(success => {
-        //                                 node.SonosClient.play().then(success => {
-        //                                     setTimeout(() => { resolve(true) }, 5000); // Wait some seconds to the music to start playing
-        //                                 }).catch(err => {
-        //                                     //console.log('Error occurred PLAY %j', err)
-        //                                     reject(err);
-        //                                 })
-        //                             }).catch(err => {
-        //                                 //console.log('Error occurred setVolume %j', err)
-        //                                 reject(err);
-        //                             })
-        //                         }).catch(err => {
-        //                             //console.log('Error occurred SEEK %j', err)
-        //                             reject(err);
-        //                         })
-        //                     }).catch(err => {
-        //                         //console.log('Error occurred SELECTTRACK %j', err);
-        //                         reject(err);
-        //                     })
-        //                 }).catch(err => {
-        //                     //console.log('Error occurred %j', err);
-        //                     reject(err);
-        //                 })
-        //             }
-        //         } else {
-        //             resolve(false);
-        //         }
-        //     });
-        // }
-
 
         // Handle the queue
         async function HandleQueue() {
@@ -493,8 +330,8 @@ module.exports = function (RED) {
 
 
                 while (node.tempMSGStorage.length > 0) {
-                    const flowMessage = node.tempMSGStorage[0];
-                    const msg = flowMessage.payload.toString(); // Get the text to be speeched
+                    node.currentMSGbeingSpoken = node.tempMSGStorage[0];// Advise the whole node of the currently spoken MSG
+                    const msg = node.currentMSGbeingSpoken.payload.toString(); // Get the text to be spoken
                     node.tempMSGStorage.splice(0, 1); // Remove the first item in the array
                     var sFileToBePlayed = "";
                     node.setNodeStatus({ fill: "gray", shape: "ring", text: "Read " + msg });
@@ -576,8 +413,8 @@ module.exports = function (RED) {
 
                         // Set Volume
                         try {
-                            if (flowMessage.hasOwnProperty("volume")) {
-                                await node.SonosClient.setVolume(flowMessage.volume);
+                            if (node.currentMSGbeingSpoken.hasOwnProperty("volume")) {
+                                await node.SonosClient.setVolume(node.currentMSGbeingSpoken.volume);
                             } else {
                                 await node.SonosClient.setVolume(node.sSonosVolume);
                             }
@@ -674,6 +511,7 @@ module.exports = function (RED) {
                 // Signal end playing
                 setTimeout(() => {
                     node.msg.completed = true;
+                    node.currentMSGbeingSpoken = {};
                     node.send([{ payload: node.msg.completed }, null]);
                     node.bBusyPlayingQueue = false
                     node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
@@ -731,7 +569,8 @@ module.exports = function (RED) {
                 return;
             }
 
-            // 05/12/2020 handlong Hailing
+
+            // 05/12/2020 handling Hailing
             var hailingMSG = null;
             if (msg.hasOwnProperty("nohailing") && (msg.nohailing == "1" || msg.nohailing.toLowerCase() == "true")) {
                 hailingMSG = null;
@@ -761,10 +600,45 @@ module.exports = function (RED) {
                 if (msg.hasOwnProperty("sonoshailing")) hailingMSG = { payload: "Hailing_" + msg.sonoshailing + ".mp3" };
             }
 
-            // If the queue is empty and if i can play the Haniling, add the hailing file first
-            if (node.tempMSGStorage.length == 0 && hailingMSG !== null && !node.bBusyPlayingQueue) {
-                node.tempMSGStorage.push(hailingMSG);
-                node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Queued Hail' });
+            // 27/01/2021 Handling priority messages
+            if (msg.hasOwnProperty("priority") && msg.priority === true) {
+                // 10/04/2018 Take only the TTS message from the queue, that are not prioritized and removes others.
+                let arrayTemp = [];
+                for (let index = 0; index < node.tempMSGStorage.length; index++) {
+                    const element = node.tempMSGStorage[index];
+                    if (element.hasOwnProperty("priority") && element.priority === true) {
+                        arrayTemp.push(element);
+                    } 
+                }
+                node.tempMSGStorage = arrayTemp;
+
+                // If the queue is empty and if i can play the Haniling, add the hailing file first
+                if (node.tempMSGStorage.length == 0 && hailingMSG !== null) {
+                    node.tempMSGStorage.push(hailingMSG);
+                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Queued Hail in priority mode' });
+                }
+
+                // Priority checks
+                if (node.currentMSGbeingSpoken.hasOwnProperty("priority") && node.currentMSGbeingSpoken.priority === true) {
+                    // There is already a priority message being spoken, do nothing
+                    node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'There is already a priority message being spoken...queuing' });
+                } else {
+                    node.SonosClient.stop().then(result => {
+                        node.bTimeOutPlay = true;
+                        node.currentMSGbeingSpoken = msg; // Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
+                    }).catch(err => {
+                        // Don't care
+                        node.bTimeOutPlay = true;
+                        node.currentMSGbeingSpoken = msg;// Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
+                    })
+                }
+
+            } else {
+                // If the queue is empty and if i can play the Haniling, add the hailing file first
+                if (node.tempMSGStorage.length == 0 && hailingMSG !== null && !node.bBusyPlayingQueue) {
+                    node.tempMSGStorage.push(hailingMSG);
+                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Queued Hail' });
+                }
             }
 
             // 26/12/2020 Google Translate service allows only 200 char max. I must split the message
