@@ -157,6 +157,9 @@ If set to <b>true</b>, the inbound flow message will cancel the current TTS queu
 If there are other priority messages in the queue, they will be retained and the inbound priority flow message is added to the queue.<br/>
 If the inbound priority flow message is the first in the priority queue, the hailing is played first (if the hailing has been enabled or if the hailing has been overridden by *node.sonoshailing*)<br/>
 
+**msg.stop**<br/>
+If set to <b>true</b>, stops whatever is playing and clears the TTS queue.<br/>
+
 *Examples*
 
 ```js
@@ -183,6 +186,12 @@ return msg;
 // Play priority message
 msg.priority = true;
 msg.payload = "Warning. Intruder in the dinning room.";
+return msg;
+```
+
+```js
+// Stop whatever is playing
+msg.stop = true;
 return msg;
 ```
 

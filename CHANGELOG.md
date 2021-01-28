@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.14</b> January 2021<br/>
+- NEW: you can now stop whatever is playing by issuing a *msg.stop = true* command-<br/>
+- Update dthe README.<br/>
+</p>
+<p>
 <b>Version 1.0.13</b> January 2021<br/>
 - NEW: priority property in TTS-Ultimate input message. You can now send a priority message that stops the TTS queue and takes over.<br/>
 - NEW: priority OwnFile. You can now send a priority OwnMessage that stops the TTS queue and takes over.<br/>

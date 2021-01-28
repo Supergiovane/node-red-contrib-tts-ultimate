@@ -569,6 +569,18 @@ module.exports = function (RED) {
                 return;
             }
 
+            // 27/01/2021 Stop whatever in play.
+            if (msg.hasOwnProperty("stop") && msg.stop === true) {
+                node.flushQueue();
+                node.SonosClient.stop().then(result => {
+                
+                }).catch(err => {
+                    // Don't care
+                
+                })
+                node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
+                return;
+            }
 
             // 05/12/2020 handling Hailing
             var hailingMSG = null;
@@ -601,6 +613,7 @@ module.exports = function (RED) {
             }
 
             // 27/01/2021 Handling priority messages
+            // ########################
             if (msg.hasOwnProperty("priority") && msg.priority === true) {
                 // 10/04/2018 Take only the TTS message from the queue, that are not prioritized and removes others.
                 let arrayTemp = [];
@@ -608,7 +621,7 @@ module.exports = function (RED) {
                     const element = node.tempMSGStorage[index];
                     if (element.hasOwnProperty("priority") && element.priority === true) {
                         arrayTemp.push(element);
-                    } 
+                    }
                 }
                 node.tempMSGStorage = arrayTemp;
 
@@ -640,6 +653,8 @@ module.exports = function (RED) {
                     node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Queued Hail' });
                 }
             }
+            // ########################
+
 
             // 26/12/2020 Google Translate service allows only 200 char max. I must split the message
             const iLimitTTSGoogleTranslate = 190;
