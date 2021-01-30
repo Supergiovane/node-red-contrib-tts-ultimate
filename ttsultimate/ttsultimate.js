@@ -384,7 +384,7 @@ module.exports = function (RED) {
                                     data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
                                 }
                                 // Save the downloaded file into the cache
-                                fs.writeFile(sFileToBePlayed, data, function (error, result) {
+                                fs.writeFileSync(sFileToBePlayed, data, function (error, result) {
                                     if (error) {
                                         RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
                                         node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
@@ -392,6 +392,7 @@ module.exports = function (RED) {
                                     }
                                 });
                             } catch (error) {
+                                RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
                                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
                                 sFileToBePlayed = "";
                             }
@@ -656,15 +657,15 @@ module.exports = function (RED) {
             // ########################
 
 
-            // 26/12/2020 Google Translate service allows only 200 char max. I must split the message
-            const iLimitTTSGoogleTranslate = 190;
-            if (node.server.ttsservice === "googletranslate") {
-                if (msg.payload.length >= iLimitTTSGoogleTranslate) {
+            // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
+            const iLimitTTSFilenameLenght = 190;
+            //if (node.server.ttsservice === "googletranslate") {
+                if (msg.payload.length >= iLimitTTSFilenameLenght) {
                     const aWords = msg.payload.split(" "); // Get all words
                     var sTemp = "";
                     for (let index = 0; index < aWords.length; index++) {
                         const word = aWords[index];
-                        if (sTemp.length + word.length + 1 <= iLimitTTSGoogleTranslate) {
+                        if (sTemp.length + word.length + 1 <= iLimitTTSFilenameLenght) {
                             sTemp += " " + word;
                             //console.log("Aggiungo " + sTemp);
                         } else {
@@ -684,9 +685,9 @@ module.exports = function (RED) {
                 } else {
                     node.tempMSGStorage.push(msg);
                 }
-            } else {
-                node.tempMSGStorage.push(msg);
-            }
+            //} else {
+            //    node.tempMSGStorage.push(msg);
+            //}
 
             // Starts main queue watching
             node.waitForQueue();

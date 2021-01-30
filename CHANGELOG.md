@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.15</b> January 2021<br/>
+- FIX: if the text to be spoken is too long, there is an error thrown by filename too long. Fixed by splitting the too long payloads<br/>
+- CAUTION: Currently, the FREE GOOGLE TRANSLATE TTS engine is not working. Hope it becomes avaiable again in the next days.<br/>
+</p>
+<p>
 <b>Version 1.0.14</b> January 2021<br/>
 - NEW: you can now stop whatever is playing by issuing a *msg.stop = true* command-<br/>
 - Update dthe README.<br/>
