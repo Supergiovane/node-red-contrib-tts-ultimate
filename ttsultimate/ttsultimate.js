@@ -558,11 +558,6 @@ module.exports = function (RED) {
             };
             // *********************************
 
-            if (!msg.hasOwnProperty("payload")) {
-                notifyError(msg, 'msg.payload must be of type String');
-                return;
-            }
-
             // In case of connection error, doesn't accept any message
             if (node.msg.connectionerror) {
                 RED.log.warn("ttsultimate: Sonos is offline. The new msg coming from the flow will be rejected.");
@@ -580,6 +575,11 @@ module.exports = function (RED) {
 
                 })
                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
+                return;
+            }
+
+            if (!msg.hasOwnProperty("payload")) {
+                notifyError(msg, 'msg.payload must be of type String');
                 return;
             }
 
@@ -659,35 +659,36 @@ module.exports = function (RED) {
 
             // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
             const iLimitTTSFilenameLenght = 190;
-            //if (node.server.ttsservice === "googletranslate") {
             if (msg.payload.length >= iLimitTTSFilenameLenght) {
-                const aWords = msg.payload.split(" "); // Get all words
-                var sTemp = "";
-                for (let index = 0; index < aWords.length; index++) {
-                    const word = aWords[index];
-                    if (sTemp.length + word.length + 1 <= iLimitTTSFilenameLenght) {
-                        sTemp += " " + word;
-                        //console.log("Aggiungo " + sTemp);
-                    } else {
-                        // Limit reached, push this words and resets sTemp
-                        var oMsg = RED.util.cloneMessage(msg);
+                let sTemp = "";
+                let aSeps = [".", ",", ":", ";", "!", "?"];
+                let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
+                for (let index = 0; index < sPayload.length; index++) {
+                    const element = sPayload.substr(index, 1);
+                    sTemp += element;
+                    if (aSeps.indexOf(element) > -1 && sTemp.length > 20) {
+                        const oMsg = RED.util.cloneMessage(msg);
                         oMsg.payload = sTemp;
                         node.tempMSGStorage.push(oMsg);
-                        sTemp = word;
+                        sTemp = "";
+                    }
+                    if (sTemp.length > iLimitTTSFilenameLenght && element === " ") {
+                        // Split using space
+                        const oMsg = RED.util.cloneMessage(msg);
+                        oMsg.payload = sTemp;
+                        node.tempMSGStorage.push(oMsg);
+                        sTemp = "";
                     }
                 }
-                // Is there something remaining?
-                if (sTemp !== "") {
-                    var oMsg = RED.util.cloneMessage(msg);
-                    oMsg.payload = sTemp;
-                    node.tempMSGStorage.push(oMsg);
-                }
+                // Remaining
+                const oMsg = RED.util.cloneMessage(msg);
+                oMsg.payload = sTemp;
+                node.tempMSGStorage.push(oMsg);
+
             } else {
                 node.tempMSGStorage.push(msg);
             }
-            //} else {
-            //    node.tempMSGStorage.push(msg);
-            //}
+
 
             // Starts main queue watching
             node.waitForQueue();
@@ -752,7 +753,7 @@ module.exports = function (RED) {
                 // 30/01/2021 changed how google handles voices 
                 // https://github.com/ncpierson/google-translate-tts/issues/5#issuecomment-770209715
                 if (params.voice.includes("-")) params.voice = params.voice.split("-")[0];
-                
+
                 const buffer = await ttsService.synthesize(params);
                 return (buffer);
             } catch (error) {

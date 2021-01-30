@@ -3,6 +3,9 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.18</b> January 2021<br/>
+- Better handling of payloads long more than 200 chars.<br/>
+<p>
 <b>Version 1.0.16</b> January 2021<br/>
 - Currently, the FREE GOOGLE TRANSLATE TTS engine has changed some voice codes. I've been fixed that. You need to do nothing.<br/>
 </p>
