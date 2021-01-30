@@ -574,10 +574,10 @@ module.exports = function (RED) {
             if (msg.hasOwnProperty("stop") && msg.stop === true) {
                 node.flushQueue();
                 node.SonosClient.stop().then(result => {
-                
+
                 }).catch(err => {
                     // Don't care
-                
+
                 })
                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
                 return;
@@ -660,31 +660,31 @@ module.exports = function (RED) {
             // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
             const iLimitTTSFilenameLenght = 190;
             //if (node.server.ttsservice === "googletranslate") {
-                if (msg.payload.length >= iLimitTTSFilenameLenght) {
-                    const aWords = msg.payload.split(" "); // Get all words
-                    var sTemp = "";
-                    for (let index = 0; index < aWords.length; index++) {
-                        const word = aWords[index];
-                        if (sTemp.length + word.length + 1 <= iLimitTTSFilenameLenght) {
-                            sTemp += " " + word;
-                            //console.log("Aggiungo " + sTemp);
-                        } else {
-                            // Limit reached, push this words and resets sTemp
-                            var oMsg = RED.util.cloneMessage(msg);
-                            oMsg.payload = sTemp;
-                            node.tempMSGStorage.push(oMsg);
-                            sTemp = word;
-                        }
-                    }
-                    // Is there something remaining?
-                    if (sTemp !== "") {
+            if (msg.payload.length >= iLimitTTSFilenameLenght) {
+                const aWords = msg.payload.split(" "); // Get all words
+                var sTemp = "";
+                for (let index = 0; index < aWords.length; index++) {
+                    const word = aWords[index];
+                    if (sTemp.length + word.length + 1 <= iLimitTTSFilenameLenght) {
+                        sTemp += " " + word;
+                        //console.log("Aggiungo " + sTemp);
+                    } else {
+                        // Limit reached, push this words and resets sTemp
                         var oMsg = RED.util.cloneMessage(msg);
                         oMsg.payload = sTemp;
                         node.tempMSGStorage.push(oMsg);
+                        sTemp = word;
                     }
-                } else {
-                    node.tempMSGStorage.push(msg);
                 }
+                // Is there something remaining?
+                if (sTemp !== "") {
+                    var oMsg = RED.util.cloneMessage(msg);
+                    oMsg.payload = sTemp;
+                    node.tempMSGStorage.push(oMsg);
+                }
+            } else {
+                node.tempMSGStorage.push(msg);
+            }
             //} else {
             //    node.tempMSGStorage.push(msg);
             //}
@@ -749,6 +749,10 @@ module.exports = function (RED) {
         // 26/12/2020 Google TTS Service
         async function synthesizeSpeechGoogleTranslate(ttsService, params) {
             try {
+                // 30/01/2021 changed how google handles voices 
+                // https://github.com/ncpierson/google-translate-tts/issues/5#issuecomment-770209715
+                if (params.voice.includes("-")) params.voice = params.voice.split("-")[0];
+                
                 const buffer = await ttsService.synthesize(params);
                 return (buffer);
             } catch (error) {
