@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.19</b> February 2021<br/>
+- The previous limit of 200 chars (before the TTS text is automatically slit) has been increased to 220.<br/>
+<p>
+<p>
 <b>Version 1.0.18</b> January 2021<br/>
 - Better handling of payloads long more than 200 chars.<br/>
 <p>

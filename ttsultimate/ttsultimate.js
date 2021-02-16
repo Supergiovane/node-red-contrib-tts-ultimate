@@ -658,7 +658,7 @@ module.exports = function (RED) {
 
 
             // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
-            const iLimitTTSFilenameLenght = 190;
+            const iLimitTTSFilenameLenght = 220;
             if (msg.payload.length >= iLimitTTSFilenameLenght) {
                 let sTemp = "";
                 let aSeps = [".", ",", ":", ";", "!", "?"];
