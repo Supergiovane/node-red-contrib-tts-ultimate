@@ -458,7 +458,7 @@ module.exports = function (RED) {
                 if (fs.existsSync(query.f)) {
                     // 26/01/2021 security check
                     // File should be something like mydocs/.node-red/sonospollyttsstorage/ttsfiles/Hello_de-DE.mp3
-                    if (path.extname(query.f) === ".mp3" && path.dirname(path.dirname(query.f)).endsWith("/sonospollyttsstorage")) {
+                    if (path.extname(query.f) === ".mp3" && path.dirname(path.dirname(query.f)).endsWith("sonospollyttsstorage")) {
                         var readStream = fs.createReadStream(query.f);
                         readStream.on("error", function (error) {
                             RED.log.error("ttsultimate-config: Playsonos error opening stream : " + query.f + ' : ' + error);
