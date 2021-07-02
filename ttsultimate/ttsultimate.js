@@ -149,9 +149,15 @@ module.exports = function (RED) {
                 for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
                     const element = node.oAdditionalSonosPlayers[index];
                     element.joinGroup(node.sSonosCoordinatorGroupName).then(success => {
-                        // 24/09/2020 Set Volume of each device in the group
-                        element.setVolume(node.sSonosVolume).then(success => {
-                        }).catch(err => { });
+                        // 02/07/2021 Get the player's volume, to be set again in ungroupspealers
+                        element.getVolume().then((volume) => {
+                            element.ttsUltimateOwnVolume = volume; // New inferrer prop containing the current volume
+                            //console.log("BANANA VOLUME GET ", element.ttsUltimateOwnVolume);
+                            // 24/09/2020 Set Volume of each device in the group
+                            element.setVolume(node.sSonosVolume).then(success => {
+                            }).catch(err => { });
+                        });
+
                     }).catch(err => {
                         RED.log.warn("ttsultimate: Error joining device " + err.message);
                     });
@@ -172,9 +178,17 @@ module.exports = function (RED) {
                     element.leaveGroup().then(success => {
                         //RED.log.warn('Leaving the group is a ' + (success ? 'Success' : 'Failure'))
                     }).catch(err => {
-                        RED.log.warn('ttsultimate: Error leaving group device ' + err);
-                        reject(false)
-                    })
+                        RED.log.warn('ttsultimate: Error leaving group device ' + err.message);
+                        reject(false);
+                    }).finally(() => {
+                        if (element.ttsUltimateOwnVolume !== undefined) {
+                            element.setVolume(element.ttsUltimateOwnVolume).then(success => {
+                                //console.log("BANANA VOLUME SET ", element.ttsUltimateOwnVolume);
+                            }).catch(err => {
+                                RED.log.warn('ttsultimate: Error set preious volume on group device ' + err.message);
+                            });
+                        }
+                    });
                 }
                 resolve(true);
             });
