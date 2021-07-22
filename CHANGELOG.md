@@ -4,7 +4,6 @@
 
 <p>
 <b>Version 1.0.22</b> Juli 2021<br/>
-- Fixed a glitch with setting of previous volumes, after TTS playing, that leaves 1-2 seconds before applying the previous volume.<br/>
 - The additional players don't obey to msg.volume input node message override (they instead get the volume set by the config window, that is OK, but they must also obey to the override msg). Fixed<br/>
 <p>
 <p>
