@@ -1,6 +1,3 @@
-const { clear } = require('console');
-const { clearInterval } = require('timers');
-
 module.exports = function (RED) {
     'use strict';
 
@@ -142,76 +139,60 @@ module.exports = function (RED) {
 
         // 20/03/2020 Join Coordinator queue
         // ######################################################
-        node.groupSpeakers = () => {
-            return new Promise(function (resolve, reject) {
-                // 05/07/2021 Get the main coordinator player previous volume set by app
-                node.SonosClient.getVolume().then((volume) => {
-                    node.sonosCoordinatorPreviousVolumeSetByApp = volume; // New inferrer prop containing the current volume
-                    //console.log("BANANA VOLUME GET ", node.sonosCoordinatorPreviousVolumeSetByApp);
-                }).catch(err => {
-                    node.sonosCoordinatorPreviousVolumeSetByApp = node.sSonosVolume;
-                }).finally(() => {
-                    if (node.oAdditionalSonosPlayers.length === 0) resolve(true);
-                    // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
-                    // You don't have to worry about who is the coordinator.
-                    for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                        const element = node.oAdditionalSonosPlayers[index];
-                        element.joinGroup(node.sonosCoordinatorGroupName).then(success => {
-                            // 02/07/2021 Get the player's volume set by app, to be set again in ungroupspealers
-                            element.getVolume().then((volume) => {
-                                element.additionalPlayerPreviousVolumeSetByApp = volume; // New inferrer prop containing the current volume
-                                //console.log("BANANA VOLUME GET ", element.additionalPlayerPreviousVolumeSetByApp);
-                                // // 24/09/2020 Set Volume of each device in the group
-                                // element.setVolume(node.sSonosVolume).then(success => {
-                                // }).catch(err => { });
-                            });
-
-                        }).catch(err => {
-                            RED.log.warn("ttsultimate: Error joining device " + err.message);
-                        });
-                    };
-                    var b = false;
-                    if (b === true) reject("fake");
-                    setTimeout(() => {
-                        resolve(true);
-                    }, 2000);
-                });
-            });
+        node.groupSpeakers = async () => {
+            // 05/07/2021 Get the main coordinator player previous volume set by app
+            try {
+                node.sonosCoordinatorPreviousVolumeSetByApp = await GETVOLUMESync();
+            } catch (error) {
+                node.sonosCoordinatorPreviousVolumeSetByApp = node.sSonosVolume;
+            }
+            if (node.oAdditionalSonosPlayers.length === 0) return true;
+            // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
+            // You don't have to worry about who is the coordinator.
+            for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
+                const element = node.oAdditionalSonosPlayers[index];
+                try {
+                    await element.joinGroup(node.sonosCoordinatorGroupName);
+                } catch (error) {
+                    RED.log.warn("ttsultimate: Error joining device " + error.message);
+                }
+                // 02/07/2021 Get the player's volume set by app, to be set again in ungroupspealers
+                try {
+                    element.additionalPlayerPreviousVolumeSetByApp = await element.getVolume();
+                } catch (error) {
+                    RED.log.warn("ttsultimate: Error setting volume of joined device " + error.message);
+                }
+            };
+            return true;
         }
 
         // 20/03/2020 Ungroup Coordinator queue
-        node.ungroupSpeakers = () => {
-            return new Promise(function (resolve, reject) {
-                // 05/07/2021, set the previous app volume for main coordinator player
-                node.SonosClient.setVolume(node.sonosCoordinatorPreviousVolumeSetByApp).then(success => {
-                    //console.log("BANANA COORDINATOR PREVIOUS VOLUME SET ", node.sonosCoordinatorPreviousVolumeSetByApp);
-                }).catch(err => {
-                    RED.log.warn('ttsultimate: Error set preious volume on main coordinator in ungroupSpeakers ' + err.message);
-                });
+        node.ungroupSpeakers = async () => {
+            // 05/07/2021, set the previous app volume for main coordinator player
+            try {
+                //console.log("SETTING VOLUME", node.sonosCoordinatorPreviousVolumeSetByApp)
+                await node.SonosClient.setVolume(node.sonosCoordinatorPreviousVolumeSetByApp);
+                //console.log("SETTED VOLUME", node.sonosCoordinatorPreviousVolumeSetByApp)
+            } catch (error) {
+                RED.log.warn("ttsultimate: Error set preious volume on main coordinator in ungroupSpeakers " + error.message);
+            }
 
-                for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                    const element = node.oAdditionalSonosPlayers[index];
-                    element.leaveGroup().then(success => {
-                        //RED.log.warn('Leaving the group is a ' + (success ? 'Success' : 'Failure'))
-                    }).catch(err => {
-                        // Dont care
-                        RED.log.warn('ttsultimate: Error leaving group device ' + err.message);
-                    }).finally(() => {
-                        if (element.additionalPlayerPreviousVolumeSetByApp !== undefined) {
-                            element.setVolume(element.additionalPlayerPreviousVolumeSetByApp).then(success => {
-                                //console.log("BANANA ADDITIONAL PLAYER PREVIOUS VOLUME SET ", element.additionalPlayerPreviousVolumeSetByApp);
-                            }).catch(err => {
-                                RED.log.warn('ttsultimate: Error set preious volume on group device ' + err.message);
-                            });
-                        }
-                    });
+            for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
+                const element = node.oAdditionalSonosPlayers[index];
+                try {
+                    await element.leaveGroup();
+                } catch (error) {
+                    // Dont care
+                    RED.log.warn("ttsultimate: Error leaving group device " + error.message);
                 }
-                var b = false;
-                if (b === true) reject(false); // fake rejection to avoid warning message of promise rejection error
-                setTimeout(() => {
-                    resolve(true);
-                }, 2000);
-            });
+                if (element.additionalPlayerPreviousVolumeSetByApp !== undefined) {
+                    try {
+                        await element.setVolume(element.additionalPlayerPreviousVolumeSetByApp);
+                    } catch (error) {
+                        RED.log.warn("ttsultimate: Error set previous volume on group device " + error.message);
+                    }
+                }
+            }
         }
         // ######################################################
 
@@ -249,8 +230,126 @@ module.exports = function (RED) {
             });
         };
 
+        let iWaitAfterSync = 500;
+        // 24/08/2021 Sync wrapper
+        async function PLAYSync(_toPlay) {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.play(_toPlay).then(result => {
+                    if (iWaitAfterSync > 2000) console.log("PLAYSUNC")
+                    setTimeout(() => {
+                        resolve(true);
+                    }, iWaitAfterSync);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error PLAYSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function SEEKSync(_Position) {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.seek(_Position).then(result => {
+                    if (iWaitAfterSync > 2000) console.log("SEEKSync")
+                    setTimeout(() => {
+                        resolve(true);
+                    }, iWaitAfterSync);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error SEEKSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function SELECTQUEUESync() {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.selectQueue().then(result => {
+                    if (iWaitAfterSync > 2000) console.log("SELECTQUEUESync")
+                    STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
+                    setTimeout(() => {
+                        resolve(true);
+                    }, iWaitAfterSync);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error SELECTQUEUESync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function SELECTTRACKSync(_queuePositiom) {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.selectTrack(_queuePositiom).then(result => {
+                    if (iWaitAfterSync > 2000) console.log("SELECTTRACKSync")
+                    setTimeout(() => {
+                        resolve(true);
+                    }, iWaitAfterSync);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error SELECTTRACKSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function STOPSync(_queuePositiom) {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.stop().then(result => {
+                    if (iWaitAfterSync > 2000) console.log("STOPSync")
+                    setTimeout(() => {
+                        resolve(true);
+                    }, iWaitAfterSync);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error STOPSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function GETVOLUMESync() {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.getVolume().then(volume => {
+                    if (iWaitAfterSync > 2000) console.log("GETVOLUMESync")
+                    resolve(volume);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error GETVOLUMESync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function setAVTransportURISync(_Uri) {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.setAVTransportURI(_Uri).then(volume => {
+                    if (iWaitAfterSync > 2000) console.log("setAVTransportURISync")
+                    resolve(true);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error setAVTransportURISync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 24/08/2021 Sync wrapper
+        async function getCurrentStateSync() {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.getCurrentState().then(state => {
+                    resolve(state);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error getCurrentStateSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+
+
         // 30/12/2020 Supergiovane resume queue for radio, queue music, TV in , line in etc.
         async function resumeMusicQueue(_oTrack) {
+
             if (_oTrack !== null) {
                 // Do some checks on the track.
                 if (_oTrack.hasOwnProperty("duration") && _oTrack.duration === 0 || _oTrack.uri.startsWith("x-sonosprog-http")) {
@@ -267,61 +366,54 @@ module.exports = function (RED) {
                 // Track is null, nothing to resume.
                 return false;
             }
+            //console.log(_oTrack)
             // It's a radio station or a generic stream, not a queue.
             if (_oTrack.trackType === "stream") {
-
                 try {
-                    await node.SonosClient.play(_oTrack.uri);
+                    await PLAYSync(_oTrack.uri);
                 } catch (error) {
                     return error;
                 }
                 try {
-                    await node.SonosClient.seek(_oTrack.position);
+                    await SEEKSync(_oTrack.position);
                 } catch (error) {
                     // Don't care
                 }
             } else {
                 if (_oTrack.trackType === "musicqueue") { // This indicates that is an audio file or stream station
                     try {
-                        await node.SonosClient.selectQueue();
+                        await SELECTQUEUESync();
                     } catch (error) {
                         return error;
                     }
                     try {
-                        await node.SonosClient.selectTrack(_oTrack.queuePosition);
+                        await SELECTTRACKSync(_oTrack.queuePosition);
                     } catch (error) {
                         return error;
                     }
                     try {
-                        await node.SonosClient.seek(_oTrack.position);
+                        await SEEKSync(_oTrack.position);
                     } catch (error) {
                         // Don't care
                     }
-                    try {
-                        await node.SonosClient.play();
-                    } catch (error) {
-                        return error;
+                    if (_oTrack.state === "playing") {
+                        // 24/08/2021 Play if it was playing
+                        try {
+                            await PLAYSync();
+                        } catch (error) {
+                            return error;
+                        }
                     }
                 } else if (_oTrack.trackType === "lineinput") {
                     // Line in, TV in, etc...
                     try {
-                        await node.SonosClient.setAVTransportURI(_oTrack.uri);
+                        await setAVTransportURISync(_oTrack.uri);
                     } catch (error) {
                         return error;
                     }
                 }
             }
-            if (_oTrack.state !== "playing") {
-                // 30/12/2020 Immedialtely stops the play
-                try {
-                    await node.SonosClient.pause();
-                } catch (error) {
-
-                }
-                setTimeout(() => { return true; }, 5000); // Wait some seconds 
-            } else {
-                setTimeout(() => { return true; }, 5000); // Wait some seconds to the music to start playing    
-            }
+            setTimeout(() => { return true; }, 5000); // Wait some seconds 
         };
 
         // Handle the queue
@@ -349,6 +441,14 @@ module.exports = function (RED) {
                 }
 
                 node.send([{ payload: node.msg.completed }, null]);
+
+                // 24/08/2021 If something was playing, stop the player https://github.com/Supergiovane/node-red-contrib-tts-ultimate/issues/32
+                try {
+                    //await node.SonosClient.stop(); //.then(result => {
+                    await STOPSync();
+                } catch (error) {
+                    RED.log.error("ttsultimate: Error stopping in HandleSend: " + error.message);
+                }
 
 
                 while (node.tempMSGStorage.length > 0) {
@@ -460,7 +560,8 @@ module.exports = function (RED) {
                         }
                         try {
 
-                            await node.SonosClient.setAVTransportURI(sFileToBePlayed);
+                            //await node.SonosClient.setAVTransportURI(sFileToBePlayed);
+                            await setAVTransportURISync(sFileToBePlayed);
 
                             // Wait for start playing
                             var state = "";
@@ -471,7 +572,8 @@ module.exports = function (RED) {
                             }, 10000);
                             while (state !== "playing" && !node.bTimeOutPlay) {
                                 try {
-                                    state = await node.SonosClient.getCurrentState();
+                                    //state = await node.SonosClient.getCurrentState();
+                                    state = await getCurrentStateSync();
                                 } catch (error) {
                                     node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of playing ' + msg });
                                     RED.log.error("ttsultimate: Error getCurrentState of playing " + error.message);
@@ -497,7 +599,8 @@ module.exports = function (RED) {
                             }, 60000);
                             while (state !== "stopped" && !node.bTimeOutPlay) {
                                 try {
-                                    state = await node.SonosClient.getCurrentState();
+                                    //state = await node.SonosClient.getCurrentState();
+                                    state = await getCurrentStateSync();
                                 } catch (error) {
                                     node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of stopped ' + msg });
                                     RED.log.error("ttsultimate: Error  getCurrentState of stopped " + error.message);
@@ -603,12 +706,7 @@ module.exports = function (RED) {
             // 27/01/2021 Stop whatever in play.
             if (msg.hasOwnProperty("stop") && msg.stop === true) {
                 node.flushQueue();
-                node.SonosClient.stop().then(result => {
-
-                }).catch(err => {
-                    // Don't care
-
-                })
+                STOPSync();
                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
                 return;
             }

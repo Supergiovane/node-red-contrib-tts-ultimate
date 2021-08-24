@@ -3,6 +3,12 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.23</b> August 2021<br/>
+- Fixed a volume issue. The playing queue was jumping briefly at TTS volume before stopping. That was annoiyng.<br/>
+- Fixed issues with some async function not really async, so there was glitches in volume settings, seeking and so on, specially with playlist and queues.<br/>
+- There are known issues with resuming play of sonos streams, they work for a while, then stop.<br/>
+<p>
+<p>
 <b>Version 1.0.22</b> Juli 2021<br/>
 - The additional players don't obey to msg.volume input node message override (they instead get the volume set by the config window, that is OK, but they must also obey to the override msg). Fixed<br/>
 <p>
