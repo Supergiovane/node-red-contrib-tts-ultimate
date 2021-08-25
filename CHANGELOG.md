@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.24</b> August 2021<br/>
+- Fixed a little issue with sonos beam, switching volumes with a 1-2 seconds delay.<br/>
+<p>
+<p>
 <b>Version 1.0.23</b> August 2021<br/>
 - Fixed a volume issue. The playing queue was jumping briefly at TTS volume before stopping. That was annoiyng.<br/>
 - Fixed issues with some async function not really async, so there was glitches in volume settings, seeking and so on, specially with playlist and queues.<br/>
