@@ -237,22 +237,6 @@ module.exports = function (RED) {
             });
         }
 
-        // 24/08/2021 Sync wrapper
-        async function playNotificationSync(_Uri) {
-            return new Promise((resolve, reject) => {
-                node.SonosClient.playNotification({
-                    uri: _Uri,
-                    onlyWhenPlaying: false // It will query the state anyway, don't play the notification if the speaker is currently off.
-                    //,volume: 10 // Change the volume for the notification, and revert back afterwards.
-                  }).then(result => {
-                    if (iWaitAfterSync > 2000) console.log("playNotificationSync")
-                    resolve(true);
-                }).catch(err => {
-                    RED.log.error("ttsultimate: Error playNotificationSync: " + err.message);
-                    reject(err);
-                });
-            });
-        }
         //#endregion
 
 
