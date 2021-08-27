@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.25</b> August 2021<br/>
+- Optimized setting volume speed.<br/>
+<p>
+<p>
 <b>Version 1.0.24</b> August 2021<br/>
 - Fixed a little issue with sonos beam, switching volumes with a 1-2 seconds delay.<br/>
 <p>
