@@ -237,6 +237,19 @@ module.exports = function (RED) {
             });
         }
 
+        // 28/08/2021 Sync wrapper
+        // function removeTracksFromQueueSync() {
+        //     return new Promise((resolve, reject) => {
+        //         // To remove current item from the queue
+        //         node.SonosClient.removeTracksFromQueue(1,1).then(result => {
+        //             resolve(result);
+        //         }).catch(err => {
+        //             RED.log.error("ttsultimate: Error removeTracksFromQueueSync: " + err.message);
+        //             reject(err);
+        //         });
+        //     });
+        // }
+
         // 20/03/2020 Join Coordinator queue
         // ######################################################
         async function groupSpeakersSync() {
@@ -293,14 +306,14 @@ module.exports = function (RED) {
         // ######################################################
 
         async function delay(ms) {
-			return new Promise(function (resolve, reject) {
-				try {
-					node.timerWait = setTimeout(resolve, ms);
-				} catch (error) {
-					reject();
-				}
-			});
-		}
+            return new Promise(function (resolve, reject) {
+                try {
+                    node.timerWait = setTimeout(resolve, ms);
+                } catch (error) {
+                    reject();
+                }
+            });
+        }
 
         //#endregion
 
@@ -389,7 +402,7 @@ module.exports = function (RED) {
                 // Track is null, nothing to resume.
                 return false;
             }
-            
+
             // It's a radio station or a generic stream, not a queue.
             if (_oTrack.trackType === "stream") {
                 try {
@@ -584,7 +597,7 @@ module.exports = function (RED) {
                         try {
 
                             await setAVTransportURISync(sFileToBePlayed);
-                           
+
                             // Wait for start playing
                             var state = "";
                             if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
@@ -611,7 +624,7 @@ module.exports = function (RED) {
                                     node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting start play state: ' + msg });
                                     break;
                             }
-                           
+
                             // Wait for end
                             if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
                             node.bTimeOutPlay = false;
@@ -638,7 +651,7 @@ module.exports = function (RED) {
                                     node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting end play state: ' + msg });
                                     break;
                             }
-                           
+
                         } catch (error) {
                             if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay); // Clear the player timeout
                             RED.log.error("ttsultimate: Error HandleQueue for " + sFileToBePlayed + " " + error.message);
@@ -646,7 +659,7 @@ module.exports = function (RED) {
                         }
 
                     }
-                    
+
                 }; // End Loop
 
                 // Ungroup speaker
@@ -661,10 +674,13 @@ module.exports = function (RED) {
 
                 // Resume music
                 try {
-                    if (oCurTrack !== null) {
+                    if (oCurTrack !== null && oCurTrack.title.indexOf(".mp3") === -1) {
                         node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
                         await resumeMusicQueue(oCurTrack);
                         node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });
+                    } else {
+                        // 28/08/2021 There was no queue playing. Delete the TTS from the queue
+                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: "No queue to resume." });
                     }
                 } catch (error) {
                     node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming queue: " + error.message });
