@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.27</b> September 2021<br/>
+- Hided some unwanted logs.<br/>
+<p>
+<p>
 <b>Version 1.0.26</b> August 2021<br/>
 - FIX: after playing tts, if you have no previous queue and you are on old Sonos V1, the last TTS played remains in the queue (it shouldn't).<br/>
 <p>
