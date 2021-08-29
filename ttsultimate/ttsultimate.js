@@ -134,7 +134,7 @@ module.exports = function (RED) {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
-                    RED.log.error("ttsultimate: Error SEEKSync: " + err.message);
+                    //RED.log.error("ttsultimate: Error SEEKSync: " + err.message);
                     reject(err);
                 });
             });
@@ -145,7 +145,10 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 node.SonosClient.selectQueue().then(result => {
                     if (iWaitAfterSync > 2000) console.log("SELECTQUEUESync")
-                    STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
+                    try {
+                        STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
+                    } catch (error) {                        
+                    }                    
                     setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
@@ -180,7 +183,7 @@ module.exports = function (RED) {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
-                    RED.log.error("ttsultimate: Error STOPSync: " + err.message);
+                    //RED.log.error("ttsultimate: Error STOPSync: " + err.message);
                     reject(err);
                 });
             });
@@ -483,7 +486,7 @@ module.exports = function (RED) {
                     //await node.SonosClient.stop(); //.then(result => {
                     await STOPSync();
                 } catch (error) {
-                    RED.log.error("ttsultimate: Error stopping in HandleSend: " + error.message);
+                    //RED.log.error("ttsultimate: Error stopping in HandleSend: " + error.message);
                 }
 
 
@@ -745,7 +748,10 @@ module.exports = function (RED) {
             // 27/01/2021 Stop whatever in play.
             if (msg.hasOwnProperty("stop") && msg.stop === true) {
                 node.flushQueue();
-                STOPSync();
+                try {
+                    STOPSync();
+                } catch (error) {                    
+                }               
                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
                 return;
             }
