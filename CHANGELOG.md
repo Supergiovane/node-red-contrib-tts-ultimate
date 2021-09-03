@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.28</b> September 2021<br/>
+- Fixed queue resuming play even if was in stop (only occurs in some circumstances).<br/>
+<p>
+<p>
 <b>Version 1.0.27</b> September 2021<br/>
 - Hided some unwanted logs.<br/>
 <p>

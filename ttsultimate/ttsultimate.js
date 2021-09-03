@@ -147,8 +147,8 @@ module.exports = function (RED) {
                     if (iWaitAfterSync > 2000) console.log("SELECTQUEUESync")
                     try {
                         STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
-                    } catch (error) {                        
-                    }                    
+                    } catch (error) {
+                    }
                     setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
@@ -408,15 +408,18 @@ module.exports = function (RED) {
 
             // It's a radio station or a generic stream, not a queue.
             if (_oTrack.trackType === "stream") {
-                try {
-                    await PLAYSync(_oTrack.uri);
-                } catch (error) {
-                    return error;
-                }
-                try {
-                    await SEEKSync(_oTrack.position);
-                } catch (error) {
-                    // Don't care
+                if (_oTrack.state === "playing") {
+                    // 03/09/2021 Play if it was playing
+                    try {
+                        await PLAYSync(_oTrack.uri);
+                    } catch (error) {
+                        return error;
+                    }
+                    try {
+                        await SEEKSync(_oTrack.position);
+                    } catch (error) {
+                        // Don't care
+                    }
                 }
             } else {
                 if (_oTrack.trackType === "musicqueue") { // This indicates that is an audio file or stream station
@@ -439,6 +442,13 @@ module.exports = function (RED) {
                         // 24/08/2021 Play if it was playing
                         try {
                             await PLAYSync();
+                        } catch (error) {
+                            return error;
+                        }
+                    } else {
+                        /// 03/09/2021
+                        try {
+                            await STOPSync();
                         } catch (error) {
                             return error;
                         }
@@ -637,7 +647,6 @@ module.exports = function (RED) {
                             }, 60000);
                             while (state !== "stopped" && !node.bTimeOutPlay) {
                                 try {
-                                    //state = await node.SonosClient.getCurrentState();
                                     state = await getCurrentStateSync();
                                 } catch (error) {
                                     node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of stopped ' + msg });
@@ -750,8 +759,8 @@ module.exports = function (RED) {
                 node.flushQueue();
                 try {
                     STOPSync();
-                } catch (error) {                    
-                }               
+                } catch (error) {
+                }
                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
                 return;
             }
