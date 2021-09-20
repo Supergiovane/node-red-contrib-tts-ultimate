@@ -2,43 +2,9 @@
     <p>
         <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
     </p>
-    <p>
-        This node uses <a href="https://aws.amazon.com/polly/">Polly</a> TTS api and Node Sonos api and requires <b>NODE 8.9.x</b> or higher.
+     <p>
+      Configuration help is in the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
     </p>
-    <p>
-        Please see the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">Changelog</a><br/>
-        Please read the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
-    </p>
-    <p>
-        <b>CONFIG:</b><br/>
-        <code>Config</code> create a config with your AWS credentials. If you put incorrect credentials, you'll see this error in the node-red's debug window: "The security token included in the request is invalid."<br/>
-        <code>Voice</code> select your preferred voice.<br/>
-        <code>Sonos Volume</code> set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume="40"; to the node)<br/>
-        <code>Sonos Hailing</code> before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it. You can upload and delete your own hailing sounds as well.<br/>
-        <code>Main Sonos player</code> Select your primary player coordinator. (It's advisable to reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server)<br/>
-        <code>Additional players</code> If you've more than one player, you can add players to the group. Your announcement will be played simultaneusly to all these players as well.<br/>
-        
-    </p>
-    <p>
-        <b>INPUT:</b><br/> 
-        <code>msg.volume</code> set the volume (values between "0" and "100" with quotes)<br/>
-        <code>msg.nohailing</code> doesn't play the Hailing sound prior to the message (values "true" or "1" with quotes)<br/>
-        <code>msg.payload</code> the text to be spoken (for example msg.payload = "Hello World!";)<br/>
-        <code>msg.sonoshailing</code> Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the <b>.mp3</b> extension.
-    <p>
-    <p>
-        <b>OUTPUT:</b><br/> 
-        <code>msg.completed</code> <b>true</b> when the node has finished playing, <b>false</b> if the node is playing<br/>
-        <code>msg.connectionerror</code> <b>true</b> when the node cannot connect to the Sonos device, <b>false</b> if the connection is restored.<br/>
-    <p>
-        <b>FEATURES:</b><br/> 
-        - TTS queues handling. If you send multiple payloads to the node, it'll handle it in his own queue.<br/>
-        - TTS caching. Amazon AWS charges you if you use Polly for a very high rate of text to speech request. The node caches the TTS, so if you requests the same TTS the second time, the node will take it from the cache instead of asking to the Amazon Polly service.<br/>
-        - Send a simple payload with the text you want to speech out. For example <code>node.send({payload:"Hello there!"});</code>.
-    </p>
-   
-
-
 
 </script>
 
@@ -49,7 +15,7 @@
         <br/>        
     </div>
     <div class="form-row">
-        <label for="node-input-config"><i class="icon-tag"></i> Config</label>
+        <label for="node-input-config"><i class="icon-tag"></i> TTS service</label>
         <input type="text" id="node-input-config">
     </div>
 
@@ -64,32 +30,41 @@
         <label></label>
         <input type="checkbox" id="node-input-ssml" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Enable SSML</label>
     </div>
-   
-   
     <div class="form-row">
-        <label for="node-input-sonosvolume"><i class="fa fa-volume-up"></i> Sonos Volume</label>
-        <input type="text" id="node-input-sonosvolume" style="width:150px"> 
-    </div>
-    <div class="form-row">
-        <label for="node-input-sonoshailing"><i class="fa fa-bell"></i> Sonos Hailing</label>
+        <label for="node-input-sonoshailing"><i class="fa fa-bell"></i> Hailing</label>
         <select id="node-input-sonoshailing"></select> <input id="deleteSelectedFile" type="button" value="DELETE" style="width:100px">
     </div>
     <div class="form-row">
-        <label><i class="fa fa-upload"></i> Upload hail</label>
-        <input id="ownFileUpload" type="file" multiple="multiple">
+        <label for="node-input-playertype"><i class="fa fa-play"></i> Player</label>
+        <select id="node-input-playertype">
+            <option value="sonos">Sonos</option>
+            <option value="noplayer">No player, only output file name.</option>
+        </select>
+    </div>    
+
+    <div id="divSonos">
+        <div class="form-row">
+            <label for="node-input-sonosvolume"><i class="fa fa-volume-up"></i> Volume</label>
+            <input type="text" id="node-input-sonosvolume" style="width:150px"> 
+        </div>
+        <div class="form-row">
+            <label><i class="fa fa-upload"></i> Upload hail</label>
+            <input id="ownFileUpload" type="file" multiple="multiple">
+        </div>
+        <div class="form-row">
+            <label for="node-input-sonosipaddress"><i class="fa fa-globe"></i> Main Sonos Player</label>
+            <label style="width:200px;" id="node-input-sonosipaddress">Discovering.... wait...</label>
+        </div>
+    
+        <dt><i class="fa fa-code-fork"></i>&nbsp; Additional players</dt>
+        <div class="form-row node-input-rule-container-row">
+            <ol id="node-input-rule-container"></ol>
+        </div>
+        <div class="form-row">
+            <p>Press ADD, to add a player in the list.</p>
+        </div>
     </div>
-    <div class="form-row">
-        <label for="node-input-sonosipaddress"><i class="fa fa-globe"></i> Main Sonos Player</label>
-        <label style="width:200px;" id="node-input-sonosipaddress">Discovering.... wait...</label>
-    </div>
-   
-    <dt><i class="fa fa-code-fork"></i>&nbsp; Additional players</dt>
-    <div class="form-row node-input-rule-container-row">
-        <ol id="node-input-rule-container"></ol>
-    </div>
-    <div class="form-row">
-        <p>Press ADD, to add a player in the list.</p>
-    </div>
+
 </div>
 <div id="pleaseDeploy">
     <p align="center"> <b>PLEASE COMPLETE THE CONFIGURATION<br/> OF THE ABOVE CONFIG-NODE<br/>THEN SAVE, DEPLOY AND RE-OPEN THIS WINDOW</b><br/>
@@ -139,7 +114,8 @@
                 },
                 property: { value: "payload", required: false, validate: RED.validators.typedInput("propertyType") },
                 propertyType: { value: "msg" },
-                rules: { value: [] }
+                rules: { value: [] },
+                playertype: { value: "sonos", required: false }
             },
             inputs: 1,
             outputs: 2,
@@ -174,6 +150,29 @@
                     }
                 });
                 // ###########################
+
+
+                // 20/09/2021 Player type
+                // ###########################
+                if (node.playertype === undefined) {
+                    node.playertype = "sonos";
+                    $("#node-input-playertype").val("sonos");
+                }
+                if (node.playertype === "sonos") {
+                    $("#divSonos").show();
+                } else {
+                    $("#divSonos").hide();
+                }
+
+                $("#node-input-playertype").change(function () {
+                    if ($("#node-input-playertype").val() === "sonos") {
+                        $("#divSonos").show();
+                    } else {
+                        $("#divSonos").hide();
+                    }
+                });                
+                // ###########################
+
 
                 // 24/12/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
                 // !oNodeServer.hasOwnProperty("noderedipaddress") is when the config node exists, but not deployed

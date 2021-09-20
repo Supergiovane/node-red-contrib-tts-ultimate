@@ -62,7 +62,7 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 
 <br/><br/>
 
-# CONFIGURATION NODE
+# TTS Service node
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
 PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
@@ -100,10 +100,10 @@ You can choose between Google (without credentials), Amazon AWS (Polly) or Googl
 <br/>
 
 **Node-Red IP**<br/>
-set IP of your node-red machine.
+set IP of your node-red machine. Sonos will connect to this address in order to play TTS. You can also leave blank this field, if you don't want to use Sonos as player. Please see below, the section **TTS-ULTIMATE NODE**, property **Player**.
 
 **Host Port**<br/>
-Default 1980. Choose a free port.
+Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
 
 **TTS Cache**
 <br/>
@@ -117,18 +117,21 @@ Don't delete the files cached. Useful if you wish to keep the tts files, even in
 
 # TTS-ULTIMATE NODE
 
-**Config**<br/>
+**TTS Service**<br/>
 Select the TTS SERVICE ENGINE NODE, as stated above.
 
 **Voice**<br/>
 Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
 
-**Sonos Volume** <br/>
-Set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume="40";</code> to the node)
-
-**Sonos Hailing**<br/>
+**Hailing**<br/>
 Before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it.
 
+**Player**<br/>
+Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes.<br/>
+In case you select ***No player, only output file name***, you'll get a message with an additional property *filesArray*, containing an array of all mp3 files ready to be played with third party nodes. Please see below the **OUTPUT MESSAGES FROM THE NODE** section.
+
+**Volume** <br/>
+Set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume = "40";</code> to the node)
 
 **Main Sonos Player** <br/>
 Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server).<br/>
@@ -201,6 +204,24 @@ The node has two output pins. The first pin is to signal play status, the second
 
 **OUTPUT PIN 1**<br/>
 Payload is ***true*** when the node has finished playing, ***false*** if the node is playing<br/>
+In case you selected ***No player, only output file name.*** in the **Player** property, you'll get a message with an additional property *filesArray*, containing an array of all mp3 files ready to be played with third party nodes.<br/>
+```js
+{
+   "payload":true,
+   "filesArray":[
+      {
+         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/hailingpermanentfiles/Hailing_ComputerCall.mp3"
+      },
+      {
+         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/ille mi par esse deo videtur_pause_ ille si fas est superare divos_stop__it-IT.mp3"
+      },
+      {
+         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/Banana rama_it-IT.mp3"
+      }
+   ],
+   "_msgid":"8b6b22a45dfd5236"
+}
+```
 
 **OUTPUT PIN 2**<br/>
 Payload is ***true*** when error occurs (for example, lost connection with Sonos Player), otherwise ***false***.<br/>

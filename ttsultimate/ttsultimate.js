@@ -73,6 +73,7 @@ module.exports = function (RED) {
         node.bBusyPlayingQueue = false; // 04/12/2020 is busy during playing of the queue
         node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
         node.sonosCoordinatorPreviousVolumeSetByApp = 0; // 05/07/2021 stores the main payer volume set by the sonos app
+        node.playertype = config.playertype === undefined ? "sonos" : config.playertype; // 20/09/2021 Player type
 
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
@@ -321,7 +322,7 @@ module.exports = function (RED) {
         //#endregion
 
 
-        // 27/11/2019 Check Sonos connection healt
+        // 27/11/2019 Check Sonos connection health
         node.CheckSonosConnection = () => {
 
             node.SonosClient.getCurrentState().then(state => {
@@ -348,25 +349,30 @@ module.exports = function (RED) {
 
         }
 
-        // Create sonos client & groups 
-        node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
-        // 20/03/2020 Set the coorinator's zone name
-        node.SonosClient.getName().then(info => {
-            node.sonosCoordinatorGroupName = info;
-            RED.log.info("ttsultimate: ZONE COORDINATOR " + JSON.stringify(info));
-        }).catch(err => {
+        // 20/09/2021 If Sonos, do init
+        if (node.playertype === "sonos") {
+            // Create sonos client & groups 
+            node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
+            // 20/03/2020 Set the coorinator's zone name
+            node.SonosClient.getName().then(info => {
+                node.sonosCoordinatorGroupName = info;
+                RED.log.info("ttsultimate: ZONE COORDINATOR " + JSON.stringify(info));
+            }).catch(err => {
 
-        });
-        // Fill the node.oAdditionalSonosPlayers with all sonos object in the rules
-        for (let index = 0; index < node.rules.length; index++) {
-            const element = node.rules[index];
-            node.oAdditionalSonosPlayers.push(new sonos.Sonos(element.host));
-            RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host);
+            });
+            // Fill the node.oAdditionalSonosPlayers with all sonos object in the rules
+            for (let index = 0; index < node.rules.length; index++) {
+                const element = node.rules[index];
+                node.oAdditionalSonosPlayers.push(new sonos.Sonos(element.host));
+                RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host);
+            }
+
+
+            // 27/11/2019 Start the connection healty check
+            node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
+        } else if (node.playertype === "noplayer") {
+            node.msg.connectionerror = false;
         }
-
-
-        // 27/11/2019 Start the connection healty check
-        node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
 
         node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Initialized.' });
 
@@ -576,137 +582,165 @@ module.exports = function (RED) {
                     // Ready to play
                     if (sFileToBePlayed !== "") {
 
-                        // Now i am ready to play the file
-                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + msg });
-                        // Play directly files starting with http://
-                        if (!sFileToBePlayed.toLowerCase().startsWith("http://") && !sFileToBePlayed.toLowerCase().startsWith("https://")) {
-                            sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(sFileToBePlayed);
-                        }
+                        //#region Now i am ready to play the file
+                        if (node.playertype === "sonos") {
 
-                        // Set Volume
-                        try {
-                            let volTemp = 0
-                            if (node.currentMSGbeingSpoken.hasOwnProperty("volume")) {
-                                volTemp = node.currentMSGbeingSpoken.volume;
-                            } else {
-                                volTemp = node.sSonosVolume;
+                            // Play with Sonos
+                            node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + msg });
+
+                            // Play directly files starting with http://
+                            if (!sFileToBePlayed.toLowerCase().startsWith("http://") && !sFileToBePlayed.toLowerCase().startsWith("https://")) {
+                                sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(sFileToBePlayed);
                             }
-                            await SETVOLUMESync(volTemp);
-                            if (node.oAdditionalSonosPlayers.length > 0) {
-                                // 05/07/2021 set the volume of additional coordinatores
-                                for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                                    const element = node.oAdditionalSonosPlayers[index];
-                                    try {
-                                        await element.setVolume(volTemp);
-                                    } catch (error) {
-                                        RED.log.error("ttsultimate: Handlequeue: Unable to set the volume on additional player " + error.message);
-                                    }
+
+                            // Set Volume
+                            try {
+                                let volTemp = 0
+                                if (node.currentMSGbeingSpoken.hasOwnProperty("volume")) {
+                                    volTemp = node.currentMSGbeingSpoken.volume;
+                                } else {
+                                    volTemp = node.sSonosVolume;
+                                }
+                                await SETVOLUMESync(volTemp);
+                                if (node.oAdditionalSonosPlayers.length > 0) {
+                                    // 05/07/2021 set the volume of additional coordinatores
+                                    for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
+                                        const element = node.oAdditionalSonosPlayers[index];
+                                        try {
+                                            await element.setVolume(volTemp);
+                                        } catch (error) {
+                                            RED.log.error("ttsultimate: Handlequeue: Unable to set the volume on additional player " + error.message);
+                                        }
+                                    };
                                 };
-                            };
 
-                        } catch (error) {
-                            RED.log.error("ttsultimate: Unable to set the volume for " + sFileToBePlayed);
-                        }
-                        try {
+                            } catch (error) {
+                                RED.log.error("ttsultimate: Unable to set the volume for " + sFileToBePlayed);
+                            }
+                            try {
 
-                            await setAVTransportURISync(sFileToBePlayed);
+                                await setAVTransportURISync(sFileToBePlayed);
 
-                            // Wait for start playing
-                            var state = "";
-                            if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
-                            node.bTimeOutPlay = false;
-                            node.timerbTimeOutPlay = setTimeout(() => {
-                                node.bTimeOutPlay = true;
-                            }, 10000);
-                            while (state !== "playing" && !node.bTimeOutPlay) {
-                                try {
-                                    //state = await node.SonosClient.getCurrentState();
-                                    state = await getCurrentStateSync();
-                                } catch (error) {
-                                    node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of playing ' + msg });
-                                    RED.log.error("ttsultimate: Error getCurrentState of playing " + error.message);
-                                    throw new MessageEvent("Error getCurrentState of playing " + error.message);
+                                // Wait for start playing
+                                var state = "";
+                                if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
+                                node.bTimeOutPlay = false;
+                                node.timerbTimeOutPlay = setTimeout(() => {
+                                    node.bTimeOutPlay = true;
+                                }, 10000);
+                                while (state !== "playing" && !node.bTimeOutPlay) {
+                                    try {
+                                        //state = await node.SonosClient.getCurrentState();
+                                        state = await getCurrentStateSync();
+                                    } catch (error) {
+                                        node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of playing ' + msg });
+                                        RED.log.error("ttsultimate: Error getCurrentState of playing " + error.message);
+                                        throw new MessageEvent("Error getCurrentState of playing " + error.message);
+                                    }
                                 }
-                            }
-                            if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
-                            switch (node.bTimeOutPlay) {
-                                case false:
-                                    node.setNodeStatus({ fill: 'green', shape: 'dot', text: 'Playing ' + msg });
-                                    break;
-                                default:
-                                    node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting start play state: ' + msg });
-                                    break;
-                            }
-
-                            // Wait for end
-                            if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
-                            node.bTimeOutPlay = false;
-                            state = "";
-                            node.timerbTimeOutPlay = setTimeout(() => {
-                                node.bTimeOutPlay = true;
-                            }, 60000);
-                            while (state !== "stopped" && !node.bTimeOutPlay) {
-                                try {
-                                    state = await getCurrentStateSync();
-                                } catch (error) {
-                                    node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of stopped ' + msg });
-                                    RED.log.error("ttsultimate: Error  getCurrentState of stopped " + error.message);
-                                    throw new MessageEvent("Error  getCurrentState of stopped " + error.message);
+                                if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
+                                switch (node.bTimeOutPlay) {
+                                    case false:
+                                        node.setNodeStatus({ fill: 'green', shape: 'dot', text: 'Playing ' + msg });
+                                        break;
+                                    default:
+                                        node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting start play state: ' + msg });
+                                        break;
                                 }
-                            }
-                            if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
-                            switch (node.bTimeOutPlay) {
-                                case false:
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'End playing ' + msg });
-                                    break;
-                                default:
-                                    node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting end play state: ' + msg });
-                                    break;
+
+                                // Wait for end
+                                if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
+                                node.bTimeOutPlay = false;
+                                state = "";
+                                node.timerbTimeOutPlay = setTimeout(() => {
+                                    node.bTimeOutPlay = true;
+                                }, 60000);
+                                while (state !== "stopped" && !node.bTimeOutPlay) {
+                                    try {
+                                        state = await getCurrentStateSync();
+                                    } catch (error) {
+                                        node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: 'Error getCurrentState of stopped ' + msg });
+                                        RED.log.error("ttsultimate: Error  getCurrentState of stopped " + error.message);
+                                        throw new MessageEvent("Error  getCurrentState of stopped " + error.message);
+                                    }
+                                }
+                                if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
+                                switch (node.bTimeOutPlay) {
+                                    case false:
+                                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'End playing ' + msg });
+                                        break;
+                                    default:
+                                        node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting end play state: ' + msg });
+                                        break;
+                                }
+
+                            } catch (error) {
+                                if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay); // Clear the player timeout
+                                RED.log.error("ttsultimate: Error HandleQueue for " + sFileToBePlayed + " " + error.message);
+                                node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
                             }
 
-                        } catch (error) {
-                            if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay); // Clear the player timeout
-                            RED.log.error("ttsultimate: Error HandleQueue for " + sFileToBePlayed + " " + error.message);
-                            node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
+                        } else if (node.playertype === "noplayer") {
+                            // Output only the filename
+                            if (noPlayerFileArray === undefined || noPlayerFileArray === null) var noPlayerFileArray = [];
+                            noPlayerFileArray.push({ file: sFileToBePlayed });
                         }
-
                     }
+                    //#endregion
+
 
                 }; // End Loop
 
-                // Ungroup speaker
-                try {
-                    await ungroupSpeakersSync();
-                } catch (error) {
-                    // Don't care.
-                    node.setNodeStatus({ fill: "red", shape: "ring", text: "Error ungrouping speakers: " + error.message });
-                }
+                // End task
+                if (node.playertype === "sonos") {
+                    // Ends the tasks of Sonos
 
-                await delay(2000);
-
-                // Resume music
-                try {
-                    if (oCurTrack !== null && oCurTrack.title.indexOf(".mp3") === -1) {
-                        node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
-                        await resumeMusicQueue(oCurTrack);
-                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });
-                    } else {
-                        // 28/08/2021 There was no queue playing. Delete the TTS from the queue
-                        node.setNodeStatus({ fill: 'green', shape: 'ring', text: "No queue to resume." });
+                    // Ungroup speaker
+                    try {
+                        await ungroupSpeakersSync();
+                    } catch (error) {
+                        // Don't care.
+                        node.setNodeStatus({ fill: "red", shape: "ring", text: "Error ungrouping speakers: " + error.message });
                     }
-                } catch (error) {
-                    node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming queue: " + error.message });
+
+                    await delay(2000);
+
+                    // Resume music
+                    try {
+                        if (oCurTrack !== null && oCurTrack.title.indexOf(".mp3") === -1) {
+                            node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
+                            await resumeMusicQueue(oCurTrack);
+                            node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });
+                        } else {
+                            // 28/08/2021 There was no queue playing. Delete the TTS from the queue
+                            node.setNodeStatus({ fill: 'green', shape: 'ring', text: "No queue to resume." });
+                        }
+                    } catch (error) {
+                        node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming queue: " + error.message });
+                    }
+
+                    // Signal end playing
+                    setTimeout(() => {
+                        node.msg.completed = true;
+                        node.currentMSGbeingSpoken = {};
+                        node.send([{ payload: node.msg.completed }, null]);
+                        node.bBusyPlayingQueue = false
+                        node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
+                    }, 1000)
+
+                } else if (node.playertype === "noplayer") {
+                    // End task if no player is selected.
+                    // Output the array of files
+
+                    // Signal end playing
+                    setTimeout(() => {
+                        node.msg.completed = true;
+                        node.currentMSGbeingSpoken = {};
+                        node.send([{ payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
+                        node.bBusyPlayingQueue = false
+                        node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
+                    }, 1000)
                 }
-
-                // Signal end playing
-                setTimeout(() => {
-                    node.msg.completed = true;
-                    node.currentMSGbeingSpoken = {};
-                    node.send([{ payload: node.msg.completed }, null]);
-                    node.bBusyPlayingQueue = false
-                    node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
-                }, 1000)
-
 
             } catch (error) {
                 // Should'nt be there
@@ -875,7 +909,6 @@ module.exports = function (RED) {
             } else {
                 node.tempMSGStorage.push(msg);
             }
-
 
             // Starts main queue watching
             node.waitForQueue();
