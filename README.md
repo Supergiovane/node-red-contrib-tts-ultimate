@@ -100,7 +100,7 @@ You can choose between Google (without credentials), Amazon AWS (Polly) or Googl
 <br/>
 
 **Node-Red IP**<br/>
-set IP of your node-red machine. Sonos will connect to this address in order to play TTS. You can also leave blank this field, if you don't want to use Sonos as player. Please see below, the section **TTS-ULTIMATE NODE**, property **Player**.
+set IP of your node-red machine. Sonos will connect to this address in order to play TTS. You can also write any value you want, for example 127.0.0.1 in this field (**don't leave this field blank in any case**), if you don't want to use Sonos as player. Please see below, the section **TTS-ULTIMATE NODE**, property **Player**.
 
 **Host Port**<br/>
 Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
