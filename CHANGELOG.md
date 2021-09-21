@@ -3,7 +3,7 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
-<b>Version 1.0.30</b> September 2021<br/>
+<b>Version 1.0.31</b> September 2021<br/>
 - NEW: you can now choose voice PITCH and RATE. Avaiable only with Google TTS engine with credentials.<br/>
 <p>
 <p>
