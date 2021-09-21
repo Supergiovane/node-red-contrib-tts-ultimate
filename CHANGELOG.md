@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.30</b> September 2021<br/>
+- NEW: you can now choose voice PITCH and RATE. Avaiable only with Google TTS engine with credentials.<br/>
+<p>
+<p>
 <b>Version 1.0.29</b> September 2021<br/>
 - NEW: you can now choose not to use Sonos as player. In this case, the node will output an array of mp3, ready to be played by third parties nodes.<br/>
 <p>

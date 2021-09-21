@@ -69,7 +69,8 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Google (without credentials), Amazon AWS (Polly) or Google TTS engines.
+You can choose between Google (without credentials), Amazon AWS (Polly) or Google TTS (require credentials and registration to google) engines.<br/>
+For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
 
@@ -88,8 +89,8 @@ You can choose between Google (without credentials), Amazon AWS (Polly) or Googl
    AWS access Secret key. 
 <br/>
 
-
-* **TTS Service using Google TTS**<br/><br/>
+* **TTS Service using Google TTS**<br/>
+   For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
    **Google credentials file path**<br/>
    Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
    > [Select or create a Cloud Platform project](https://console.cloud.google.com/project)<br/>
@@ -122,6 +123,12 @@ Select the TTS SERVICE ENGINE NODE, as stated above.
 
 **Voice**<br/>
 Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
+
+**Rate**<br/>
+Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1).
+
+**Pitch**<br/>
+Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech pitch (Between -20.0 and 20.0,  default 0).
 
 **Hailing**<br/>
 Before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it.

@@ -74,6 +74,8 @@ module.exports = function (RED) {
         node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
         node.sonosCoordinatorPreviousVolumeSetByApp = 0; // 05/07/2021 stores the main payer volume set by the sonos app
         node.playertype = config.playertype === undefined ? "sonos" : config.playertype; // 20/09/2021 Player type
+        node.speakingpitch = config.speakingpitch === undefined ? "0" : config.speakingpitch; // 21/09/2021 AudioConfig speakingpitch
+        node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
 
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
@@ -524,7 +526,7 @@ module.exports = function (RED) {
                         RED.log.info('ttsultimate: Hailing .MP3, skip tts, filename: ' + msg);
                         sFileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
                     } else {
-                        sFileToBePlayed = getFilename(msg, node.voiceId, node.ssml, "mp3");
+                        sFileToBePlayed = getFilename(msg, node.voiceId, node.ssml, "mp3", node.speakingpitch, node.speakingrate);
                         sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
                         // Check if cached
                         if (!fs.existsSync(sFileToBePlayed)) {
@@ -544,9 +546,11 @@ module.exports = function (RED) {
                                 } else if (node.server.ttsservice === "googletts") {
                                     node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google TTS...' });
                                     // VoiceId is: name + "#" + languageCode + "#" + ssmlGender 
+                                    // speakingRate tra 0.25 e 4.0
+                                    // pitch tra -20.0 e 20.0
                                     const params = {
                                         voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
-                                        audioConfig: { audioEncoding: "MP3" },
+                                        audioConfig: { audioEncoding: "MP3", speakingRate: parseFloat(node.speakingrate), pitch: parseFloat(node.speakingpitch), },
                                     };
                                     params.input = node.ssml === "text" ? { text: msg } : { ssml: msg };
                                     data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
@@ -982,7 +986,7 @@ module.exports = function (RED) {
         };
 
 
-        function getFilename(text, _sVoice, isSSML, extension) {
+        function getFilename(text, _sVoice, isSSML, extension, _speakingpitch, _speakingrate) {
             // Slug the text.
             var basename = slug(text);
             _sVoice = slug(_sVoice);
@@ -990,14 +994,14 @@ module.exports = function (RED) {
             var ssml_text = isSSML ? '_ssml' : '';
 
             // Filename format: "text_voice.mp3"
-            var filename = util.format('%s_%s%s.%s', basename, _sVoice, ssml_text, extension);
+            var filename = util.format('%s_%s%s%s%s.%s', basename, _sVoice, _speakingpitch, _speakingrate, ssml_text, extension);
 
             // If filename is too long, cut it and add hash
             if (filename.length > 250) {
                 var hash = MD5(basename);
 
                 // Filename format: "text_hash_voice.mp3"
-                var ending = util.format('_%s_%s%s.%s', hash, _sVoice, ssml_text, extension);
+                var ending = util.format('_%s_%s%s%s%s.%s', hash, _sVoice, _speakingpitch, _speakingrate, ssml_text, extension);
                 var beginning = basename.slice(0, 250 - ending.length);
 
                 filename = beginning + ending;
