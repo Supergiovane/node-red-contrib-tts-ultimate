@@ -399,7 +399,8 @@ module.exports = function (RED) {
 
             if (_oTrack !== null) {
                 // Do some checks on the track.
-                if (_oTrack.hasOwnProperty("duration") && _oTrack.duration === 0 || _oTrack.uri.startsWith("x-sonosprog-http")) {
+                if (_oTrack.hasOwnProperty("duration") && _oTrack.duration === 0 || 
+                      (_oTrack.uri.startsWith("x-sonosprog-http") || _oTrack.uri.startsWith("x-sonosapi-hls-static") || _oTrack.uri.startsWith("x-sonos-spotify"))) {
                     // Stream
                     _oTrack.trackType = "stream";
                 } else if (_oTrack.hasOwnProperty("duration") && isNaN(_oTrack.duration)) {
@@ -463,10 +464,12 @@ module.exports = function (RED) {
                     }
                 } else if (_oTrack.trackType === "lineinput") {
                     // Line in, TV in, etc...
-                    try {
-                        await setAVTransportURISync(_oTrack.uri);
-                    } catch (error) {
-                        return error;
+                    if (_oTrack.state === "playing") {
+                        try {
+                            await setAVTransportURISync(_oTrack.uri);
+                        } catch (error) {
+                            return error;
+                        }
                     }
                 }
             }
@@ -711,7 +714,7 @@ module.exports = function (RED) {
 
                     // Resume music
                     try {
-                        if (oCurTrack !== null && oCurTrack.title.indexOf(".mp3") === -1) {
+                        if (oCurTrack !== null && (!oCurTrack.hasOwnProperty("title") || oCurTrack.title.indexOf(".mp3") === -1)) {
                             node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
                             await resumeMusicQueue(oCurTrack);
                             node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });

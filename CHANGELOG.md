@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.32</b> September 2021<br/>
+- Fix few restore issues. Line-in restore fix and only when it was playing. Amazon Music and Spotify considered as stream instead of music queue.<br/>
+<p>
+<p>
 <b>Version 1.0.31</b> September 2021<br/>
 - NEW: you can now choose voice PITCH and RATE. Avaiable only with Google TTS engine with credentials.<br/>
 <p>
