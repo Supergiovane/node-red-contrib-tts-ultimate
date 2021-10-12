@@ -120,7 +120,6 @@ module.exports = function (RED) {
         // 12/10/2021 Microsoft Azure TTS SpeechConfig.fromSubscription(subscriptionKey, serviceRegion)
         // #########################################
         node.setMicrosoftAzureVoice = function (_voiceName) {
-            console.log ("ILSIGNOREBUONO",_voiceName)
             let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
             speechConfig.speechSynthesisVoiceName = _voiceName;
             speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
