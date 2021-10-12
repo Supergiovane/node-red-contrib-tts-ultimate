@@ -22,7 +22,9 @@
         },
         credentials: {
             accessKey: { type: "text" },
-            secretKey: { type: "password" }
+            secretKey: { type: "password" },
+            mssubscriptionKey: { type: "text" },
+            mslocation: { type: "text" }
         },
         label: function () {
             return this.name || "";
@@ -58,14 +60,21 @@
             // ##########################################################
             $("#node-config-input-ttsservice").change(function (e) {
                 if ($("#node-config-input-ttsservice").val() == "polly") {
-                    $("#pollyForm").show();
                     $("#GoogleForm").hide();
+                    $("#microsoftAzureForm").hide();                    
+                    $("#pollyForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletts") {
+                    $("#microsoftAzureForm").hide();                    
                     $("#pollyForm").hide();
                     $("#GoogleForm").show();
-                }else{
+                } else if ($("#node-config-input-ttsservice").val() == "googletranslate") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
+                    $("#microsoftAzureForm").hide();                    
+                } else if ($("#node-config-input-ttsservice").val() == "microsoftazuretts") {
+                    $("#pollyForm").hide();
+                    $("#GoogleForm").hide();
+                    $("#microsoftAzureForm").show();
                 }
             });
             // ##########################################################
@@ -161,7 +170,8 @@
             <select id="node-config-input-ttsservice">
                 <option value="polly">Amazon Polly</option>
                 <option value="googletts">Google TTS</option>
-                <option value="googletranslate">Google without authentication</option>                
+                <option value="googletranslate">Google without authentication</option>   
+                <option value="microsoftazuretts">Microsoft Azure TTS</option>   
             </select>&nbsp&nbsp<b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
         </div>
         <div id="pollyForm">
@@ -180,6 +190,17 @@
                 <input style="width:180px" id="googleCredentialsPath" type="file">
             </div>
         </div>
+        <div id="microsoftAzureForm">
+            <div class="form-row">
+                <label style="width:180px" for="node-config-input-mssubscriptionKey"><i class="fa fa-user"></i> Azure subscription key</label>
+                <input style="width:200px" type="text" id="node-config-input-mssubscriptionKey">
+            </div>
+            <div class="form-row">
+                <label style="width:180px" for="node-config-input-mslocation"><i class="fa fa-user"></i> Azure location (ex:westeurope)</label>
+                <input style="width:200px" type="text" id="node-config-input-mslocation">
+            </div>
+        </div>
+
         <div class="form-row">
             <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
             <select id="node-config-input-purgediratrestart">

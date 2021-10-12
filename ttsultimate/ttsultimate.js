@@ -376,7 +376,7 @@ module.exports = function (RED) {
             node.msg.connectionerror = false;
         }
 
-        node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Initialized.' });
+        node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'Initialized.' });
 
 
 
@@ -399,8 +399,8 @@ module.exports = function (RED) {
 
             if (_oTrack !== null) {
                 // Do some checks on the track.
-                if (_oTrack.hasOwnProperty("duration") && _oTrack.duration === 0 || 
-                      (_oTrack.uri.startsWith("x-sonosprog-http") || _oTrack.uri.startsWith("x-sonosapi-hls-static") || _oTrack.uri.startsWith("x-sonos-spotify"))) {
+                if (_oTrack.hasOwnProperty("duration") && _oTrack.duration === 0 ||
+                    (_oTrack.uri.startsWith("x-sonosprog-http") || _oTrack.uri.startsWith("x-sonosapi-hls-static") || _oTrack.uri.startsWith("x-sonos-spotify"))) {
                     // Stream
                     _oTrack.trackType = "stream";
                 } else if (_oTrack.hasOwnProperty("duration") && isNaN(_oTrack.duration)) {
@@ -566,6 +566,14 @@ module.exports = function (RED) {
                                         slow: false // optional
                                     };
                                     data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
+                                } else if (node.server.ttsservice === "microsoftazuretts") {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Microsoft Azure TTS...' });
+                                    // VoiceId is: code 
+                                    const params = {
+                                        text: msg,
+                                        voice: node.voiceId
+                                    };
+                                    data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
                                 }
                                 // Save the downloaded file into the cache
                                 fs.writeFileSync(sFileToBePlayed, data, function (error, result) {
@@ -988,6 +996,30 @@ module.exports = function (RED) {
             }
         };
 
+        // 12/10/2021 Microsoft Azure TTS Service
+        async function synthesizeSpeechMicrosoftAzureTTS(ttsService, params) {
+    
+            return new Promise(function (resolve, reject) {
+                try {
+
+                    // Microsoft fa sempre tutto diverso dagli altri, per cui mi tocca reinstanziare l'oggetto
+                    ttsService = node.server.setMicrosoftAzureVoice(params.voice);
+
+                    ttsService.speakTextAsync(
+                        params.text,
+                        result => {
+                            ttsService.close();
+                            resolve (Buffer.from(result.audioData));
+                        },
+                        error => {
+                            ttsService.close();
+                            reject (error);
+                        });
+                } catch (error) {
+                    reject (error);
+                }
+            });
+        };
 
         function getFilename(text, _sVoice, isSSML, extension, _speakingpitch, _speakingrate) {
             // Slug the text.

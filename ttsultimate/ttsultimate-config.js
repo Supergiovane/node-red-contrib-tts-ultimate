@@ -4,6 +4,7 @@ module.exports = function (RED) {
     const AWS = require('aws-sdk');
     const GoogleTTS = require('@google-cloud/text-to-speech');
     const GoogleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
+    const microsoftAzureTTS = require("microsoft-cognitiveservices-speech-sdk"); // 12/10/2021
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
@@ -21,7 +22,7 @@ module.exports = function (RED) {
         node.noderedipaddress = typeof config.noderedipaddress === "undefined" ? "" : config.noderedipaddress;
         node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
-        node.ttsservice = config.ttsservice || "polly";
+        node.ttsservice = config.ttsservice || "googletranslate";
 
         // 03/06/2019 you can select the temp dir
         //#region "SETUP PATHS"
@@ -76,26 +77,114 @@ module.exports = function (RED) {
         //#endregion
 
 
-        // 23/12/2020 Set environment path of googleTTS
         //#region "INSTANTIATE SERVICE ENGINES"
+        // POLLY
         var params = {
             accessKeyId: node.credentials.accessKey,
             secretAccessKey: node.credentials.secretKey,
             apiVersion: '2016-06-10'
         };
-        node.polly = new AWS.Polly(params);
+        try {
+            node.polly = new AWS.Polly(params);
+            RED.log.info("ttsultimate.config: Polly service enabled.")
+        } catch (error) {
+            RED.log.warn("ttsultimate.config: Polly service disabled. " + error.message)
+        }
 
+        // Google TTS with authentication
         if (node.ttsservice === "googletts") {
             try {
-                // Set the environment variable
+                // 23/12/2020 Set environment path of googleTTS
                 RED.log.info("ttsultimate-config: Google credentials are stored in the file " + path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json"));
                 process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
             } catch (error) {
+                RED.log.warn("ttsultimate.config: Google Translate free service error: " + error.message)
             }
 
         }
-        node.googleTTS = new GoogleTTS.TextToSpeechClient();
-        node.googleTranslateTTS = GoogleTranslate;
+        try {
+            node.googleTTS = new GoogleTTS.TextToSpeechClient();
+            RED.log.info("ttsultimate.config: Google Translate free service enabled. ")
+        } catch (error) {
+            RED.log.warn("ttsultimate.config: Google Translate free service disabled. " + error.message)
+        }
+
+
+        // Google Translate without authentication
+        try {
+            node.googleTranslateTTS = GoogleTranslate;
+        } catch (error) {
+        }
+
+
+        // 12/10/2021 Microsoft Azure TTS SpeechConfig.fromSubscription(subscriptionKey, serviceRegion)
+        // #########################################
+        node.setMicrosoftAzureVoice = function (_voiceName) {
+            console.log ("ILSIGNOREBUONO",_voiceName)
+            let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
+            speechConfig.speechSynthesisVoiceName = _voiceName;
+            speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+            node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
+            return node.microsoftAzureTTS;
+        }
+        try {
+            let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
+            speechConfig.speechSynthesisLanguage = "it-IT";
+            speechConfig.speechSynthesisVoiceName = "it-IT-IsabellaNeural";
+            speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+            node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
+            node.microsoftAzureTTSVoiceList = [];
+            if (node.ttsservice === "microsoftazuretts") {
+                // Get the voices
+                async function listVoicesAzure() {
+                    const httpsAzure = require('https')
+                    let options = {
+                        hostname: node.credentials.mslocation + '.tts.speech.microsoft.com',
+                        port: 443,
+                        path: '/cognitiveservices/voices/list',
+                        method: 'GET',
+                        headers: {
+                            'Ocp-Apim-Subscription-Key': node.credentials.mssubscriptionKey
+                        }
+                    }
+                    const reqAzure = httpsAzure.request(options, resVoices => {
+                        var sChunkResponse = "";
+                        resVoices.on('data', d => {
+                            sChunkResponse += d.toString();
+                        })
+                        resVoices.on('end', () => {
+                            try {
+                                let oVoices = JSON.parse(sChunkResponse);
+                                RED.log.info('ttsultimate-config: Microsoft Azure voices count: ' + oVoices.length);
+                                for (let index = 0; index < oVoices.length; index++) {
+                                    const element = oVoices[index];
+                                    node.microsoftAzureTTSVoiceList.push({ name: element.ShortName + " (" + element.Gender + ")", id: element.ShortName })
+                                }
+                            } catch (error) {
+                                RED.log.error('ttsultimate-config: listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
+                                node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message, id: "Ivy" });
+                            }
+                        })
+                    })
+                    reqAzure.on('error', error => {
+                        RED.log.error('ttsultimate-config: listVoices: Error contacting Azure for getting the voices list: ' + error.message);
+                        node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message, id: "Ivy" })
+                        reqAzure.end();
+                    })
+                    reqAzure.end();
+                };
+                RED.log.info("ttsultimate.config: Microsoft AzureTTS service enabled.")
+                try {
+                    listVoicesAzure();
+                } catch (error) {
+                    RED.log.error('ttsultimate-config: listVoices: Error getting Microsoft Azure voices: ' + error.message);
+                }
+            }
+        } catch (error) {
+            RED.log.warn("ttsultimate.config: Microsoft AzureTTS service disabled. " + error.message)
+        }
+        // #########################################
+
         //#endregion
 
 
@@ -313,6 +402,8 @@ module.exports = function (RED) {
                     RED.log.error('ttsultimate-config: listVoices: Error getting google Translate voices ' + error.message);
                 }
 
+            } else if (ttsservice === "microsoftazuretts") {
+                res.json(node.microsoftAzureTTSVoiceList);
             }
         });
 
@@ -531,7 +622,9 @@ module.exports = function (RED) {
     RED.nodes.registerType("ttsultimate-config", TTSConfigNode, {
         credentials: {
             accessKey: { type: "text" },
-            secretKey: { type: "password" }
+            secretKey: { type: "password" },
+            mssubscriptionKey: { type: "text" },
+            mslocation: { type: "text" }
         }
     });
 

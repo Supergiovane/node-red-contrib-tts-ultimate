@@ -22,10 +22,11 @@
 
 
 ## DESCRIPTION
-This node transforms a text into a speech audio. You can hear the voice through Sonos.<br/>
-Uses Amazon Polly and Google TTS voices (even without credentials nor registration), and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
+This node transforms a text into a speech audio. You can generate an audio file, or hear the voice through Sonos, bluetooth speakers, web pages, etc.<br/>
+Uses Amazon Polly, Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
+The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
-**Node v.10.0.0 or newer is needed**.
+**Node v.12.0.0 or newer is needed**.
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
@@ -33,7 +34,8 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
-* **Amazon Voices, Gooogle Translate Voices and Google TTS Voices** are all supported, with all avaiables languages and genders.
+* **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
+* **Amazon Voices, Gooogle Translate Voices, Google TTS Voices and Microsoft TTS Azure voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
 * **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time.
@@ -69,14 +71,9 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Google (without credentials), Amazon AWS (Polly) or Google TTS (require credentials and registration to google) engines.<br/>
+You can choose between Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
 For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
-<br/>
-
-* **TTS Service using Google (without credentials)**<br/>
-   This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
-   
 <br/>
 
 * **TTS Service using Amazon AWS (Polly)**<br/>
@@ -89,6 +86,11 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
    AWS access Secret key. 
 <br/>
 
+* **TTS Service using Google (without credentials)**<br/>
+   This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
+   
+<br/>
+
 * **TTS Service using Google TTS**<br/>
    For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
    **Google credentials file path**<br/>
@@ -99,6 +101,14 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
    
 
 <br/>
+
+* **TTS Service using Microsot Azure TTS**<br/>
+   For Microsoft Azure TTS Engine, you need to have a microsoft account and register to the Azure portal.<br/>
+   After your registration here https://portal.azure.com, you need to create a Voice Service, then click to Keys and Endpoint and copy/paste the KEY and your Location (for example westus).<br/>
+   Then paste both into the TTS-Ultimate engine configuration window and restart node-red.   
+
+<br/>
+
 
 **Node-Red IP**<br/>
 set IP of your node-red machine. Sonos will connect to this address in order to play TTS. You can also write any value you want, for example 127.0.0.1 in this field (**don't leave this field blank in any case**), if you don't want to use Sonos as player. Please see below, the section **TTS-ULTIMATE NODE**, property **Player**.
