@@ -104,7 +104,7 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 
 * **TTS Service using Microsot Azure TTS**<br/>
    For Microsoft Azure TTS Engine, you need to have a microsoft account and register to the Azure portal.<br/>
-   After your registration here https://portal.azure.com, you need to create a Voice Service, then click to Keys and Endpoint and copy/paste the KEY and your Location (for example westus).<br/>
+   After your registration here https://portal.azure.com, you need to create a Voice Service (please click here https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices), then click to Keys and Endpoint and copy/paste the KEY and your Location (for example westus).<br/>
    Then paste both into the TTS-Ultimate engine configuration window and restart node-red.   
 
 <br/>
