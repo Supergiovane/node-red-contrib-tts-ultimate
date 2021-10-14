@@ -23,6 +23,10 @@ module.exports = function (RED) {
         node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
         node.ttsservice = config.ttsservice || "googletranslate";
+        // node.polly = null;
+        // node.googleTTS = null;
+        // node.googleTranslateTTS = null;
+        // node.microsoftAzureTTS = null;
 
         // 03/06/2019 you can select the temp dir
         //#region "SETUP PATHS"
@@ -40,22 +44,22 @@ module.exports = function (RED) {
             }
         }
         if (!setupDirectory(node.userDir)) {
-            RED.log.error('ttsultimate-config: Unable to set up MAIN directory: ' + node.userDir);
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up MAIN directory: ' + node.userDir);
         }
         if (!setupDirectory(path.join(node.userDir, "ttsfiles"))) {
-            RED.log.error('ttsultimate-config: Unable to set up cache directory: ' + path.join(node.userDir, "ttsfiles"));
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up cache directory: ' + path.join(node.userDir, "ttsfiles"));
         } else {
-            RED.log.info('ttsultimate-config: TTS cache set to ' + path.join(node.userDir, "ttsfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': TTS cache set to ' + path.join(node.userDir, "ttsfiles"));
         }
         if (!setupDirectory(path.join(node.userDir, "ttsultimategooglecredentials"))) {
-            RED.log.error('ttsultimate-config: Unable to set google creds directory: ' + path.join(node.userDir, "ttsultimategooglecredentials"));
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set google creds directory: ' + path.join(node.userDir, "ttsultimategooglecredentials"));
         } else {
-            RED.log.info('ttsultimate-config: google credentials path set to ' + path.join(node.userDir, "ttsultimategooglecredentials"));
+            RED.log.info('ttsultimate-config ' + node.id + ': google credentials path set to ' + path.join(node.userDir, "ttsultimategooglecredentials"));
         }
         if (!setupDirectory(path.join(node.userDir, "hailingpermanentfiles"))) {
-            RED.log.error('ttsultimate-config: Unable to set up hailing directory: ' + path.join(node.userDir, "hailingpermanentfiles"));
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up hailing directory: ' + path.join(node.userDir, "hailingpermanentfiles"));
         } else {
-            RED.log.info('ttsultimate-config: hailing path set to ' + path.join(node.userDir, "hailingpermanentfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': hailing path set to ' + path.join(node.userDir, "hailingpermanentfiles"));
             // 09/03/2020 Copy defaults to the userDir
             fs.readdirSync(path.join(__dirname, "hailingpermanentfiles")).forEach(file => {
                 try {
@@ -64,9 +68,9 @@ module.exports = function (RED) {
             });
         }
         if (!setupDirectory(path.join(node.userDir, "ttspermanentfiles"))) {
-            RED.log.error('ttsultimate-config: Unable to set up permanent files directory: ' + path.join(node.userDir, "ttspermanentfiles"));
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up permanent files directory: ' + path.join(node.userDir, "ttspermanentfiles"));
         } else {
-            RED.log.info('ttsultimate-config: permanent files path set to ' + path.join(node.userDir, "ttspermanentfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': permanent files path set to ' + path.join(node.userDir, "ttspermanentfiles"));
             // 09/03/2020 // Copy the samples of permanent files into the userDir
             fs.readdirSync(path.join(__dirname, "ttspermanentfiles")).forEach(file => {
                 try {
@@ -79,108 +83,126 @@ module.exports = function (RED) {
 
         //#region "INSTANTIATE SERVICE ENGINES"
         // POLLY
-        var params = {
-            accessKeyId: node.credentials.accessKey,
-            secretAccessKey: node.credentials.secretKey,
-            apiVersion: '2016-06-10'
-        };
-        try {
-            node.polly = new AWS.Polly(params);
-            RED.log.info("ttsultimate.config: Polly service enabled.")
-        } catch (error) {
-            RED.log.warn("ttsultimate.config: Polly service disabled. " + error.message)
+        if (node.ttsservice === "polly") {
+            var params = {
+                accessKeyId: node.credentials.accessKey,
+                secretAccessKey: node.credentials.secretKey,
+                apiVersion: '2016-06-10'
+            };
+            try {
+                node.polly = new AWS.Polly(params);
+                RED.log.info("ttsultimate-config " + node.id + ": Polly service enabled.")
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": Polly service disabled. " + error.message)
+            }
+        } else {
+            RED.log.warn("ttsultimate-config " + node.id + ": Polly service not used.");
         }
+
 
         // Google TTS with authentication
         if (node.ttsservice === "googletts") {
             try {
                 // 23/12/2020 Set environment path of googleTTS
-                RED.log.info("ttsultimate-config: Google credentials are stored in the file " + path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json"));
+                RED.log.info("ttsultimate-config " + node.id + ": Google credentials are stored in the file " + path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json"));
                 process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
-            } catch (error) {
-                RED.log.warn("ttsultimate.config: Google Translate free service error: " + error.message)
-            }
-
-        }
-        try {
-            node.googleTTS = new GoogleTTS.TextToSpeechClient();
-            RED.log.info("ttsultimate.config: Google Translate free service enabled. ")
-        } catch (error) {
-            RED.log.warn("ttsultimate.config: Google Translate free service disabled. " + error.message)
-        }
-
-
-        // Google Translate without authentication
-        try {
-            node.googleTranslateTTS = GoogleTranslate;
-        } catch (error) {
-        }
-
-
-        // 12/10/2021 Microsoft Azure TTS SpeechConfig.fromSubscription(subscriptionKey, serviceRegion)
-        // #########################################
-        node.setMicrosoftAzureVoice = function (_voiceName) {
-            let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
-            speechConfig.speechSynthesisVoiceName = _voiceName;
-            speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
-            node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
-            return node.microsoftAzureTTS;
-        }
-        try {
-            let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
-            speechConfig.speechSynthesisLanguage = "it-IT";
-            speechConfig.speechSynthesisVoiceName = "it-IT-IsabellaNeural";
-            speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
-            node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
-            node.microsoftAzureTTSVoiceList = [];
-            if (node.ttsservice === "microsoftazuretts") {
-                // Get the voices
-                async function listVoicesAzure() {
-                    const httpsAzure = require('https')
-                    let options = {
-                        hostname: node.credentials.mslocation + '.tts.speech.microsoft.com',
-                        port: 443,
-                        path: '/cognitiveservices/voices/list',
-                        method: 'GET',
-                        headers: {
-                            'Ocp-Apim-Subscription-Key': node.credentials.mssubscriptionKey
-                        }
-                    }
-                    const reqAzure = httpsAzure.request(options, resVoices => {
-                        var sChunkResponse = "";
-                        resVoices.on('data', d => {
-                            sChunkResponse += d.toString();
-                        })
-                        resVoices.on('end', () => {
-                            try {
-                                let oVoices = JSON.parse(sChunkResponse);
-                                RED.log.info('ttsultimate-config: Microsoft Azure voices count: ' + oVoices.length);
-                                for (let index = 0; index < oVoices.length; index++) {
-                                    const element = oVoices[index];
-                                    node.microsoftAzureTTSVoiceList.push({ name: element.ShortName + " (" + element.Gender + ")", id: element.ShortName })
-                                }
-                            } catch (error) {
-                                RED.log.error('ttsultimate-config: listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
-                                node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message, id: "Ivy" });
-                            }
-                        })
-                    })
-                    reqAzure.on('error', error => {
-                        RED.log.error('ttsultimate-config: listVoices: Error contacting Azure for getting the voices list: ' + error.message);
-                        node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message, id: "Ivy" })
-                        reqAzure.end();
-                    })
-                    reqAzure.end();
-                };
-                RED.log.info("ttsultimate.config: Microsoft AzureTTS service enabled.")
                 try {
-                    listVoicesAzure();
+                    node.googleTTS = new GoogleTTS.TextToSpeechClient();
+                    RED.log.info("ttsultimate-config " + node.id + ": Google TTS service enabled. ")
                 } catch (error) {
-                    RED.log.error('ttsultimate-config: listVoices: Error getting Microsoft Azure voices: ' + error.message);
+                    RED.log.warn("ttsultimate-config " + node.id + ": Google TTS service disabled. " + error.message)
                 }
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": Google TTS service error: " + error.message)
             }
-        } catch (error) {
-            RED.log.warn("ttsultimate.config: Microsoft AzureTTS service disabled. " + error.message)
+
+        } else {
+            RED.log.warn("ttsultimate-config " + node.id + ": Google TTS service not used.");
+        }
+
+
+
+        // Google Translate without authentication 
+        if (node.ttsservice === "googletranslate") {
+            try {
+                node.googleTranslateTTS = GoogleTranslate;
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+            }
+        } else {
+            RED.log.warn("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+        }
+
+
+        // 12/10/2021 Microsoft Azure TTS SpeechConfig.fromSubscription(subscriptionKey, serviceRegion) 
+        if (node.ttsservice === "microsoftazuretts") {
+            // #########################################
+            node.setMicrosoftAzureVoice = function (_voiceName) {
+                let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
+                speechConfig.speechSynthesisVoiceName = _voiceName;
+                speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+                node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
+                return node.microsoftAzureTTS;
+            }
+            try {
+                
+                let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
+                //speechConfig.speechSynthesisLanguage = "it-IT";
+                //speechConfig.speechSynthesisVoiceName = "it-IT-IsabellaNeural";
+                speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+                node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
+                node.microsoftAzureTTSVoiceList = [];
+                if (node.ttsservice === "microsoftazuretts") {
+                    // Get the voices
+                    async function listVoicesAzure() {
+                        const httpsAzure = require('https')
+                        let options = {
+                            hostname: node.credentials.mslocation + '.tts.speech.microsoft.com',
+                            port: 443,
+                            path: '/cognitiveservices/voices/list',
+                            method: 'GET',
+                            headers: {
+                                'Ocp-Apim-Subscription-Key': node.credentials.mssubscriptionKey
+                            }
+                        }
+                        const reqAzure = httpsAzure.request(options, resVoices => {
+                            var sChunkResponse = "";
+                            resVoices.on('data', d => {
+                                sChunkResponse += d.toString();
+                            })
+                            resVoices.on('end', () => {
+                                try {
+                                    let oVoices = JSON.parse(sChunkResponse);
+                                    RED.log.info('ttsultimate-config ' + node.id + ': Microsoft Azure voices count: ' + oVoices.length);
+                                    for (let index = 0; index < oVoices.length; index++) {
+                                        const element = oVoices[index];
+                                        node.microsoftAzureTTSVoiceList.push({ name: element.ShortName + " (" + element.Gender + ")", id: element.ShortName })
+                                    }
+                                } catch (error) {
+                                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
+                                    node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message, id: "Ivy" });
+                                }
+                            })
+                        })
+                        reqAzure.on('error', error => {
+                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error contacting Azure for getting the voices list: ' + error.message);
+                            node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message, id: "Ivy" })
+                            reqAzure.end();
+                        })
+                        reqAzure.end();
+                    };
+                    RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service enabled.")
+                    try {
+                        listVoicesAzure();
+                    } catch (error) {
+                        RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting Microsoft Azure voices: ' + error.message);
+                    }
+                }
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": Microsoft AzureTTS service disabled. " + error.message)
+            }
+        } else {
+            RED.log.warn("ttsultimate-config " + node.id + ": Microsoft AzureTTS service not used. ");
         }
         // #########################################
 
@@ -231,7 +253,7 @@ module.exports = function (RED) {
                         //return groups[0].CoordinatorDevice().togglePlayback()
                     })
                 }).catch(e => {
-                    RED.log.warn('ttsultimate-config: Error in discovery ' + e);
+                    RED.log.warn('ttsultimate-config ' + node.id + ': Error in discovery ' + e);
                     res.json("ERRORDISCOVERY");
                 })
             } catch (error) { }
@@ -326,7 +348,7 @@ module.exports = function (RED) {
         });
 
         // 26/10/2020 Supergiovane, get the updated voice list. 
-        RED.httpAdmin.get("/ttsgetvoices", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/ttsgetvoices" + encodeURIComponent(node.id), RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var ttsservice = req.query.ttsservice;// Retrieve the ttsservice engine
             var jListVoices = [];
 
@@ -342,7 +364,7 @@ module.exports = function (RED) {
                     };
                     node.polly.describeVoices(jfiltroVoci, function (err, data) {
                         if (err) {
-                            RED.log.warn('ttsultimate-config: Error getting polly voices ' + err);
+                            RED.log.warn('ttsultimate-config ' + node.id + ': Error getting polly voices ' + err);
                             jListVoices.push({ name: "Error retrieving voices. " + err, id: "Ivy" })
                             res.json(jListVoices)
                         } else {
@@ -370,7 +392,7 @@ module.exports = function (RED) {
                         });
                         res.json(jListVoices)
                     } catch (error) {
-                        RED.log.error('ttsultimate-config: Error getting google TTS voices ' + error.message);
+                        RED.log.error('ttsultimate-config ' + node.id + ': Error getting google TTS voices ' + error.message);
                         jListVoices.push({ name: "Error getting Google TTS voices. " + error.message, id: "Ivy" })
                         res.json(jListVoices)
                     }
@@ -378,7 +400,7 @@ module.exports = function (RED) {
                 try {
                     listVoices();
                 } catch (error) {
-                    RED.log.error('ttsultimate-config: listVoices: Error getting google TTS voices ' + error.message);
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google TTS voices ' + error.message);
                 }
 
             } else if (ttsservice === "googletranslate") {
@@ -390,7 +412,7 @@ module.exports = function (RED) {
                         });
                         res.json(jListVoices)
                     } catch (error) {
-                        RED.log.error('ttsultimate-config: Error getting google Translate voices ' + error.message);
+                        RED.log.error('ttsultimate-config ' + node.id + ': Error getting google Translate voices ' + error.message);
                         jListVoices.push({ name: "Error getting Google Translate voices. " + error.message, id: "Ivy" })
                         res.json(jListVoices)
                     }
@@ -398,7 +420,7 @@ module.exports = function (RED) {
                 try {
                     listVoices();
                 } catch (error) {
-                    RED.log.error('ttsultimate-config: listVoices: Error getting google Translate voices ' + error.message);
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google Translate voices ' + error.message);
                 }
 
             } else if (ttsservice === "microsoftazuretts") {
@@ -470,7 +492,7 @@ module.exports = function (RED) {
                         fs.readdir(path.join(node.userDir, "ttspermanentfiles"), (err, files) => {
                             files.forEach(function (file) {
                                 if (file.indexOf("OwnFile_") !== -1) {
-                                    RED.log.warn("ttsultimate-config: Deleted file " + path.join(node.userDir, "ttspermanentfiles", file));
+                                    RED.log.warn("ttsultimate-config " + node.id + ": Deleted file " + path.join(node.userDir, "ttspermanentfiles", file));
                                     try {
                                         fs.unlinkSync(path.join(node.userDir, "ttspermanentfiles", file));
                                     } catch (error) { }
@@ -501,11 +523,11 @@ module.exports = function (RED) {
         node.noderedport = typeof config.noderedport === "undefined" ? "1980" : config.noderedport;
         // 11/11/2019 NEW in V 1.1.0, changed webserver behaviour. Redirect pre V. 1.1.0 1880 ports to the nde default 1980
         if (node.noderedport.trim() == "1880") {
-            RED.log.warn("ttsultimate-config: The webserver port ist 1880. Please change it to another port, not to conflict with default node-red 1880 port. I've changed this temporarly for you to 1980");
+            RED.log.warn("ttsultimate-config " + node.id + ": The webserver port ist 1880. Please change it to another port, not to conflict with default node-red 1880 port. I've changed this temporarly for you to 1980");
             node.noderedport = "1980";
         }
         node.sNoderedURL = "http://" + node.noderedipaddress.trim() + ":" + node.noderedport.trim(); // 11/11/2019 New Endpoint to overcome https problem.
-        RED.log.info('ttsultimate-config: Node-Red node.js Endpoint will be created here: ' + node.sNoderedURL + "/tts");
+        RED.log.info('ttsultimate-config ' + node.id + ': Node-Red node.js Endpoint will be created here: ' + node.sNoderedURL + "/tts");
 
         // 26/02/2020
         if (node.purgediratrestart === "purge") {
@@ -515,7 +537,7 @@ module.exports = function (RED) {
                     try {
                         if (files.length > 0) {
                             files.forEach(function (file) {
-                                RED.log.info("ttsultimate-config: Deleted TTS file " + path.join(node.userDir, "ttsfiles", file));
+                                RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.userDir, "ttsfiles", file));
                                 try {
                                     fs.unlinkSync(path.join(node.userDir, "ttsfiles", file));
                                 } catch (error) {
@@ -551,7 +573,7 @@ module.exports = function (RED) {
                     if (path.extname(query.f) === ".mp3" && path.dirname(path.dirname(query.f)).endsWith("sonospollyttsstorage")) {
                         var readStream = fs.createReadStream(query.f);
                         readStream.on("error", function (error) {
-                            RED.log.error("ttsultimate-config: Playsonos error opening stream : " + query.f + ' : ' + error);
+                            RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + query.f + ' : ' + error);
                             res.end();
                             return;
                         });
@@ -564,13 +586,13 @@ module.exports = function (RED) {
                     // http://localhost:1980/tts?f=/etc/passwd                 
 
                 } else {
-                    RED.log.error("ttsultimate-config: Playsonos RED.httpAdmin file not found: " + query.f);
+                    RED.log.error("ttsultimate-config " + node.id + ": Playsonos RED.httpAdmin file not found: " + query.f);
                     res.write("File not found");
                     res.end();
                 }
 
             } catch (error) {
-                RED.log.error("ttsultimate-config: Playsonos RED.httpAdmin error: " + error + " on: " + query.f);
+                RED.log.error("ttsultimate-config " + node.id + ": Playsonos RED.httpAdmin error: " + error + " on: " + query.f);
                 res.end();
             }
 
@@ -580,23 +602,23 @@ module.exports = function (RED) {
         try {
             node.oWebserver = http.createServer(requestHandler);
             node.oWebserver.on('error', function (e) {
-                RED.log.error("ttsultimate-config: " + node.ID + " error starting webserver on port " + sWebport + " " + e);
+                RED.log.error("ttsultimate-config " + node.id + ": " + node.ID + " error starting webserver on port " + sWebport + " " + e);
             });
         } catch (error) {
             // Already open. Close it and redo.
-            RED.log.error("ttsultimate-config: Webserver creation error: " + error);
+            RED.log.error("ttsultimate-config " + node.id + ": Webserver creation error: " + error);
         }
 
         try {
             node.oWebserver.listen(sWebport, (err) => {
                 if (err) {
-                    RED.log.error("ttsultimate-config: error listening webserver on port " + sWebport + " " + err);
+                    RED.log.error("ttsultimate-config " + node.id + ": error listening webserver on port " + sWebport + " " + err);
                 }
             });
 
         } catch (error) {
             // In case oWebserver is null
-            RED.log.error("ttsultimate-config: error listening webserver on port " + sWebport + " " + error);
+            RED.log.error("ttsultimate-config " + node.id + ": error listening webserver on port " + sWebport + " " + error);
         }
         // #################################
 
@@ -606,7 +628,7 @@ module.exports = function (RED) {
         node.on('close', function (done) {
             // 11/11/2019 Close the Webserver
             try {
-                node.oWebserver.close(function () { RED.log.info("ttsultimate-config: Webserver UP. Closing down."); });
+                node.oWebserver.close(function () { RED.log.info("ttsultimate-config " + node.id + ": Webserver UP. Closing down."); });
             } catch (error) {
 
             }

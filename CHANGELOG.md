@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.34</b> October 2021<br/>
+- FIX: fixed an issue in retrieving voices if you have more than one TTS engine enabled at the same time.<br/>
+<p>
+<p>
 <b>Version 1.0.33</b> October 2021<br/>
 - NEW VOICE ENGINE: Microsoft Azure TTS.<br/>
 <p>
