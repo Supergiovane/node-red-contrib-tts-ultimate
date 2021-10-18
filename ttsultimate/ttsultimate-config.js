@@ -145,59 +145,58 @@ module.exports = function (RED) {
                 return node.microsoftAzureTTS;
             }
             try {
-                
+
                 let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
                 //speechConfig.speechSynthesisLanguage = "it-IT";
                 //speechConfig.speechSynthesisVoiceName = "it-IT-IsabellaNeural";
                 speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
                 node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
                 node.microsoftAzureTTSVoiceList = [];
-                if (node.ttsservice === "microsoftazuretts") {
-                    // Get the voices
-                    async function listVoicesAzure() {
-                        const httpsAzure = require('https')
-                        let options = {
-                            hostname: node.credentials.mslocation + '.tts.speech.microsoft.com',
-                            port: 443,
-                            path: '/cognitiveservices/voices/list',
-                            method: 'GET',
-                            headers: {
-                                'Ocp-Apim-Subscription-Key': node.credentials.mssubscriptionKey
-                            }
+                // Get the voices
+                async function listVoicesAzure() {
+                    const httpsAzure = require('https')
+                    let options = {
+                        hostname: node.credentials.mslocation + '.tts.speech.microsoft.com',
+                        port: 443,
+                        path: '/cognitiveservices/voices/list',
+                        method: 'GET',
+                        headers: {
+                            'Ocp-Apim-Subscription-Key': node.credentials.mssubscriptionKey
                         }
-                        const reqAzure = httpsAzure.request(options, resVoices => {
-                            var sChunkResponse = "";
-                            resVoices.on('data', d => {
-                                sChunkResponse += d.toString();
-                            })
-                            resVoices.on('end', () => {
-                                try {
-                                    let oVoices = JSON.parse(sChunkResponse);
-                                    RED.log.info('ttsultimate-config ' + node.id + ': Microsoft Azure voices count: ' + oVoices.length);
-                                    for (let index = 0; index < oVoices.length; index++) {
-                                        const element = oVoices[index];
-                                        node.microsoftAzureTTSVoiceList.push({ name: element.ShortName + " (" + element.Gender + ")", id: element.ShortName })
-                                    }
-                                } catch (error) {
-                                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
-                                    node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message, id: "Ivy" });
-                                }
-                            })
-                        })
-                        reqAzure.on('error', error => {
-                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error contacting Azure for getting the voices list: ' + error.message);
-                            node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message, id: "Ivy" })
-                            reqAzure.end();
-                        })
-                        reqAzure.end();
-                    };
-                    RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service enabled.")
-                    try {
-                        listVoicesAzure();
-                    } catch (error) {
-                        RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting Microsoft Azure voices: ' + error.message);
                     }
+                    const reqAzure = httpsAzure.request(options, resVoices => {
+                        var sChunkResponse = "";
+                        resVoices.on('data', d => {
+                            sChunkResponse += d.toString();
+                        })
+                        resVoices.on('end', () => {
+                            try {
+                                let oVoices = JSON.parse(sChunkResponse);
+                                RED.log.info('ttsultimate-config ' + node.id + ': Microsoft Azure voices count: ' + oVoices.length);
+                                for (let index = 0; index < oVoices.length; index++) {
+                                    const element = oVoices[index];
+                                    node.microsoftAzureTTSVoiceList.push({ name: element.ShortName + " (" + element.Gender + ")", id: element.ShortName })
+                                }
+                            } catch (error) {
+                                RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
+                                node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message, id: "Ivy" });
+                            }
+                        })
+                    })
+                    reqAzure.on('error', error => {
+                        RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error contacting Azure for getting the voices list: ' + error.message);
+                        node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message, id: "Ivy" })
+                        reqAzure.end();
+                    })
+                    reqAzure.end();
+                };
+                RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service enabled.")
+                try {
+                    listVoicesAzure();
+                } catch (error) {
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting Microsoft Azure voices: ' + error.message);
                 }
+
             } catch (error) {
                 RED.log.warn("ttsultimate-config " + node.id + ": Microsoft AzureTTS service disabled. " + error.message)
             }
