@@ -151,6 +151,9 @@ In case you select ***No player, only output file name***, you'll get a message 
 **Volume** <br/>
 Set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume = "40";</code> to the node)
 
+**Unmute** <br/>
+Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing <code>msg.unmute = true;</code> to the node)
+
 **Main Sonos Player** <br/>
 Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server).<br/>
 It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator.
@@ -163,6 +166,10 @@ Here you can add all additional players that will be grouped toghether to the *M
 
 **msg.volume**<br/>
 Set the volume (values between "0" and "100" with quotes)</br>
+
+**msg.unmute**<br/>
+*true*: Unmute all players then mutes it again once finished playing.</br>
+*false*: Leave the player as they are.</br>
 
 **msg.nohailing**<br/>
 Temporarely doesn't play the Hailing sound prior to the message (values "true" or "1" with quotes)</br>

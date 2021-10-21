@@ -76,6 +76,8 @@ module.exports = function (RED) {
         node.playertype = config.playertype === undefined ? "sonos" : config.playertype; // 20/09/2021 Player type
         node.speakingpitch = config.speakingpitch === undefined ? "0" : config.speakingpitch; // 21/09/2021 AudioConfig speakingpitch
         node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
+        node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
+        node.sonosCoordinatorIsPreviouslyMuted = false;
 
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
@@ -243,18 +245,29 @@ module.exports = function (RED) {
             });
         }
 
-        // 28/08/2021 Sync wrapper
-        // function removeTracksFromQueueSync() {
-        //     return new Promise((resolve, reject) => {
-        //         // To remove current item from the queue
-        //         node.SonosClient.removeTracksFromQueue(1,1).then(result => {
-        //             resolve(result);
-        //         }).catch(err => {
-        //             RED.log.error("ttsultimate: Error removeTracksFromQueueSync: " + err.message);
-        //             reject(err);
-        //         });
-        //     });
-        // }
+        // 21/10/2021 Sync wrapper
+        function GETMutedSync() {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.getMuted().then(state => {
+                    resolve(state);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error GETMutedSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
+
+        // 21/10/2021 Sync wrapper
+        function SETMutedSync(_muted) {
+            return new Promise((resolve, reject) => {
+                node.SonosClient.setMuted(_muted).then(state => {
+                    resolve(state);
+                }).catch(err => {
+                    RED.log.error("ttsultimate: Error SETMutedSync: " + err.message);
+                    reject(err);
+                });
+            });
+        }
 
         // 20/03/2020 Join Coordinator queue
         // ######################################################
@@ -262,11 +275,12 @@ module.exports = function (RED) {
             // 05/07/2021 Get the main coordinator player previous volume set by app
             try {
                 node.sonosCoordinatorPreviousVolumeSetByApp = await GETVOLUMESync();
+                node.sonosCoordinatorIsPreviouslyMuted = await GETMutedSync();
             } catch (error) {
                 node.sonosCoordinatorPreviousVolumeSetByApp = node.sSonosVolume;
+                node.sonosCoordinatorIsPreviouslyMuted = false;
             }
             // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
-            // You don't have to worry about who is the coordinator.
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
                 const element = node.oAdditionalSonosPlayers[index];
                 try {
@@ -280,6 +294,12 @@ module.exports = function (RED) {
                 } catch (error) {
                     RED.log.warn("ttsultimate: Error setting volume of joined device " + error.message);
                 }
+                // 21/10/2021 set the previous mute/unmute state
+                try {
+                    element.isPreviouslyMuted = await element.getMuted();
+                } catch (error) {
+                    RED.log.warn("ttsultimate: Error getMuted of joined device " + error.message);
+                }
             };
         }
 
@@ -290,6 +310,14 @@ module.exports = function (RED) {
                 await SETVOLUMESync(node.sonosCoordinatorPreviousVolumeSetByApp);
             } catch (error) {
                 RED.log.warn("ttsultimate: Error set preious volume on main coordinator in ungroupSpeakers " + error.message);
+            }
+            // 21/10/2021 Unmute?
+            if (node.unmuteIfMuted && node.sonosCoordinatorIsPreviouslyMuted) {
+                try {
+                    await SETMutedSync(true);
+                } catch (error) {
+                    RED.log.warn("ttsultimate: Error set preivous mute state on main coordinator in ungroupSpeakers " + error.message);
+                }
             }
 
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
@@ -305,6 +333,14 @@ module.exports = function (RED) {
                         await element.setVolume(element.additionalPlayerPreviousVolumeSetByApp);
                     } catch (error) {
                         RED.log.warn("ttsultimate: Error set previous volume on group device " + error.message);
+                    }
+                }
+                // 21/10/2021 Unmute?
+                if (node.unmuteIfMuted && element.isPreviouslyMuted) {
+                    try {
+                        await element.setMuted(true);
+                    } catch (error) {
+                        RED.log.warn("ttsultimate: Error set previous mute state on group device " + error.message);
                     }
                 }
             }
@@ -617,12 +653,15 @@ module.exports = function (RED) {
                                     volTemp = node.sSonosVolume;
                                 }
                                 await SETVOLUMESync(volTemp);
+                                if (node.unmuteIfMuted) await SETMutedSync(false); // 21/10/2021 Unmute
+
                                 if (node.oAdditionalSonosPlayers.length > 0) {
                                     // 05/07/2021 set the volume of additional coordinatores
                                     for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
                                         const element = node.oAdditionalSonosPlayers[index];
                                         try {
                                             await element.setVolume(volTemp);
+                                            if (node.unmuteIfMuted) await element.setMuted(false); // 21/10/2021 Unmute
                                         } catch (error) {
                                             RED.log.error("ttsultimate: Handlequeue: Unable to set the volume on additional player " + error.message);
                                         }
@@ -767,6 +806,10 @@ module.exports = function (RED) {
         }
 
         node.on('input', function (msg) {
+            // if (msg.hasOwnProperty("banana")) {
+            //     node.SonosClient.setMuted(msg.banana);
+            //     return;
+            // }
 
             // 09/01/2021 Set the main player and groups IP on request
             // *********************************
@@ -817,6 +860,12 @@ module.exports = function (RED) {
             if (!msg.hasOwnProperty("payload")) {
                 notifyError(msg, 'msg.payload must be of type String');
                 return;
+            }
+
+
+            // 21/10/2021 force unmute
+            if (msg.hasOwnProperty("unmute")) {
+                node.unmuteIfMuted = msg.unmute;
             }
 
             // 05/12/2020 handling Hailing
@@ -998,7 +1047,7 @@ module.exports = function (RED) {
 
         // 12/10/2021 Microsoft Azure TTS Service
         async function synthesizeSpeechMicrosoftAzureTTS(ttsService, params) {
-    
+
             return new Promise(function (resolve, reject) {
                 try {
 
@@ -1009,14 +1058,14 @@ module.exports = function (RED) {
                         params.text,
                         result => {
                             ttsService.close();
-                            resolve (Buffer.from(result.audioData));
+                            resolve(Buffer.from(result.audioData));
                         },
                         error => {
                             ttsService.close();
-                            reject (error);
+                            reject(error);
                         });
                 } catch (error) {
-                    reject (error);
+                    reject(error);
                 }
             });
         };

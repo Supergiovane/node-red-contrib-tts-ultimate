@@ -59,6 +59,11 @@
             <input type="text" id="node-input-sonosvolume" style="width:150px"> 
         </div>
         <div class="form-row">
+            <label for="node-input-unmuteIfMuted"><i class="fa fa-bell-slash-o"></i> Unmute</label>
+            <input type="checkbox" id="node-input-unmuteIfMuted" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Unmute, then restore previous state after play.</label>
+        </div>
+        
+        <div class="form-row">
             <label><i class="fa fa-upload"></i> Upload hail</label>
             <input id="ownFileUpload" type="file" multiple="multiple">
         </div>
@@ -128,7 +133,9 @@
                 rules: { value: [] },
                 playertype: { value: "sonos", required: false },
                 speakingrate: { value: "1", required: false },
-                speakingpitch: { value: "0", required: false }
+                speakingpitch: { value: "0", required: false },
+                unmuteIfMuted: { value: true }
+
             },
             inputs: 1,
             outputs: 2,
