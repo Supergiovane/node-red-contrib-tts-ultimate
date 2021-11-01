@@ -23,6 +23,7 @@ module.exports = function (RED) {
         node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
         node.ttsservice = config.ttsservice || "googletranslate";
+        node.limitTTSFilenameLenght = config.limitTTSFilenameLenght === undefined ? 220 : config.limitTTSFilenameLenght;
         // node.polly = null;
         // node.googleTTS = null;
         // node.googleTranslateTTS = null;

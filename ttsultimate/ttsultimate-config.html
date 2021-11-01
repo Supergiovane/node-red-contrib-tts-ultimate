@@ -17,7 +17,8 @@
                 type: "text"
             },
             purgediratrestart: { value: "leave", required: false },
-            ttsservice: { value: "googletranslate", required: false }
+            ttsservice: { value: "googletranslate", required: false },
+            limitTTSFilenameLenght: { value: 220, required: false, validate: RED.validators.number() }
 
         },
         credentials: {
@@ -32,6 +33,10 @@
         oneditprepare: function () {
             var node = this;
 
+            // 01/11/2021
+            //if (node.limitTTSFilenameLenght === undefined) {
+            //    $("#node-config-input-limitTTSFilenameLenght").val(220);
+            //}
             // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
             $.getJSON('ttsultimateGetEthAddress', (data) => {
                 $("#pleaseDeploy").hide();
@@ -61,16 +66,16 @@
             $("#node-config-input-ttsservice").change(function (e) {
                 if ($("#node-config-input-ttsservice").val() == "polly") {
                     $("#GoogleForm").hide();
-                    $("#microsoftAzureForm").hide();                    
+                    $("#microsoftAzureForm").hide();
                     $("#pollyForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletts") {
-                    $("#microsoftAzureForm").hide();                    
+                    $("#microsoftAzureForm").hide();
                     $("#pollyForm").hide();
                     $("#GoogleForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletranslate") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
-                    $("#microsoftAzureForm").hide();                    
+                    $("#microsoftAzureForm").hide();
                 } else if ($("#node-config-input-ttsservice").val() == "microsoftazuretts") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
@@ -208,6 +213,12 @@
                 <option value="leave">Leave the TTS cache folder untouched (not suggested if you have less disk space)</option>
             </select>
         </div>
+
+        <div class="form-row">
+            <label for="node-config-input-limitTTSFilenameLenght"><i class="fa fa-file"></i> Autosplit max length</label>
+            <input type="text" id="node-config-input-limitTTSFilenameLenght">
+        </div>
+        
     </div>
     
 </script>

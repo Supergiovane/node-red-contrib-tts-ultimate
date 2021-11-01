@@ -78,7 +78,7 @@ module.exports = function (RED) {
         node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
         node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
         node.sonosCoordinatorIsPreviouslyMuted = false;
-
+        
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
         }
@@ -943,8 +943,7 @@ module.exports = function (RED) {
 
 
             // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
-            const iLimitTTSFilenameLenght = 220;
-            if (msg.payload.length >= iLimitTTSFilenameLenght) {
+            if (msg.payload.length >= node.server.limitTTSFilenameLenght) {
                 let sTemp = "";
                 let aSeps = [".", ",", ":", ";", "!", "?"];
                 let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
@@ -957,7 +956,7 @@ module.exports = function (RED) {
                         node.tempMSGStorage.push(oMsg);
                         sTemp = "";
                     }
-                    if (sTemp.length > iLimitTTSFilenameLenght && element === " ") {
+                    if (sTemp.length > node.server.limitTTSFilenameLenght && element === " ") {
                         // Split using space
                         const oMsg = RED.util.cloneMessage(msg);
                         oMsg.payload = sTemp;
