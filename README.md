@@ -129,7 +129,7 @@ Don't delete the files cached. Useful if you wish to keep the tts files, even in
 **Autosplit max length
 <br/>
 Due to some limitations in text lenght, applied by the online TTS Engines, TTS-Ultimate is capable to split your long text to be spoken, in shorter texts in an intelligent way.<br/>
-This field allow you to set the maximum lenght of each splitted text part. The default is **220** and is OK for most cases. You can change this valut to whatever you want but keep in mind, that your TTS engine can either cut the text or return an error, if the text is too long. As the cached filename is equal to the text being spoken, you could also hit the maximum filename lenght of your filesystem. So keep the default value, unless you absolute need to change it.<br/>
+This field allow you to set the maximum lenght (**in chars**) of each splitted text part. The default is **220** and is OK for most cases. You can change this valut to whatever you want but keep in mind, that your TTS engine can either cut the text or return an error, if the text is too long. As the cached filename is equal to the text being spoken, you could also hit the maximum filename lenght of your filesystem. So keep the default value, unless you absolute need to change it.<br/>
 <br/> 
 <br/>
 
