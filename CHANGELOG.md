@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.36</b> November 2021<br/>
+- NEW: Autosplit function: you can now set the maximum lenght of the text-parts, in case your spoken text is too long for the allowed TTS Engine limits.<br/>
+<p>
+<p>
 <b>Version 1.0.35</b> October 2021<br/>
 - NEW: You can force unmuting all players, then restore their previous state once finished playing.<br/>
 <p>
