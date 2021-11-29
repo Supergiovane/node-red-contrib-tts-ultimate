@@ -283,7 +283,8 @@ Sets the array of players beloging to the group, if any.<br/>
 If you have only one additional player, you need to ever put it into an array. See below.
 
 ```js
-// Set player IP
+// Set main player IP
+// The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config= {
     setMainPlayerIP:"192.168.1.109"
 };
