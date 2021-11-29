@@ -272,12 +272,13 @@ The property is a JSON object.
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/setConfig.png' width="80%">
 
 **msg.setConfig**<br/>
-This is the property where you can set all the things. It must be an Object.
+This is the property where you can set all the things. It must be a JSON Object with the below specified properties.<br/>
+The setting is retained until the node receives another msg.setConfig or until node-red is restarted.<br/>
 
-**setMainPlayerIP**<br/>
-Sets the main player IP. This will also be the coordinator if you have a group of players
+**property setMainPlayerIP**<br/>
+Sets the main player IP. This will also be the coordinator if you have a group of players.
 
-**setPlayerGroupArray**<br/>
+**property setPlayerGroupArray**<br/>
 Sets the array of players beloging to the group, if any.<br/>
 If you have only one additional player, you need to ever put it into an array. See below.
 
@@ -292,6 +293,7 @@ return msg;
 
 ```js
 // Set player IP and additional players
+// The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config= {
     setMainPlayerIP:"192.168.1.109",
     setPlayerGroupArray:[
@@ -306,6 +308,7 @@ return msg;
 
 ```js
 // If you have only one additional player
+// The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config= {
     setMainPlayerIP:"192.168.1.109",
     setPlayerGroupArray:["192.168.1.110"]
