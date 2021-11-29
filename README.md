@@ -275,12 +275,12 @@ The property is a JSON object.
 This is the property where you can set all the things. It must be a JSON Object with the below specified properties.<br/>
 The setting is retained until the node receives another msg.setConfig or until node-red is restarted.<br/>
 
-**property setMainPlayerIP**<br/>
-Sets the main player IP. This will also be the coordinator if you have a group of players.
+ >  **property setMainPlayerIP**<br/>
+   Sets the main player IP. This will also be the coordinator if you have a group of players.
 
-**property setPlayerGroupArray**<br/>
-Sets the array of players beloging to the group, if any.<br/>
-If you have only one additional player, you need to ever put it into an array. See below.
+ >  **property setPlayerGroupArray**<br/>
+   Sets the array of players beloging to the group, if any.<br/>
+   If you have only one additional player, you need to ever put it into an array. See below.
 
 ```js
 // Set main player IP
