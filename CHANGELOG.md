@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.37</b> December 2021<br/>
+- Removed some unwanted startup logs.<br/>
+<p>
+<p>
 <b>Version 1.0.36</b> November 2021<br/>
 - NEW: Autosplit function: you can now set the maximum lenght of the text-parts, in case your spoken text is too long for the allowed TTS Engine limits.<br/>
 <p>

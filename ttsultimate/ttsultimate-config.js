@@ -97,7 +97,7 @@ module.exports = function (RED) {
                 RED.log.warn("ttsultimate-config " + node.id + ": Polly service disabled. " + error.message)
             }
         } else {
-            RED.log.warn("ttsultimate-config " + node.id + ": Polly service not used.");
+            //RED.log.info("ttsultimate-config " + node.id + ": Polly service not used.");
         }
 
 
@@ -118,7 +118,7 @@ module.exports = function (RED) {
             }
 
         } else {
-            RED.log.warn("ttsultimate-config " + node.id + ": Google TTS service not used.");
+            // RED.log.info("ttsultimate-config " + node.id + ": Google TTS service not used.");
         }
 
 
@@ -128,10 +128,10 @@ module.exports = function (RED) {
             try {
                 node.googleTranslateTTS = GoogleTranslate;
             } catch (error) {
-                RED.log.warn("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+                //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
             }
         } else {
-            RED.log.warn("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
         }
 
 
@@ -202,7 +202,7 @@ module.exports = function (RED) {
                 RED.log.warn("ttsultimate-config " + node.id + ": Microsoft AzureTTS service disabled. " + error.message)
             }
         } else {
-            RED.log.warn("ttsultimate-config " + node.id + ": Microsoft AzureTTS service not used. ");
+            //RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service not used. ");
         }
         // #########################################
 
