@@ -3,8 +3,9 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
-<b>Version 1.0.37</b> December 2021<br/>
+<b>Version 1.0.38</b> December 2021<br/>
 - Removed some unwanted startup logs.<br/>
+- Fixed ownfile sample code. Thanks to plats98.<br/>
 <p>
 <p>
 <b>Version 1.0.36</b> November 2021<br/>
