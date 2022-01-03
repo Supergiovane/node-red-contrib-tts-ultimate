@@ -3,6 +3,12 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.39</b> January 2022<br/>
+- SSML: fixed an issue prevent using it.<br/>
+- SSML: if SSML is enabled, the text auto split function is disabled, to avoid splitting SSML XML text.<br/>
+- Microsoft Azure: update TTS engine to 1.19.0<br/>
+- Google paid TTS: update TTS engine to 3.4.0<br/>
+<p>
 <b>Version 1.0.38</b> December 2021<br/>
 - Removed some unwanted startup logs.<br/>
 - Fixed ownfile sample code. Thanks to plats98.<br/>

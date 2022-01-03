@@ -180,13 +180,13 @@ module.exports = function (RED) {
                                 }
                             } catch (error) {
                                 RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
-                                node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message, id: "Ivy" });
+                                node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" });
                             }
                         })
                     })
                     reqAzure.on('error', error => {
                         RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error contacting Azure for getting the voices list: ' + error.message);
-                        node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message, id: "Ivy" })
+                        node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
                         reqAzure.end();
                     })
                     reqAzure.end();
@@ -365,7 +365,7 @@ module.exports = function (RED) {
                     node.polly.describeVoices(jfiltroVoci, function (err, data) {
                         if (err) {
                             RED.log.warn('ttsultimate-config ' + node.id + ': Error getting polly voices ' + err);
-                            jListVoices.push({ name: "Error retrieving voices. " + err, id: "Ivy" })
+                            jListVoices.push({ name: "Error retrieving voices. " + err + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
                             res.json(jListVoices)
                         } else {
                             for (let index = 0; index < data.Voices.length; index++) {
@@ -392,15 +392,15 @@ module.exports = function (RED) {
                         });
                         res.json(jListVoices)
                     } catch (error) {
-                        RED.log.error('ttsultimate-config ' + node.id + ': Error getting google TTS voices ' + error.message);
-                        jListVoices.push({ name: "Error getting Google TTS voices. " + error.message, id: "Ivy" })
+                        RED.log.error('ttsultimate-config ' + node.id + ': Error getting google TTS voices ' + error.message + " Please deploy and restart node-red.");
+                        jListVoices.push({ name: "Error getting Google TTS voices. " + error.message + " Check credentials, deploy and restart node-red.", id: "Ivy" })
                         res.json(jListVoices)
                     }
                 };
                 try {
                     listVoices();
                 } catch (error) {
-                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google TTS voices ' + error.message);
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google TTS voices ' + error.message + " Please deploy and restart node-red.");
                 }
 
             } else if (ttsservice === "googletranslate") {
@@ -413,14 +413,14 @@ module.exports = function (RED) {
                         res.json(jListVoices)
                     } catch (error) {
                         RED.log.error('ttsultimate-config ' + node.id + ': Error getting google Translate voices ' + error.message);
-                        jListVoices.push({ name: "Error getting Google Translate voices. " + error.message, id: "Ivy" })
+                        jListVoices.push({ name: "Error getting Google Translate voices. " + error.message + " Deploy and restart node-red.", id: "Ivy" })
                         res.json(jListVoices)
                     }
                 };
                 try {
                     listVoices();
                 } catch (error) {
-                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google Translate voices ' + error.message);
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google Translate voices ' + error.message + " Please deploy and restart node-red.");
                 }
 
             } else if (ttsservice === "microsoftazuretts") {

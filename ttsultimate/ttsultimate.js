@@ -78,7 +78,7 @@ module.exports = function (RED) {
         node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
         node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
         node.sonosCoordinatorIsPreviouslyMuted = false;
-        
+
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
         }
@@ -591,11 +591,11 @@ module.exports = function (RED) {
                                         voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
                                         audioConfig: { audioEncoding: "MP3", speakingRate: parseFloat(node.speakingrate), pitch: parseFloat(node.speakingpitch), },
                                     };
-                                    params.input = node.ssml === "text" ? { text: msg } : { ssml: msg };
+                                    params.input = node.ssml === false ? { text: msg } : { ssml: msg };
                                     data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
                                 } else if (node.server.ttsservice === "googletranslate") {
                                     node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google Translate...' });
-                                    // VoiceId is: code 
+                                    // VoiceId is: code. SSML is not supported by google translate
                                     const params = {
                                         text: msg,
                                         voice: node.voiceId,
@@ -941,35 +941,41 @@ module.exports = function (RED) {
             }
             // ########################
 
+            // 03/01/2022 if ssml is enabled, disable the auto split function
+            if (!node.ssml) {
+                // SSML disabled
+                // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
+                if (msg.payload.length >= node.server.limitTTSFilenameLenght) {
+                    let sTemp = "";
+                    let aSeps = [".", ",", ":", ";", "!", "?"];
+                    let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
+                    for (let index = 0; index < sPayload.length; index++) {
+                        const element = sPayload.substr(index, 1);
+                        sTemp += element;
+                        if (aSeps.indexOf(element) > -1 && sTemp.length > 20) {
+                            const oMsg = RED.util.cloneMessage(msg);
+                            oMsg.payload = sTemp;
+                            node.tempMSGStorage.push(oMsg);
+                            sTemp = "";
+                        }
+                        if (sTemp.length > node.server.limitTTSFilenameLenght && element === " ") {
+                            // Split using space
+                            const oMsg = RED.util.cloneMessage(msg);
+                            oMsg.payload = sTemp;
+                            node.tempMSGStorage.push(oMsg);
+                            sTemp = "";
+                        }
+                    }
+                    // Remaining
+                    const oMsg = RED.util.cloneMessage(msg);
+                    oMsg.payload = sTemp;
+                    node.tempMSGStorage.push(oMsg);
 
-            // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
-            if (msg.payload.length >= node.server.limitTTSFilenameLenght) {
-                let sTemp = "";
-                let aSeps = [".", ",", ":", ";", "!", "?"];
-                let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
-                for (let index = 0; index < sPayload.length; index++) {
-                    const element = sPayload.substr(index, 1);
-                    sTemp += element;
-                    if (aSeps.indexOf(element) > -1 && sTemp.length > 20) {
-                        const oMsg = RED.util.cloneMessage(msg);
-                        oMsg.payload = sTemp;
-                        node.tempMSGStorage.push(oMsg);
-                        sTemp = "";
-                    }
-                    if (sTemp.length > node.server.limitTTSFilenameLenght && element === " ") {
-                        // Split using space
-                        const oMsg = RED.util.cloneMessage(msg);
-                        oMsg.payload = sTemp;
-                        node.tempMSGStorage.push(oMsg);
-                        sTemp = "";
-                    }
+                } else {
+                    node.tempMSGStorage.push(msg);
                 }
-                // Remaining
-                const oMsg = RED.util.cloneMessage(msg);
-                oMsg.payload = sTemp;
-                node.tempMSGStorage.push(oMsg);
-
             } else {
+                // SSML enabled
                 node.tempMSGStorage.push(msg);
             }
 
