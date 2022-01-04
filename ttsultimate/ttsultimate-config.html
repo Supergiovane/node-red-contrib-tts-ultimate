@@ -18,7 +18,7 @@
             },
             purgediratrestart: { value: "leave", required: false },
             ttsservice: { value: "googletranslate", required: false },
-            limitTTSFilenameLenght: { value: 220, required: false, validate: RED.validators.number() }
+            TTSRootFolderPath: { value: "", required: false }
 
         },
         credentials: {
@@ -33,10 +33,6 @@
         oneditprepare: function () {
             var node = this;
 
-            // 01/11/2021
-            //if (node.limitTTSFilenameLenght === undefined) {
-            //    $("#node-config-input-limitTTSFilenameLenght").val(220);
-            //}
             // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
             $.getJSON('ttsultimateGetEthAddress', (data) => {
                 $("#pleaseDeploy").hide();
@@ -215,10 +211,10 @@
         </div>
 
         <div class="form-row">
-            <label for="node-config-input-limitTTSFilenameLenght"><i class="fa fa-file"></i> Autosplit max length (chars)</label>
-            <input type="text" id="node-config-input-limitTTSFilenameLenght">
+            <label for="node-config-input-TTSRootFolderPath"><i class="fa fa-folder-o"></i> Cache root folder</label>
+            <input type="text" id="node-config-input-TTSRootFolderPath" placeholder="The folder must exist. Leave blank for default">
         </div>
-        
+              
     </div>
     
 </script>

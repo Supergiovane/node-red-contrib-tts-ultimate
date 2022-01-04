@@ -20,10 +20,9 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         var node = this;
         node.noderedipaddress = typeof config.noderedipaddress === "undefined" ? "" : config.noderedipaddress;
-        node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
         node.ttsservice = config.ttsservice || "googletranslate";
-        node.limitTTSFilenameLenght = config.limitTTSFilenameLenght === undefined ? 220 : config.limitTTSFilenameLenght;
+        node.TTSRootFolderPath = (config.TTSRootFolderPath === undefined || config.TTSRootFolderPath === "") ? path.join(RED.settings.userDir, "sonospollyttsstorage") : path.join(config.TTSRootFolderPath, "sonospollyttsstorage");
         // node.polly = null;
         // node.googleTTS = null;
         // node.googleTranslateTTS = null;
@@ -44,38 +43,38 @@ module.exports = function (RED) {
                 return true;
             }
         }
-        if (!setupDirectory(node.userDir)) {
-            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up MAIN directory: ' + node.userDir);
+        if (!setupDirectory(node.TTSRootFolderPath)) {
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up MAIN directory: ' + node.TTSRootFolderPath);
         }
-        if (!setupDirectory(path.join(node.userDir, "ttsfiles"))) {
-            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up cache directory: ' + path.join(node.userDir, "ttsfiles"));
+        if (!setupDirectory(path.join(node.TTSRootFolderPath, "ttsfiles"))) {
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up cache directory: ' + path.join(node.TTSRootFolderPath, "ttsfiles"));
         } else {
-            RED.log.info('ttsultimate-config ' + node.id + ': TTS cache set to ' + path.join(node.userDir, "ttsfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': TTS cache set to ' + path.join(node.TTSRootFolderPath, "ttsfiles"));
         }
-        if (!setupDirectory(path.join(node.userDir, "ttsultimategooglecredentials"))) {
-            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set google creds directory: ' + path.join(node.userDir, "ttsultimategooglecredentials"));
+        if (!setupDirectory(path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials"))) {
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set google creds directory: ' + path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials"));
         } else {
-            RED.log.info('ttsultimate-config ' + node.id + ': google credentials path set to ' + path.join(node.userDir, "ttsultimategooglecredentials"));
+            RED.log.info('ttsultimate-config ' + node.id + ': google credentials path set to ' + path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials"));
         }
-        if (!setupDirectory(path.join(node.userDir, "hailingpermanentfiles"))) {
-            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up hailing directory: ' + path.join(node.userDir, "hailingpermanentfiles"));
+        if (!setupDirectory(path.join(node.TTSRootFolderPath, "hailingpermanentfiles"))) {
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up hailing directory: ' + path.join(node.TTSRootFolderPath, "hailingpermanentfiles"));
         } else {
-            RED.log.info('ttsultimate-config ' + node.id + ': hailing path set to ' + path.join(node.userDir, "hailingpermanentfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': hailing path set to ' + path.join(node.TTSRootFolderPath, "hailingpermanentfiles"));
             // 09/03/2020 Copy defaults to the userDir
             fs.readdirSync(path.join(__dirname, "hailingpermanentfiles")).forEach(file => {
                 try {
-                    fs.copyFileSync(path.join(__dirname, "hailingpermanentfiles", file), path.join(node.userDir, "hailingpermanentfiles", file));
+                    fs.copyFileSync(path.join(__dirname, "hailingpermanentfiles", file), path.join(node.TTSRootFolderPath, "hailingpermanentfiles", file));
                 } catch (error) { }
             });
         }
-        if (!setupDirectory(path.join(node.userDir, "ttspermanentfiles"))) {
-            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up permanent files directory: ' + path.join(node.userDir, "ttspermanentfiles"));
+        if (!setupDirectory(path.join(node.TTSRootFolderPath, "ttspermanentfiles"))) {
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up permanent files directory: ' + path.join(node.TTSRootFolderPath, "ttspermanentfiles"));
         } else {
-            RED.log.info('ttsultimate-config ' + node.id + ': permanent files path set to ' + path.join(node.userDir, "ttspermanentfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': permanent files path set to ' + path.join(node.TTSRootFolderPath, "ttspermanentfiles"));
             // 09/03/2020 // Copy the samples of permanent files into the userDir
             fs.readdirSync(path.join(__dirname, "ttspermanentfiles")).forEach(file => {
                 try {
-                    fs.copyFileSync(path.join(__dirname, "ttspermanentfiles", file), path.join(node.userDir, "ttspermanentfiles", file));
+                    fs.copyFileSync(path.join(__dirname, "ttspermanentfiles", file), path.join(node.TTSRootFolderPath, "ttspermanentfiles", file));
                 } catch (error) { }
             });
         }
@@ -105,8 +104,8 @@ module.exports = function (RED) {
         if (node.ttsservice === "googletts") {
             try {
                 // 23/12/2020 Set environment path of googleTTS
-                RED.log.info("ttsultimate-config " + node.id + ": Google credentials are stored in the file " + path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json"));
-                process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
+                RED.log.info("ttsultimate-config " + node.id + ": Google credentials are stored in the file " + path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials", "googlecredentials.json"));
+                process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials", "googlecredentials.json");
                 try {
                     node.googleTTS = new GoogleTTS.TextToSpeechClient();
                     RED.log.info("ttsultimate-config " + node.id + ": Google TTS service enabled. ")
@@ -265,7 +264,7 @@ module.exports = function (RED) {
             var jListOwnFiles = [];
             var sName = "";
             try {
-                fs.readdirSync(path.join(node.userDir, "hailingpermanentfiles")).forEach(file => {
+                fs.readdirSync(path.join(node.TTSRootFolderPath, "hailingpermanentfiles")).forEach(file => {
                     if (file.indexOf("Hailing_") > -1) {
                         sName = file.replace("Hailing_", "").replace(".mp3", "");
                         jListOwnFiles.push({ name: sName, filename: file });
@@ -280,7 +279,7 @@ module.exports = function (RED) {
         RED.httpAdmin.get("/deleteHailingFile", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             // Delete the file
             try {
-                var newPath = path.join(node.userDir, "hailingpermanentfiles", req.query.FileName);
+                var newPath = path.join(node.TTSRootFolderPath, "hailingpermanentfiles", req.query.FileName);
                 fs.unlinkSync(newPath)
             } catch (error) { }
             res.json({ status: 220 });
@@ -292,7 +291,7 @@ module.exports = function (RED) {
             form.parse(req, function (err, fields, files) {
                 try {
                     if (files.customHailing.name.indexOf(".mp3") !== -1) {
-                        var newPath = path.join(node.userDir, "hailingpermanentfiles", "Hailing_" + files.customHailing.name);
+                        var newPath = path.join(node.TTSRootFolderPath, "hailingpermanentfiles", "Hailing_" + files.customHailing.name);
                         // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
                         // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
                         // Instead of renaming it, i must copy the file and then delete the old one.
@@ -325,7 +324,7 @@ module.exports = function (RED) {
                 if (err) { };
                 // Allow only json
                 if (files.googleCreds.name.indexOf(".json") !== -1) {
-                    var newPath = path.join(node.userDir, "ttsultimategooglecredentials", "googlecredentials.json");
+                    var newPath = path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials", "googlecredentials.json");
                     // Set the environment variable
                     process.env.GOOGLE_APPLICATION_CREDENTIALS = newPath;
                     // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
@@ -442,7 +441,7 @@ module.exports = function (RED) {
                 // Allow only mp3
                 try {
                     if (files.customTTS.name.indexOf(".mp3") !== -1) {
-                        var newPath = path.join(node.userDir, "ttspermanentfiles", "OwnFile_" + files.customTTS.name);
+                        var newPath = path.join(node.TTSRootFolderPath, "ttspermanentfiles", "OwnFile_" + files.customTTS.name);
                         // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
                         // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
                         // Instead of renaming it, i must copy the file and then delete the old one.
@@ -472,7 +471,7 @@ module.exports = function (RED) {
             var jListOwnFiles = [];
             var sName = "";
             try {
-                fs.readdirSync(path.join(node.userDir, "ttspermanentfiles")).forEach(file => {
+                fs.readdirSync(path.join(node.TTSRootFolderPath, "ttspermanentfiles")).forEach(file => {
                     if (file.indexOf("OwnFile_") > -1) {
                         sName = file.replace("OwnFile_", '').replace(".mp3", '');
                         jListOwnFiles.push({ name: sName, filename: file });
@@ -489,12 +488,12 @@ module.exports = function (RED) {
                 if (req.query.FileName == "DELETEallFiles") {
                     // Delete all OwnFiles_
                     try {
-                        fs.readdir(path.join(node.userDir, "ttspermanentfiles"), (err, files) => {
+                        fs.readdir(path.join(node.TTSRootFolderPath, "ttspermanentfiles"), (err, files) => {
                             files.forEach(function (file) {
                                 if (file.indexOf("OwnFile_") !== -1) {
-                                    RED.log.warn("ttsultimate-config " + node.id + ": Deleted file " + path.join(node.userDir, "ttspermanentfiles", file));
+                                    RED.log.warn("ttsultimate-config " + node.id + ": Deleted file " + path.join(node.TTSRootFolderPath, "ttspermanentfiles", file));
                                     try {
-                                        fs.unlinkSync(path.join(node.userDir, "ttspermanentfiles", file));
+                                        fs.unlinkSync(path.join(node.TTSRootFolderPath, "ttspermanentfiles", file));
                                     } catch (error) { }
                                 }
                             });
@@ -504,7 +503,7 @@ module.exports = function (RED) {
                 } else {
                     // Delete only one file
                     try {
-                        var newPath = path.join(node.userDir, "ttspermanentfiles", req.query.FileName);
+                        var newPath = path.join(node.TTSRootFolderPath, "ttspermanentfiles", req.query.FileName);
                         try {
                             fs.unlinkSync(newPath)
                         } catch (error) { }
@@ -533,13 +532,13 @@ module.exports = function (RED) {
         if (node.purgediratrestart === "purge") {
             // Delete all files, that are'nt OwnFiles_
             try {
-                fs.readdirSync(path.join(node.userDir, "ttsfiles"), (err, files) => {
+                fs.readdirSync(path.join(node.TTSRootFolderPath, "ttsfiles"), (err, files) => {
                     try {
                         if (files.length > 0) {
                             files.forEach(function (file) {
-                                RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.userDir, "ttsfiles", file));
+                                RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.TTSRootFolderPath, "ttsfiles", file));
                                 try {
-                                    fs.unlinkSync(path.join(node.userDir, "ttsfiles", file));
+                                    fs.unlinkSync(path.join(node.TTSRootFolderPath, "ttsfiles", file));
                                 } catch (error) {
                                 }
                             });

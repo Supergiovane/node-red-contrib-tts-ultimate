@@ -3,6 +3,13 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.40</b> January 2022<br/>
+- NEW: you can now select your own folder to save the TTS cached files.<br/>
+- NEW: getting rid of file lenght issue by hashing the TTS cached files requested from TTS engines. Now the file names will be MD5 HEX hashed.<br/>
+- NEW: now the input messages are passed through to the output pin.<br/>
+- CAUTION: due to the new file management, the node will need to download again the TTS files from your TTS engine. Keep it in mind, because you can be charged by Amazon, Google or Microsoft.<br/>
+<p>
+<p>
 <b>Version 1.0.39</b> January 2022<br/>
 - SSML: fixed an issue prevent using it.<br/>
 - SSML: if SSML is enabled, the text auto split function is disabled, to avoid splitting SSML XML text.<br/>

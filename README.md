@@ -126,10 +126,11 @@ On each deploy or node-red restart, delete all tts files in the cache. This is u
 Don't delete the files cached. Useful if you wish to keep the tts files, even in case of internet outages, node-red restart or reboots.
 <br/> 
 
-**Autosplit max length
+**Cache root folder**
 <br/>
-Due to some limitations in text lenght, applied by the online TTS Engines, TTS-Ultimate is capable to split your long text to be spoken, in shorter texts in an intelligent way.<br/>
-This field allow you to set the maximum lenght (**in chars**) of each splitted text part. The default is **220** and is OK for most cases. You can change this valut to whatever you want but keep in mind, that your TTS engine can either cut the text or return an error, if the text is too long. As the cached filename is equal to the text being spoken, you could also hit the maximum filename lenght of your filesystem. So keep the default value, unless you absolute need to change it.<br/>
+Set your preferred output folder for the files downloaded by the TTS Engine.<br/>
+This is useful if you wish to save the TTS cached files in a folder accessible, for example, by a third party web servers to serve an AirPlay2 speaker.<br/>
+Leave this field blank for the default.<br/>
 <br/> 
 <br/>
 
@@ -140,6 +141,9 @@ Select the TTS SERVICE ENGINE NODE, as stated above.
 
 **Voice**<br/>
 Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
+
+**Enable SSML**<br/>
+Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.
 
 **Rate**<br/>
 Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1).
@@ -236,18 +240,21 @@ The node has two output pins. The first pin is to signal play status, the second
 **OUTPUT PIN 1**<br/>
 Payload is ***true*** when the node has finished playing, ***false*** if the node is playing<br/>
 In case you selected ***No player, only output file name.*** in the **Player** property, you'll get a message with an additional property *filesArray*, containing an array of all mp3 files ready to be played with third party nodes.<br/>
+The property ***passThroughMessage*** contains the input msg passed through the output.<br/>
+
 ```js
 {
    "payload":true,
+   "passThroughMessage" : {original message object}
    "filesArray":[
       {
-         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/hailingpermanentfiles/Hailing_ComputerCall.mp3"
+         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/hailingpermanentfiles/hail.mp3"
       },
       {
-         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/ille mi par esse deo videtur_pause_ ille si fas est superare divos_stop__it-IT.mp3"
+         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/345938475938457.mp3"
       },
       {
-         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/Banana rama_it-IT.mp3"
+         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/3666HJGH565656.mp3"
       }
    ],
    "_msgid":"8b6b22a45dfd5236"
@@ -352,7 +359,7 @@ This node allow you to upload your custom message and play it via ttsultimate wi
 **Name**<br/>
 Node name
 
-**File to be player** <br/>
+**File to be played** <br/>
 Select a file to be played. You can upload one or multiple files at the same time via the "upload" button.
 
 **Priority**<br/>

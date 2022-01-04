@@ -2,11 +2,10 @@ module.exports = function (RED) {
     'use strict';
 
     var fs = require('fs');
-    var MD5 = require('crypto-js').MD5;
     var util = require('util');
     var path = require('path');
     const sonos = require('sonos');
-
+    const crypto = require("crypto");
 
     function slug(_text) {
         var sRet = _text;
@@ -64,7 +63,7 @@ module.exports = function (RED) {
         node.msg = {}; // 08/05/2019 Node message
         node.msg.completed = true;
         node.msg.connectionerror = true;
-        node.userDir = path.join(RED.settings.userDir, "sonospollyttsstorage"); // 09/03/2020 Storage of ttsultimate (otherwise, at each upgrade to a newer version, the node path is wiped out and recreated, loosing all custom files)
+        node.userDir = node.server.TTSRootFolderPath === undefined ? path.join(RED.settings.userDir, "sonospollyttsstorage") : node.server.TTSRootFolderPath;
         node.oAdditionalSonosPlayers = []; // 20/03/2020 Contains other players to be grouped
         node.rules = config.rules || [{}];
         node.sNoderedURL = "";
@@ -78,6 +77,7 @@ module.exports = function (RED) {
         node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
         node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
         node.sonosCoordinatorIsPreviouslyMuted = false;
+        node.passThroughMessage = {};
 
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
@@ -536,7 +536,7 @@ module.exports = function (RED) {
                     RED.log.error("ttsultimate: Error grouping speakers: " + error.message);
                 }
 
-                node.send([{ payload: node.msg.completed }, null]);
+                node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
 
                 // 24/08/2021 If something was playing, stop the player https://github.com/Supergiovane/node-red-contrib-tts-ultimate/issues/32
                 try {
@@ -777,7 +777,7 @@ module.exports = function (RED) {
                     setTimeout(() => {
                         node.msg.completed = true;
                         node.currentMSGbeingSpoken = {};
-                        node.send([{ payload: node.msg.completed }, null]);
+                        node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
                         node.bBusyPlayingQueue = false
                         node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
                     }, 1000)
@@ -790,7 +790,7 @@ module.exports = function (RED) {
                     setTimeout(() => {
                         node.msg.completed = true;
                         node.currentMSGbeingSpoken = {};
-                        node.send([{ payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
+                        node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
                         node.bBusyPlayingQueue = false
                         node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
                     }, 1000)
@@ -810,6 +810,9 @@ module.exports = function (RED) {
             //     node.SonosClient.setMuted(msg.banana);
             //     return;
             // }
+
+            // 05/01/2022 Set the passtrough message o come cazzo si scrive
+            node.passThroughMessage = RED.util.cloneMessage(msg);
 
             // 09/01/2021 Set the main player and groups IP on request
             // *********************************
@@ -941,45 +944,46 @@ module.exports = function (RED) {
             }
             // ########################
 
-            // 03/01/2022 if ssml is enabled, disable the auto split function
-            if (!node.ssml) {
-                // SSML disabled
-                // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
-                if (msg.payload.length >= node.server.limitTTSFilenameLenght) {
-                    let sTemp = "";
-                    let aSeps = [".", ",", ":", ";", "!", "?"];
-                    let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
-                    for (let index = 0; index < sPayload.length; index++) {
-                        const element = sPayload.substr(index, 1);
-                        sTemp += element;
-                        if (aSeps.indexOf(element) > -1 && sTemp.length > 20) {
-                            const oMsg = RED.util.cloneMessage(msg);
-                            oMsg.payload = sTemp;
-                            node.tempMSGStorage.push(oMsg);
-                            sTemp = "";
-                        }
-                        if (sTemp.length > node.server.limitTTSFilenameLenght && element === " ") {
-                            // Split using space
-                            const oMsg = RED.util.cloneMessage(msg);
-                            oMsg.payload = sTemp;
-                            node.tempMSGStorage.push(oMsg);
-                            sTemp = "";
-                        }
-                    }
-                    // Remaining
-                    const oMsg = RED.util.cloneMessage(msg);
-                    oMsg.payload = sTemp;
-                    node.tempMSGStorage.push(oMsg);
+            // // 03/01/2022 if ssml is enabled, disable the auto split function
+            // if (!node.ssml) {
+            //     // SSML disabled
+            //     // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
+            //     if (msg.payload.length >= node.server.limitTTSFilenameLenght) {
+            //         let sTemp = "";
+            //         let aSeps = [".", ",", ":", ";", "!", "?"];
+            //         let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
+            //         for (let index = 0; index < sPayload.length; index++) {
+            //             const element = sPayload.substr(index, 1);
+            //             sTemp += element;
+            //             if (aSeps.indexOf(element) > -1 && sTemp.length > 20) {
+            //                 const oMsg = RED.util.cloneMessage(msg);
+            //                 oMsg.payload = sTemp;
+            //                 node.tempMSGStorage.push(oMsg);
+            //                 sTemp = "";
+            //             }
+            //             if (sTemp.length > node.server.limitTTSFilenameLenght && element === " ") {
+            //                 // Split using space
+            //                 const oMsg = RED.util.cloneMessage(msg);
+            //                 oMsg.payload = sTemp;
+            //                 node.tempMSGStorage.push(oMsg);
+            //                 sTemp = "";
+            //             }
+            //         }
+            //         // Remaining
+            //         const oMsg = RED.util.cloneMessage(msg);
+            //         oMsg.payload = sTemp;
+            //         node.tempMSGStorage.push(oMsg);
 
-                } else {
-                    node.tempMSGStorage.push(msg);
-                }
-            } else {
-                // SSML enabled
-                node.tempMSGStorage.push(msg);
-            }
+            //     } else {
+            //         node.tempMSGStorage.push(msg);
+            //     }
+            // } else {
+            //     // SSML enabled
+            //     node.tempMSGStorage.push(msg);
+            // }
 
             // Starts main queue watching
+            node.tempMSGStorage.push(msg);
             node.waitForQueue();
 
         });
@@ -1007,7 +1011,7 @@ module.exports = function (RED) {
             clearTimeout(node.oTimerSonosConnectionCheck);
             if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
             node.msg.completed = true;
-            node.send([{ payload: node.msg.completed }, null]);
+            node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
             node.setNodeStatus({ fill: "green", shape: "ring", text: "Shutdown" });
             node.flushQueue();
             done();
@@ -1075,28 +1079,12 @@ module.exports = function (RED) {
             });
         };
 
-        function getFilename(text, _sVoice, isSSML, extension, _speakingpitch, _speakingrate) {
-            // Slug the text.
-            var basename = slug(text);
-            _sVoice = slug(_sVoice);
-
-            var ssml_text = isSSML ? '_ssml' : '';
-
-            // Filename format: "text_voice.mp3"
-            var filename = util.format('%s_%s%s%s%s.%s', basename, _sVoice, _speakingpitch, _speakingrate, ssml_text, extension);
-
-            // If filename is too long, cut it and add hash
-            if (filename.length > 250) {
-                var hash = MD5(basename);
-
-                // Filename format: "text_hash_voice.mp3"
-                var ending = util.format('_%s_%s%s%s%s.%s', hash, _sVoice, _speakingpitch, _speakingrate, ssml_text, extension);
-                var beginning = basename.slice(0, 250 - ending.length);
-
-                filename = beginning + ending;
-            }
-
-            return filename;
+        // 04/01/2021 hashing filename to avoid issues with long filenames.
+        function getFilename(_text, _sVoice, _isSSML, _extension, _speakingpitch, _speakingrate) {
+            let sTextToBeHashed = _text.concat(_sVoice, _isSSML, _speakingpitch, _speakingrate);
+            const hashSum = crypto.createHash('md5');
+            hashSum.update(sTextToBeHashed);
+            return hashSum.digest('hex') + "." + _extension;
         }
 
         function notifyError(msg, err) {
@@ -1109,7 +1097,6 @@ module.exports = function (RED) {
             });
             // Set error in message
             msg.error = errorMessage;
-
         }
 
 
