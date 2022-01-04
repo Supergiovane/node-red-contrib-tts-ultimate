@@ -8,91 +8,93 @@
 - NEW: getting rid of file lenght issue by hashing the TTS cached files requested from TTS engines. Now the file names will be MD5 HEX hashed.<br/>
 - NEW: now the input messages are passed through to the output pin.<br/>
 - CAUTION: due to the new file management, the node will need to download again the TTS files from your TTS engine. Keep it in mind, because you can be charged by Amazon, Google or Microsoft.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.39</b> January 2022<br/>
 - SSML: fixed an issue prevent using it.<br/>
 - SSML: if SSML is enabled, the text auto split function is disabled, to avoid splitting SSML XML text.<br/>
 - Microsoft Azure: update TTS engine to 1.19.0<br/>
 - Google paid TTS: update TTS engine to 3.4.0<br/>
+</p>
 <p>
 <b>Version 1.0.38</b> December 2021<br/>
 - Removed some unwanted startup logs.<br/>
 - Fixed ownfile sample code. Thanks to plats98.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.36</b> November 2021<br/>
 - NEW: Autosplit function: you can now set the maximum lenght of the text-parts, in case your spoken text is too long for the allowed TTS Engine limits.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.35</b> October 2021<br/>
 - NEW: You can force unmuting all players, then restore their previous state once finished playing.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.34</b> October 2021<br/>
 - FIX: fixed an issue in retrieving voices if you have more than one TTS engine enabled at the same time.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.33</b> October 2021<br/>
 - NEW VOICE ENGINE: Microsoft Azure TTS.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.32</b> September 2021<br/>
 - Fix few restore issues. Line-in restore fix and only when it was playing. Amazon Music and Spotify considered as stream instead of music queue.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.31</b> September 2021<br/>
 - NEW: you can now choose voice PITCH and RATE. Avaiable only with Google TTS engine with credentials.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.29</b> September 2021<br/>
 - NEW: you can now choose not to use Sonos as player. In this case, the node will output an array of mp3, ready to be played by third parties nodes.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.28</b> September 2021<br/>
 - Fixed queue resuming play even if was in stop (only occurs in some circumstances).<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.27</b> September 2021<br/>
 - Hided some unwanted logs.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.26</b> August 2021<br/>
 - FIX: after playing tts, if you have no previous queue and you are on old Sonos V1, the last TTS played remains in the queue (it shouldn't).<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.25</b> August 2021<br/>
 - Optimized setting volume speed.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.24</b> August 2021<br/>
 - Fixed a little issue with sonos beam, switching volumes with a 1-2 seconds delay.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.23</b> August 2021<br/>
 - Fixed a volume issue. The playing queue was jumping briefly at TTS volume before stopping. That was annoiyng.<br/>
 - Fixed issues with some async function not really async, so there was glitches in volume settings, seeking and so on, specially with playlist and queues.<br/>
 - There are known issues with resuming play of sonos streams, they work for a while, then stop.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.22</b> Juli 2021<br/>
 - The additional players don't obey to msg.volume input node message override (they instead get the volume set by the config window, that is OK, but they must also obey to the override msg). Fixed<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.21</b> Juli 2021<br/>
 - The additional players in the group, now reverts to the previous volume after the speech.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.20</b> May 2021<br/>
 - Fixed an issue preventing TTS working on Windows machines. Thanks @McFozzy75<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.19</b> February 2021<br/>
 - The previous limit of 200 chars (before the TTS text is automatically split) has been increased to 220.<br/>
-<p>
+</p>
 <p>
 <b>Version 1.0.18</b> January 2021<br/>
 - Better handling of payloads long more than 200 chars.<br/>
+</p>
 <p>
 <b>Version 1.0.16</b> January 2021<br/>
 - Currently, the FREE GOOGLE TRANSLATE TTS engine has changed some voice codes. I've been fixed that. You need to do nothing.<br/>
