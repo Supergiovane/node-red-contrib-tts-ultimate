@@ -23,7 +23,7 @@
 
 ## DESCRIPTION
 This node transforms a text into a speech audio. You can generate an audio file, or hear the voice through Sonos, bluetooth speakers, web pages, etc.<br/>
-Uses Amazon Polly, Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
+Uses Amazon Polly (standard and neural engines), Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 **Node v.12.0.0 or newer is needed**.
@@ -140,7 +140,7 @@ Leave this field blank for the default.<br/>
 Select the TTS SERVICE ENGINE NODE, as stated above.
 
 **Voice**<br/>
-Select your preferred voice. If you use Amazon, Polly voices will be displayed. If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
+Select your preferred voice. If you use Amazon, Polly voices will be displayed (standard and neural). If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
 
 **Enable SSML**<br/>
 Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.

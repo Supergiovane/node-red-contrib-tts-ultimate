@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.41</b> March 2022<br/>
+- NEW: for Polly TTS, you can choose between neural and standard engine.<br/>
+</p>
+<p>
 <b>Version 1.0.40</b> January 2022<br/>
 - NEW: you can now select your own folder to save the TTS cached files.<br/>
 - NEW: getting rid of file lenght issue by hashing the TTS cached files requested from TTS engines. Now the file names will be MD5 HEX hashed.<br/>

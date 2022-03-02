@@ -369,7 +369,13 @@ module.exports = function (RED) {
                         } else {
                             for (let index = 0; index < data.Voices.length; index++) {
                                 const oVoice = data.Voices[index];
-                                jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender, id: oVoice.Id })
+                                if (oVoice.hasOwnProperty("SupportedEngines")) {
+                                    oVoice.SupportedEngines.forEach(voicetype => {
+                                        jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender + " - " + voicetype, id: oVoice.Id + "#engineType:" + voicetype })
+                                    });
+                                } else {
+                                    jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender, id: oVoice.Id })
+                                }
                             }
                             res.json(jListVoices)
                         }

@@ -578,9 +578,16 @@ module.exports = function (RED) {
                                         OutputFormat: "mp3",
                                         SampleRate: '22050',
                                         Text: msg,
-                                        TextType: node.ssml ? 'ssml' : 'text',
-                                        VoiceId: node.voiceId
+                                        TextType: node.ssml ? 'ssml' : 'text'
                                     };
+                                    // 02/03/2022 check wether standard or neural engine is POLLY is selected
+                                    if (node.voiceId.includes("#engineType:")) {
+                                        params.VoiceId = node.voiceId.split("#engineType:")[0];
+                                        params.Engine = node.voiceId.split("#engineType:")[1];
+                                    } else {
+                                        params.VoiceId = node.voiceId;
+                                    }
+
                                     data = await synthesizeSpeechPolly([node.server.polly, params]);
                                 } else if (node.server.ttsservice === "googletts") {
                                     node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google TTS...' });
