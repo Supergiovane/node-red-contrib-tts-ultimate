@@ -336,7 +336,7 @@
                                 }
                                 // Refresh the combo
                                 // The only way is to wait some time, then refresh
-                                setTimeout(function () {
+                                let t = setTimeout(function () {
                                     node.refreshHailingList().then((success, error) => {
                                         $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
                                         $("#node-input-sonoshailing").val("Hailing_" + file.name);

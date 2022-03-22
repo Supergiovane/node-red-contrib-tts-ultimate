@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.42</b> March 2022<br/>
+- FIX: fix purging option that wasn't working if you set to always purge the cached files at startup.<br/>
+- FIX: invalid code in some sync functions.<br/>
+</p>
+<p>
 <b>Version 1.0.41</b> March 2022<br/>
 - NEW: for Polly TTS, you can choose between neural and standard engine.<br/>
 </p>

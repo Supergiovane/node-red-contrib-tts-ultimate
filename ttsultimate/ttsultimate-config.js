@@ -538,22 +538,20 @@ module.exports = function (RED) {
         if (node.purgediratrestart === "purge") {
             // Delete all files, that are'nt OwnFiles_
             try {
-                fs.readdirSync(path.join(node.TTSRootFolderPath, "ttsfiles"), (err, files) => {
-                    try {
-                        if (files.length > 0) {
-                            files.forEach(function (file) {
-                                RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.TTSRootFolderPath, "ttsfiles", file));
-                                try {
-                                    fs.unlinkSync(path.join(node.TTSRootFolderPath, "ttsfiles", file));
-                                } catch (error) {
-                                }
-                            });
-                        };
-                    } catch (error) {
+                let files = fs.readdirSync(path.join(node.TTSRootFolderPath, "ttsfiles"));
+                try {
+                    if (files.length > 0) {
+                        files.forEach(function (file) {
+                            RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.TTSRootFolderPath, "ttsfiles", file));
+                            try {
+                                fs.unlinkSync(path.join(node.TTSRootFolderPath, "ttsfiles", file));
+                            } catch (error) {
+                            }
+                        });
+                    };
+                } catch (error) { }
 
-                    }
 
-                });
             } catch (error) { }
         };
 
@@ -572,13 +570,13 @@ module.exports = function (RED) {
                 var query = url_parts.query;
 
                 res.setHeader('Content-Disposition', 'attachment; filename=tts.mp3')
-                if (fs.existsSync(query.f)) {
+                if (fs.existsSync(query.f.toString())) {
                     // 26/01/2021 security check
                     // File should be something like mydocs/.node-red/sonospollyttsstorage/ttsfiles/Hello_de-DE.mp3
-                    if (path.extname(query.f) === ".mp3" && path.dirname(path.dirname(query.f)).endsWith("sonospollyttsstorage")) {
-                        var readStream = fs.createReadStream(query.f);
+                    if (path.extname(query.f.toString()) === ".mp3" && path.dirname(path.dirname(query.f.toString())).endsWith("sonospollyttsstorage")) {
+                        var readStream = fs.createReadStream(query.f.toString());
                         readStream.on("error", function (error) {
-                            RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + query.f + ' : ' + error);
+                            RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + query.f.toString() + ' : ' + error);
                             res.end();
                             return;
                         });
@@ -637,7 +635,7 @@ module.exports = function (RED) {
             } catch (error) {
 
             }
-            setTimeout(function () {
+            let t = setTimeout(function () {
                 // Wait some time to allow time to do promises.
                 done();
             }, 500);

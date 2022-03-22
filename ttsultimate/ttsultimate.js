@@ -52,7 +52,7 @@ module.exports = function (RED) {
             return;
         }
         node.ssml = config.ssml;
-        node.oTimerSonosConnectionCheck;
+        node.oTimerSonosConnectionCheck = null;
         node.sSonosIPAddress = "";
         node.sonosCoordinatorGroupName = "";
         node.sonoshailing = "0"; // Hailing file
@@ -78,6 +78,7 @@ module.exports = function (RED) {
         node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
         node.sonosCoordinatorIsPreviouslyMuted = false;
         node.passThroughMessage = {};
+        node.bTimeOutPlay = false;
 
         if (typeof node.server !== "undefined" && node.server !== null) {
             node.sNoderedURL = node.server.sNoderedURL || "";
@@ -120,7 +121,7 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 node.SonosClient.play(_toPlay).then(result => {
                     if (iWaitAfterSync > 2000) console.log("PLAYSYNC")
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
@@ -135,7 +136,7 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 node.SonosClient.seek(_Position).then(result => {
                     if (iWaitAfterSync > 2000) console.log("SEEKSync", _Position)
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
@@ -154,7 +155,7 @@ module.exports = function (RED) {
                         STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
                     } catch (error) {
                     }
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
@@ -169,7 +170,7 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 node.SonosClient.selectTrack(_queuePositiom).then(result => {
                     if (iWaitAfterSync > 2000) console.log("SELECTTRACKSync", _queuePositiom)
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
@@ -184,7 +185,7 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 node.SonosClient.stop().then(result => {
                     if (iWaitAfterSync > 2000) console.log("STOPSync")
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
                 }).catch(err => {
@@ -509,7 +510,7 @@ module.exports = function (RED) {
                     }
                 }
             }
-            setTimeout(() => { return true; }, 5000); // Wait some seconds 
+            let t = setTimeout(() => { return true; }, 5000); // Wait some seconds 
         };
 
         // Handle the queue
@@ -619,13 +620,14 @@ module.exports = function (RED) {
                                     data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
                                 }
                                 // Save the downloaded file into the cache
-                                fs.writeFileSync(sFileToBePlayed, data, function (error, result) {
-                                    if (error) {
-                                        RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
-                                        node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
-                                        throw (error);
-                                    }
-                                });
+                                try {
+                                    fs.writeFileSync(sFileToBePlayed, data);
+                                } catch (error) {
+                                    RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
+                                    node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
+                                    throw (error);
+                                }
+
                             } catch (error) {
                                 RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
                                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
@@ -781,7 +783,7 @@ module.exports = function (RED) {
                     }
 
                     // Signal end playing
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         node.msg.completed = true;
                         node.currentMSGbeingSpoken = {};
                         node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
@@ -794,7 +796,7 @@ module.exports = function (RED) {
                     // Output the array of files
 
                     // Signal end playing
-                    setTimeout(() => {
+                    let t = setTimeout(() => {
                         node.msg.completed = true;
                         node.currentMSGbeingSpoken = {};
                         node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
