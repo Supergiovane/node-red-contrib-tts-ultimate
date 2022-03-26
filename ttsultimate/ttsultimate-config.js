@@ -19,7 +19,11 @@ module.exports = function (RED) {
     function TTSConfigNode(config) {
         RED.nodes.createNode(this, config);
         var node = this;
-        node.noderedipaddress = typeof config.noderedipaddress === "undefined" ? "" : config.noderedipaddress;
+        node.noderedipaddress = config.noderedipaddress;
+        if (node.noderedipaddress === undefined || node.noderedipaddress === "AUTODISCOVER") {
+            node.noderedipaddress = GetEthAddress();
+            RED.log.info('ttsultimate-config ' + node.id + ': Autodiscover current IP ' + node.noderedipaddress);
+        }
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
         node.ttsservice = config.ttsservice || "googletranslate";
         node.TTSRootFolderPath = (config.TTSRootFolderPath === undefined || config.TTSRootFolderPath === "") ? path.join(RED.settings.userDir, "sonospollyttsstorage") : path.join(config.TTSRootFolderPath, "sonospollyttsstorage");
@@ -212,6 +216,9 @@ module.exports = function (RED) {
         // ######################################################
         // 21/03/2019 Endpoint for retrieving the default IP
         RED.httpAdmin.get("/ttsultimateGetEthAddress", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+            res.json(GetEthAddress());
+        });
+        function GetEthAddress() {
             var oiFaces = oOS.networkInterfaces();
             var jListInterfaces = [];
             try {
@@ -229,13 +236,12 @@ module.exports = function (RED) {
                 })
             } catch (error) { }
             if (jListInterfaces.length > 0) {
-                res.json(jListInterfaces[0].address); // Retunr the first usable IP
+                return(jListInterfaces[0].address); // Retunr the first usable IP
             } else {
-                res.json("NO ETH INTERFACE FOUND");
+                return("NO ETH INTERFACE FOUND");
             }
-
-        });
-
+        }
+    
         // 20/03/2020 in the middle of coronavirus, get the sonos groups
         RED.httpAdmin.get("/sonosgetAllGroups", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var jListGroups = [];

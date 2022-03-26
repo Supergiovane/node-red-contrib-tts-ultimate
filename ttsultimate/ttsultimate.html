@@ -202,7 +202,7 @@
                 // 24/12/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
                 // !oNodeServer.hasOwnProperty("noderedipaddress") is when the config node exists, but not deployed
                 // oNodeServer.noderedipaddress === "" is when the config node has been deployed, but not configured
-                if (oNodeServer === null || !oNodeServer.hasOwnProperty("noderedipaddress")) {
+                if (oNodeServer === null || oNodeServer === undefined || !oNodeServer.hasOwnProperty("noderedipaddress")) {
                     $("#pleaseDeploy").show();
                     $("#allGUI").hide();
                 } else if (oNodeServer.hasOwnProperty("noderedipaddress") && oNodeServer.noderedipaddress === "") {

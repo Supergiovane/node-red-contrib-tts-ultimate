@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.43</b> March 2022<br/>
+- Simplified the configuration by auto discover some IP.<br/>
+- FIX: fixed minor glitches.<br/>
+</p>
+<p>
 <b>Version 1.0.42</b> March 2022<br/>
 - FIX: fix purging option that wasn't working if you set to always purge the cached files at startup.<br/>
 - FIX: invalid code in some sync functions.<br/>

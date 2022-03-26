@@ -1,4 +1,5 @@
 <script type="text/javascript">
+    
     RED.nodes.registerType("ttsultimate-config", {
         category: 'config',
         defaults:
@@ -6,7 +7,7 @@
             name: { value: "TTS Service" },
             noderedipaddress:
             {
-                value: "",
+                value: "AUTODISCOVER",
                 required: false,
                 type: "text"
             },
@@ -32,17 +33,18 @@
         },
         oneditprepare: function () {
             var node = this;
-
+     
             // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
-            $.getJSON('ttsultimateGetEthAddress', (data) => {
-                $("#pleaseDeploy").hide();
+            // $.getJSON('ttsultimateGetEthAddress', (data) => {
+                 $("#pleaseDeploy").hide();
                 $("#allGUI").show();
-            }).fail(function (jqxhr) {
-                $("#pleaseDeploy").show();
-                $("#allGUI").hide();
-            });
+            // }).fail(function (jqxhr) {
+            //     $("#pleaseDeploy").show();
+            //     $("#allGUI").hide();
+            // });
 
-            if (typeof node.noderedipaddress === "undefined") {
+            
+            if (node.noderedipaddress === undefined) {
                 // Put the default address of the machine
                 $.getJSON('ttsultimateGetEthAddress', (data) => {
                     $("#node-config-input-noderedipaddress").val(data);
@@ -157,7 +159,6 @@
             <label for="node-config-input-noderedipaddress"><i class="fa fa-globe"></i> Node-Red IP</label>
             <input type="text" id="node-config-input-noderedipaddress">
         </div>
-        <div class="form-tips" style="margin-top: 8px;background-color:lightgrey;text-align:center">Above option: don't leave this field blank in any case. If you don't use Sonos players, set it to 127.0.0.1. See the README on gitHub.</div>
         <br/>  
 
         <div class="form-row">
