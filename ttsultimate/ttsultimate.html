@@ -402,16 +402,32 @@
                 //#region ADDITIONAL PLAYERS
                 // 20/03/2020 ADDITIONAL PLAYERS
                 // ##########################################################
-                var previousValueType = { value: "prev", label: this._("switch.previous"), hasValue: false };
+                //var previousValueType = { value: "prev", label: this._("switch.previous"), hasValue: false };
+
+                // Add Selectbox with the volume for the additional players
+                function addAdditionalPlayerVolumeUI(row, _currentVolume = 0) {
+                    let oAdjustVolume = $('<select/>', { class: "rowRulePlayerHostAdjustVolume", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                    for (let index = -100; index < 100; index += 5) {
+                        let sTesto = "";
+                        if (index === 0) sTesto = "Same volume as Main Sonos Player";
+                        if (index < 0) sTesto = "Decrease volume by " + Math.abs(index) ;
+                        if (index > 0) sTesto = "Increase volume by " + index;
+                        oAdjustVolume.append($("<option></option>")
+                            .attr("value", index)
+                            .text(sTesto)
+                        )
+                    }
+                    oAdjustVolume.val(_currentVolume);
+                }
                 function resizeRule(rule) { }
+
                 $("#node-input-rule-container").css('min-height', '150px').css('min-width', '450px').editableList({
                     addItem: function (container, i, opt) { // row, index, data
-                        // opt.r is: { topic: rowRuleTopic, devicename: rowRuleDeviceName, dpt:rowRuleDPT, send: rowRuleSend}
 
                         if (!opt.hasOwnProperty('r')) {
                             opt.r = {};
                         }
-                        var rule = opt.r;
+                        let rule = opt.r;
                         if (!opt.hasOwnProperty('i')) {
                             opt._i = Math.floor((0x99999 - 0x10000) * Math.random()).toString();
                         }
@@ -422,8 +438,7 @@
 
 
                         var row = $('<div class="form-row"/>').appendTo(container);
-                        var oPlayer = $('<label>Discovering.... wait...</label>', { class: "rowRulePlayerHost", type: "text", style: "width:300px; margin-left: 5px; text-align: left;" }).appendTo(row);
-
+                        var oPlayer = $('<label>Discovering.... wait...</label>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
                         oPlayer.on("change", function () {
                             resizeRule(container);
                         });
@@ -432,16 +447,18 @@
                             if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
                                 // Transform the dropdown to a simple input
                                 oPlayer.remove();
-                                oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:300px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                                oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
                             } else {
                                 oPlayer.remove();
-                                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:300px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
                                 data.sort().forEach(oGroup => {
                                     oPlayer.append($("<option></option>")
                                         .attr("value", oGroup.host)
                                         .text(oGroup.name + " (" + oGroup.host + ")")
                                     )
                                 });
+                                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
                             }
                             oPlayer.val(rule.host);
                         });
@@ -460,7 +477,7 @@
 
                 // 20/03/2020 For each rule, create a row
                 for (var i = 0; i < this.rules.length; i++) {
-                    var rule = this.rules[i];
+                    let rule = this.rules[i];
                     $("#node-input-rule-container").editableList('addItem', { r: rule, i: i });
                 }
                 // ##########################################################
@@ -469,14 +486,14 @@
                 node.refreshHailingList();
 
             }, oneditsave: function () {
-                var node = this;
-
-                var rules = $("#node-input-rule-container").editableList('items');
+                let node = this;
+                let rules = $("#node-input-rule-container").editableList('items');
                 node.rules = [];
                 rules.each(function (i) {
-                    var rule = $(this);
-                    var rowRulePlayerHost = rule.find(".rowRulePlayerHost").val();
-                    node.rules.push({ host: rowRulePlayerHost });
+                    let rule = $(this);
+                    let rowRulePlayerHost = rule.find(".rowRulePlayerHost").val();
+                    let rowRulePlayerHostAdjustVolume = rule.find(".rowRulePlayerHostAdjustVolume").val();
+                    node.rules.push({ host: rowRulePlayerHost, hostVolumeAdjust: rowRulePlayerHostAdjustVolume });
                 });
                 this.propertyType = $("#node-input-property").typedInput('type');
             },

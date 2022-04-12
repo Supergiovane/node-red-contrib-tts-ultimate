@@ -283,7 +283,7 @@ module.exports = function (RED) {
             }
             // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                const element = node.oAdditionalSonosPlayers[index];
+                const element = node.oAdditionalSonosPlayers[index].oPlayer;
                 try {
                     await element.joinGroup(node.sonosCoordinatorGroupName);
                 } catch (error) {
@@ -322,7 +322,7 @@ module.exports = function (RED) {
             }
 
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                const element = node.oAdditionalSonosPlayers[index];
+                const element = node.oAdditionalSonosPlayers[index].oPlayer;
                 try {
                     await element.leaveGroup();
                 } catch (error) {
@@ -401,9 +401,10 @@ module.exports = function (RED) {
             });
             // Fill the node.oAdditionalSonosPlayers with all sonos object in the rules
             for (let index = 0; index < node.rules.length; index++) {
-                const element = node.rules[index];
-                node.oAdditionalSonosPlayers.push(new sonos.Sonos(element.host));
-                RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host);
+                const element = node.rules[index]; // Rule row is {host:"192.168.1.12,hostVolumeAdjust:0}
+                // 12/04/2022 Create an object containing the addidtional player and the adapted volume
+                node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: Number(element.hostVolumeAdjust) });
+                RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host + " Adjusted volume: " + element.hostVolumeAdjust);
             }
 
 
@@ -655,21 +656,26 @@ module.exports = function (RED) {
 
                             // Set Volume
                             try {
-                                let volTemp = 0
+                                let volTemp = 0;
                                 if (node.currentMSGbeingSpoken.hasOwnProperty("volume")) {
-                                    volTemp = node.currentMSGbeingSpoken.volume;
+                                    volTemp = Number(node.currentMSGbeingSpoken.volume);
                                 } else {
-                                    volTemp = node.sSonosVolume;
+                                    volTemp = Number(node.sSonosVolume);
                                 }
                                 await SETVOLUMESync(volTemp);
                                 if (node.unmuteIfMuted) await SETMutedSync(false); // 21/10/2021 Unmute
 
                                 if (node.oAdditionalSonosPlayers.length > 0) {
-                                    // 05/07/2021 set the volume of additional coordinatores
+                                    // 05/07/2021 set the volume of additional coordinators
                                     for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                                        const element = node.oAdditionalSonosPlayers[index];
+                                        const element = node.oAdditionalSonosPlayers[index].oPlayer;
+                                        //node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: element.hostVolumeAdjust });
                                         try {
-                                            await element.setVolume(volTemp);
+                                            // 12/04/20222 Set the adjusted volume, based on the main player volume + the adjusted volume in %
+                                            let iAdjustedVol = Number(volTemp) + Number((node.oAdditionalSonosPlayers[index].hostVolumeAdjust || 0));
+                                            if (iAdjustedVol < 0) iAdjustedVol = 0;
+                                            if (iAdjustedVol > 100) iAdjustedVol = 100;
+                                            await element.setVolume(iAdjustedVol);
                                             if (node.unmuteIfMuted) await element.setMuted(false); // 21/10/2021 Unmute
                                         } catch (error) {
                                             RED.log.error("ttsultimate: Handlequeue: Unable to set the volume on additional player " + error.message);
@@ -843,9 +849,18 @@ module.exports = function (RED) {
                     // Fill the node.oAdditionalSonosPlayers with all sonos IPs in the setPlayerGroupArray
                     node.oAdditionalSonosPlayers = [];
                     for (let index = 0; index < msg.setConfig.setPlayerGroupArray.length; index++) {
-                        const element = msg.setConfig.setPlayerGroupArray[index];
-                        node.oAdditionalSonosPlayers.push(new sonos.Sonos(element));
-                        RED.log.info("ttsultimate: new group player set by msg: " + element);
+                        const sRow = msg.setConfig.setPlayerGroupArray[index];
+                        let host = "";
+                        let hostVolumeAdjust = 0;
+                        if (sRow.includes("#")) {
+                            host = sRow.split("#")[0];
+                            hostVolumeAdjust = sRow.split("#")[1];
+                        } else {
+                            host = sRow;
+                        }
+                        //node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: element.hostVolumeAdjust });
+                        node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(host), hostVolumeAdjust: Number(hostVolumeAdjust) });
+                        RED.log.info("ttsultimate: new group player set by msg: " + host + " adjusted volume: " + Number(hostVolumeAdjust));
                     }
                 };
             };

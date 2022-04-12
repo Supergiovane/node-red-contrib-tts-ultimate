@@ -169,7 +169,8 @@ Select your Sonos primary player. (It's strongly suggested to set a fixed IP for
 It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator.
 
 **Additional Players** <br/>
-Here you can add all additional players that will be grouped toghether to the *Main Sonos Player* coordinator group. You can add a player using the "ADD" button, below the list.
+Here you can add all additional players that will be grouped toghether to the *Main Sonos Player* coordinator group. You can add a player using the "ADD" button, below the list.<br/>
+For each additional player, you can adjust their volume, based on the **Main Sonos Player** volume -+100.
 
 
 ## INPUT MESSAGES TO THE NODE <br/>
@@ -287,7 +288,9 @@ The setting is retained until the node receives another msg.setConfig or until n
 
  >  **property setPlayerGroupArray**<br/>
    Sets the array of players beloging to the group, if any.<br/>
-   If you have only one additional player, you need to ever put it into an array. See below.
+   You can also specify the volume variation from the main volume player, to adapt the additional player's perceived volume to the main sonos player volume.<br/>
+   For example, if you have a speaker mounted in celiling, having less perceived volume, you can "push" the volume up, to match the whole perceived volume. Just add **#** after the IP and a number from -100 to 100 to subtract or add volume ***compared to the main sonos volume***. For example, if the sonos main player volume is 40, you can push this celing speaker's volume to further 10, so it'll have the real volume of 50. See below, the example.<br/>
+   Note: Even if you have only one additional player, you need to put it into an array.
 
 ```js
 // Set main player IP
@@ -300,14 +303,15 @@ return msg;
 ```
 
 ```js
-// Set player IP and additional players
+// Set player IP and additional players with their optional adapted volume, relative to the main sonos player volume.
+// You can specify the aditional player's volume adaptation
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config= {
     setMainPlayerIP:"192.168.1.109",
     setPlayerGroupArray:[
-        "192.168.1.110",
-        "192.168.1.111",
-        "192.168.1.112"
+        "192.168.1.110", // This additional player will use the same volume as the main sonos player.
+        "192.168.1.111#-10", // This additional player will use the main sonos player's volume, minus 10.
+        "192.168.1.112#20" // This additional player will use the main sonos player's volume, plus 20.
     ]
 };
 msg.setConfig = config;
@@ -315,7 +319,7 @@ return msg;
 ```
 
 ```js
-// If you have only one additional player
+// If you have only one additional player, without setting their adjusted volume.
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config= {
     setMainPlayerIP:"192.168.1.109",
