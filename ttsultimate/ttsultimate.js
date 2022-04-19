@@ -95,12 +95,12 @@ module.exports = function (RED) {
 
         //#region ASYNC DECLARATIONS
         // 30/12/2020 we are at the end of this crazy 2020
-        function getMusicQueue() {
+        function getMusicQueue(_oPlayer = node.SonosClient) {
             return new Promise(function (resolve, reject) {
                 var oRet = null;
-                node.SonosClient.currentTrack().then(track => {
+                _oPlayer.currentTrack().then(track => {
                     oRet = track;// .queuePosition || 1; // Get the current track  in the queue.
-                    node.SonosClient.getCurrentState().then(state => {
+                    _oPlayer.getCurrentState().then(state => {
                         // A music queue is playing and no TTS is speaking?
                         oRet.state = state;
                         resolve(oRet);
@@ -115,11 +115,12 @@ module.exports = function (RED) {
             });
         };
 
+
         let iWaitAfterSync = 500;
         // 24/08/2021 Sync wrapper
-        function PLAYSync(_toPlay) {
+        function PLAYSync(_toPlay, _oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.play(_toPlay).then(result => {
+                _oPlayer.play(_toPlay).then(result => {
                     if (iWaitAfterSync > 2000) console.log("PLAYSYNC")
                     let t = setTimeout(() => {
                         resolve(true);
@@ -132,9 +133,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function SEEKSync(_Position) {
+        function SEEKSync(_Position, _oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.seek(_Position).then(result => {
+                _oPlayer.seek(_Position).then(result => {
                     if (iWaitAfterSync > 2000) console.log("SEEKSync", _Position)
                     let t = setTimeout(() => {
                         resolve(true);
@@ -147,9 +148,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function SELECTQUEUESync() {
+        function SELECTQUEUESync(_oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.selectQueue().then(result => {
+                _oPlayer.selectQueue().then(result => {
                     if (iWaitAfterSync > 2000) console.log("SELECTQUEUESync")
                     try {
                         STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
@@ -166,10 +167,10 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function SELECTTRACKSync(_queuePositiom) {
+        function SELECTTRACKSync(_queuePosition, _oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.selectTrack(_queuePositiom).then(result => {
-                    if (iWaitAfterSync > 2000) console.log("SELECTTRACKSync", _queuePositiom)
+                _oPlayer.selectTrack(_queuePosition).then(result => {
+                    if (iWaitAfterSync > 2000) console.log("SELECTTRACKSync", _queuePosition)
                     let t = setTimeout(() => {
                         resolve(true);
                     }, iWaitAfterSync);
@@ -181,9 +182,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function STOPSync() {
+        function STOPSync(_oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.stop().then(result => {
+                _oPlayer.stop().then(result => {
                     if (iWaitAfterSync > 2000) console.log("STOPSync")
                     let t = setTimeout(() => {
                         resolve(true);
@@ -196,9 +197,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function GETVOLUMESync() {
+        function GETVOLUMESync(_oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.getVolume().then(volume => {
+                _oPlayer.getVolume().then(volume => {
                     if (iWaitAfterSync > 2000) console.log("GETVOLUMESync", volume)
                     resolve(volume);
                 }).catch(err => {
@@ -209,9 +210,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function SETVOLUMESync(_volume) {
+        function SETVOLUMESync(_volume, _oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.setVolume(_volume).then(result => {
+                _oPlayer.setVolume(_volume).then(result => {
                     if (iWaitAfterSync > 2000) console.log("SETVOLUMESync", _volume)
                     resolve(true);
                 }).catch(err => {
@@ -222,9 +223,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function setAVTransportURISync(_Uri) {
+        function setAVTransportURISync(_Uri, _oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.setAVTransportURI(_Uri).then(volume => {
+                _oPlayer.setAVTransportURI(_Uri).then(volume => {
                     if (iWaitAfterSync > 2000) console.log("setAVTransportURISync", _Uri)
                     resolve(true);
                 }).catch(err => {
@@ -235,9 +236,9 @@ module.exports = function (RED) {
         }
 
         // 24/08/2021 Sync wrapper
-        function getCurrentStateSync() {
+        function getCurrentStateSync(_oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.getCurrentState().then(state => {
+                _oPlayer.getCurrentState().then(state => {
                     resolve(state);
                 }).catch(err => {
                     RED.log.error("ttsultimate: Error getCurrentStateSync: " + err.message);
@@ -247,9 +248,9 @@ module.exports = function (RED) {
         }
 
         // 21/10/2021 Sync wrapper
-        function GETMutedSync() {
+        function GETMutedSync(_oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.getMuted().then(state => {
+                _oPlayer.getMuted().then(state => {
                     resolve(state);
                 }).catch(err => {
                     RED.log.error("ttsultimate: Error GETMutedSync: " + err.message);
@@ -259,9 +260,9 @@ module.exports = function (RED) {
         }
 
         // 21/10/2021 Sync wrapper
-        function SETMutedSync(_muted) {
+        function SETMutedSync(_muted, _oPlayer = node.SonosClient) {
             return new Promise((resolve, reject) => {
-                node.SonosClient.setMuted(_muted).then(state => {
+                _oPlayer.setMuted(_muted).then(state => {
                     resolve(state);
                 }).catch(err => {
                     RED.log.error("ttsultimate: Error SETMutedSync: " + err.message);
@@ -283,15 +284,12 @@ module.exports = function (RED) {
             }
             // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                const element = node.oAdditionalSonosPlayers[index].oPlayer;
-                try {
-                    await element.joinGroup(node.sonosCoordinatorGroupName);
-                } catch (error) {
-                    RED.log.warn("ttsultimate: Error joining device " + error.message);
-                }
-                // 02/07/2021 Get the player's volume set by app, to be set again in ungroupspealers
+                let element = node.oAdditionalSonosPlayers[index].oPlayer;
+               
+                // 02/07/2021 Get the additional's player's volume set by app and the current track, to be set again in ungroupspealers
                 try {
                     element.additionalPlayerPreviousVolumeSetByApp = await element.getVolume();
+                    element.additionalPlayerCurrentTrack = await getMusicQueue(element);
                 } catch (error) {
                     RED.log.warn("ttsultimate: Error setting volume of joined device " + error.message);
                 }
@@ -300,6 +298,12 @@ module.exports = function (RED) {
                     element.isPreviouslyMuted = await element.getMuted();
                 } catch (error) {
                     RED.log.warn("ttsultimate: Error getMuted of joined device " + error.message);
+                }
+
+                try {
+                    await element.joinGroup(node.sonosCoordinatorGroupName);
+                } catch (error) {
+                    RED.log.warn("ttsultimate: Error joining device " + error.message);
                 }
             };
         }
@@ -322,7 +326,7 @@ module.exports = function (RED) {
             }
 
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                const element = node.oAdditionalSonosPlayers[index].oPlayer;
+                let element = node.oAdditionalSonosPlayers[index].oPlayer;
                 try {
                     await element.leaveGroup();
                 } catch (error) {
@@ -401,7 +405,7 @@ module.exports = function (RED) {
             });
             // Fill the node.oAdditionalSonosPlayers with all sonos object in the rules
             for (let index = 0; index < node.rules.length; index++) {
-                const element = node.rules[index]; // Rule row is {host:"192.168.1.12,hostVolumeAdjust:0}
+                let element = node.rules[index]; // Rule row is {host:"192.168.1.12,hostVolumeAdjust:0}
                 // 12/04/2022 Create an object containing the addidtional player and the adapted volume
                 node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: Number(element.hostVolumeAdjust) });
                 RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host + " Adjusted volume: " + element.hostVolumeAdjust);
@@ -433,7 +437,7 @@ module.exports = function (RED) {
 
 
         // 30/12/2020 Supergiovane resume queue for radio, queue music, TV in , line in etc.
-        async function resumeMusicQueue(_oTrack) {
+        async function resumeMusicQueue(_oTrack, _oPlayer = node.SonosClient) {
 
             if (_oTrack !== null) {
                 // Do some checks on the track.
@@ -458,12 +462,13 @@ module.exports = function (RED) {
                 if (_oTrack.state === "playing") {
                     // 03/09/2021 Play if it was playing
                     try {
-                        await PLAYSync(_oTrack.uri);
+                        await PLAYSync(_oTrack.uri, _oPlayer);
                     } catch (error) {
                         return error;
                     }
                     try {
-                        await SEEKSync(_oTrack.position);
+                        await delay(1000);
+                        await SEEKSync(_oTrack.position, _oPlayer);
                     } catch (error) {
                         // Don't care
                     }
@@ -471,31 +476,33 @@ module.exports = function (RED) {
             } else {
                 if (_oTrack.trackType === "musicqueue") { // This indicates that is an audio file or stream station
                     try {
-                        await SELECTQUEUESync();
+                        await SELECTQUEUESync(_oPlayer);
                     } catch (error) {
                         return error;
                     }
                     try {
-                        await SELECTTRACKSync(_oTrack.queuePosition);
+                        await delay(1000);
+                        await SELECTTRACKSync(_oTrack.queuePosition, _oPlayer);
                     } catch (error) {
                         return error;
                     }
                     try {
-                        await SEEKSync(_oTrack.position);
+                        await delay(1000);
+                        await SEEKSync(_oTrack.position, _oPlayer);
                     } catch (error) {
                         // Don't care
                     }
                     if (_oTrack.state === "playing") {
                         // 24/08/2021 Play if it was playing
                         try {
-                            await PLAYSync();
+                            await PLAYSync(_oPlayer);
                         } catch (error) {
                             return error;
                         }
                     } else {
                         /// 03/09/2021
                         try {
-                            await STOPSync();
+                            await STOPSync(_oPlayer);
                         } catch (error) {
                             return error;
                         }
@@ -504,7 +511,7 @@ module.exports = function (RED) {
                     // Line in, TV in, etc...
                     if (_oTrack.state === "playing") {
                         try {
-                            await setAVTransportURISync(_oTrack.uri);
+                            await setAVTransportURISync(_oTrack.uri, _oPlayer);
                         } catch (error) {
                             return error;
                         }
@@ -513,6 +520,7 @@ module.exports = function (RED) {
             }
             let t = setTimeout(() => { return true; }, 5000); // Wait some seconds 
         };
+
 
         // Handle the queue
         async function HandleQueue() {
@@ -524,6 +532,7 @@ module.exports = function (RED) {
                 var oCurTrack = null;
                 try {
                     oCurTrack = await getMusicQueue();
+                    // 19/04/2022 The current track of additional players is read in the groupSpeakerySync function
                 } catch (error) {
                     oCurTrack = null;
                 }
@@ -531,7 +540,7 @@ module.exports = function (RED) {
                 // 05/12/2020 Set "completed" to false and send it
                 node.msg.completed = false;
                 try {
-                    await groupSpeakersSync(); // 20/03/2020 Group Speakers toghether    
+                    await groupSpeakersSync(); // 20/03/2020 Group Speakers toghether and reads each current track   
                 } catch (error) {
                     // Don't care.
                     node.setNodeStatus({ fill: "red", shape: "ring", text: "Error grouping speakers: " + error.message });
@@ -668,7 +677,7 @@ module.exports = function (RED) {
                                 if (node.oAdditionalSonosPlayers.length > 0) {
                                     // 05/07/2021 set the volume of additional coordinators
                                     for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
-                                        const element = node.oAdditionalSonosPlayers[index].oPlayer;
+                                        let element = node.oAdditionalSonosPlayers[index].oPlayer;
                                         //node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: element.hostVolumeAdjust });
                                         try {
                                             // 12/04/20222 Set the adjusted volume, based on the main player volume + the adjusted volume in %
@@ -766,7 +775,7 @@ module.exports = function (RED) {
 
                     // Ungroup speaker
                     try {
-                        await ungroupSpeakersSync();
+                        await ungroupSpeakersSync(); // Ungroup speakers 
                     } catch (error) {
                         // Don't care.
                         node.setNodeStatus({ fill: "red", shape: "ring", text: "Error ungrouping speakers: " + error.message });
@@ -786,6 +795,24 @@ module.exports = function (RED) {
                         }
                     } catch (error) {
                         node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Error resuming queue: " + error.message });
+                    }
+
+
+                    // 19/04/2022 Resume music queue of additional players
+                    for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
+                        let addPlayer = node.oAdditionalSonosPlayers[index].oPlayer;
+                        let trackAddPlayer = addPlayer.additionalPlayerCurrentTrack;
+                        if (trackAddPlayer !== null) {
+                            try {
+                                await resumeMusicQueue(trackAddPlayer, addPlayer);
+                                node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue additional player " + addPlayer.host || "" });
+                            } catch (error) {
+                                // Dont care
+                                RED.log.warn("ttsultimate: Error resuming music queue of additional player " + error.message + " " + addPlayer.host || "");
+                            }
+                        } else {
+                            node.setNodeStatus({ fill: 'green', shape: 'ring', text: "No queue to resume for " + addPlayer.host || "" });
+                        }
                     }
 
                     // Signal end playing
