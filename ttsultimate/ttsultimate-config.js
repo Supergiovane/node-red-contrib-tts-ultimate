@@ -229,7 +229,7 @@ module.exports = function (RED) {
                     } else {
                         var sAddresses = "";
                         oiFaces[ifname].forEach(function (iface) {
-                            if (iface.internal == false && iface.family === "IPv4") sAddresses = iface.address;
+                            if (iface.internal == false && iface.family.toString().includes("4")) sAddresses = iface.address;
                         });
                         if (sAddresses !== "") jListInterfaces.push({ name: ifname, address: sAddresses });
                     }

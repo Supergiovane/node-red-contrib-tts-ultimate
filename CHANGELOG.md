@@ -2,6 +2,11 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
+
+<p>
+<b>Version 1.0.46</b> Mai 2022<br/>
+- Fixed a compatibility issue with Node 18, where a breaking change has been introduced.<br/>
+</p>
 <p>
 <b>Version 1.0.45</b> April 2022<br/>
 - NEW: Additional players now resumes the queue as well (previously, only the main player was doing so).<br/>
