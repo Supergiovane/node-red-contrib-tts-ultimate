@@ -22,7 +22,8 @@
 
 
 ## DESCRIPTION
-This node transforms a text into a speech audio. You can generate an audio file, or hear the voice through Sonos, bluetooth speakers, web pages, etc.<br/>
+This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers.<br/>
+You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
 Uses Amazon Polly (standard and neural engines), Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
@@ -34,6 +35,7 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
+* **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
 * **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
 * **Amazon Voices, Gooogle Translate Voices, Google TTS Voices and Microsoft TTS Azure voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
@@ -215,9 +217,16 @@ return msg;
 ```
 
 ```js
-// Play custom hailing and custom mp3 taken from anywhere
-msg.sonoshailing = "IntruderAlert";
-msg.payload = "http://192.125.22.44/intruderalarm.mp3";
+// Play smoke detection
+msg.sonoshailing = "SmokeAlert";
+msg.payload = "Warning, smoke detected. Fire extinguishers are in the kitchen, hall and garage.";
+return msg;
+```
+
+```js
+// Play an mp3
+msg.sonoshailing = "MeteoJingle";
+msg.payload = "http://192.125.22.44/meteotoday.mp3";
 return msg;
 ```
 
