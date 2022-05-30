@@ -4,6 +4,14 @@
 
 
 <p>
+<b>Version 1.0.48</b> Mai 2022<br/>
+- Try to fixe a clunky issue with microsoft azure package, on nodejs versions that are not supported by Microsoft.<br/>
+</p>
+<p>
+<b>Version 1.0.47</b> Mai 2022<br/>
+- Fixed other compatibility issue with some Node version.<br/>
+</p>
+<p>
 <b>Version 1.0.46</b> Mai 2022<br/>
 - Fixed a compatibility issue with Node 18, where a breaking change has been introduced.<br/>
 </p>
