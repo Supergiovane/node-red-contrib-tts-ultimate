@@ -1,5 +1,15 @@
+const { Redshift } = require('aws-sdk');
+
 module.exports = function (RED) {
     'use strict';
+
+    // 31/05/2022 checking nodejs version due to Microsoft Azure SDK bad nodejs compatibility.
+    let nodejsVersion = process.version.match(/^v(\d+\.\d+)/)[1];
+    if (nodejsVersion.startsWith("18")) {
+        RED.log.error('ttsultimate-config: YOUR NODEJS VERSION IS CURRENTLY INCOMPATIBLE WITH Microsoft Azure SDK. Your NodeJS version: ' + nodejsVersion + ", please install one of these: (^12.22.0, ^14.17.0, or >=16.0.0), with SSL support.");
+    }
+
+
 
     const AWS = require('aws-sdk');
     const GoogleTTS = require('@google-cloud/text-to-speech');
@@ -27,10 +37,7 @@ module.exports = function (RED) {
         node.whoIsUsingTheServer = ""; // Client node.id using the server, because only a ttsultimate node can use the serve at once.
         node.ttsservice = config.ttsservice || "googletranslate";
         node.TTSRootFolderPath = (config.TTSRootFolderPath === undefined || config.TTSRootFolderPath === "") ? path.join(RED.settings.userDir, "sonospollyttsstorage") : path.join(config.TTSRootFolderPath, "sonospollyttsstorage");
-        // node.polly = null;
-        // node.googleTTS = null;
-        // node.googleTranslateTTS = null;
-        // node.microsoftAzureTTS = null;
+
 
         // 03/06/2019 you can select the temp dir
         //#region "SETUP PATHS"
@@ -236,12 +243,12 @@ module.exports = function (RED) {
                 })
             } catch (error) { }
             if (jListInterfaces.length > 0) {
-                return(jListInterfaces[0].address); // Retunr the first usable IP
+                return (jListInterfaces[0].address); // Retunr the first usable IP
             } else {
-                return("NO ETH INTERFACE FOUND");
+                return ("NO ETH INTERFACE FOUND");
             }
         }
-    
+
         // 20/03/2020 in the middle of coronavirus, get the sonos groups
         RED.httpAdmin.get("/sonosgetAllGroups", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
             var jListGroups = [];

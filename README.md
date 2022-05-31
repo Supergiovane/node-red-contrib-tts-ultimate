@@ -20,6 +20,8 @@
 ```
 </details>
 
+ ## WARNING 
+ Due to Microsoft Azure SDK limitation, the node can only be installed on systems wit **NodeJS** versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). Currently, the **Microsoft Azure SDK and, thus, TTS-Ultimate, doesn't run on NodeJS 18.x.x !!**
 
 ## DESCRIPTION
 This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers.<br/>
@@ -27,7 +29,7 @@ You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
 Uses Amazon Polly (standard and neural engines), Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
-**Node v.12.0.0 or newer is needed**.
+
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
