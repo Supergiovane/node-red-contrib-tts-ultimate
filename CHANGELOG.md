@@ -4,7 +4,7 @@
 
 <p>
 <b>Version 1.0.49</b> June 2022<br/>
-- Due to Microsoft Azure SDK limitation, the node can only be installed on systems wit NodeJS versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). Currently, the Microsoft Azure SDK and, thus, TTS-Ultimate, doesn't run on NodeJS 18.x.x !!<br/>
+- Due to Microsoft Azure SDK limitation, the node can only be installed on systems with NodeJS versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). Currently, the Microsoft Azure SDK and, thus, TTS-Ultimate, doesn't run on NodeJS 18.x.x !!<br/>
 </p>
 <p>
 <b>Version 1.0.48</b> Mai 2022<br/>
