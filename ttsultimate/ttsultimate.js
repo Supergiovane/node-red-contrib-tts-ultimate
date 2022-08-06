@@ -285,7 +285,7 @@ module.exports = function (RED) {
             // 30/03/2020 in the middle of coronavirus emergency. Group Speakers
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
                 let element = node.oAdditionalSonosPlayers[index].oPlayer;
-               
+
                 // 02/07/2021 Get the additional's player's volume set by app and the current track, to be set again in ungroupspealers
                 try {
                     element.additionalPlayerPreviousVolumeSetByApp = await element.getVolume();
@@ -366,29 +366,35 @@ module.exports = function (RED) {
 
 
         // 27/11/2019 Check Sonos connection health
+
         node.CheckSonosConnection = () => {
+            if (node.playertype !== "noplayer") {
+                node.SonosClient.getCurrentState().then(state => {
 
-            node.SonosClient.getCurrentState().then(state => {
+                    // 11/12/202020 The connection with Sonos is OK. 
+                    if (node.msg.connectionerror == true) {
+                        node.flushQueue();
+                        node.setNodeStatus({ fill: "green", shape: "dot", text: "Sonos is connected." });
+                        node.msg.connectionerror = false;
+                        node.send([null, { payload: node.msg.connectionerror }]);
+                    }
+                    node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
 
-                // 11/12/202020 The connection with Sonos is OK. 
-                if (node.msg.connectionerror == true) {
+                }).catch(err => {
+                    node.setNodeStatus({ fill: "red", shape: "dot", text: "Sonos connection is DOWN: " + err.message });
                     node.flushQueue();
-                    node.setNodeStatus({ fill: "green", shape: "dot", text: "Sonos is connected." });
-                    node.msg.connectionerror = false;
-                    node.send([null, { payload: node.msg.connectionerror }]);
-                }
-                node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
-
-            }).catch(err => {
-                node.setNodeStatus({ fill: "red", shape: "dot", text: "Sonos connection is DOWN: " + err.message });
-                node.flushQueue();
-                // 11/12/2020 Set node output to signal connectio error
-                if (node.msg.connectionerror == false) {
-                    node.msg.connectionerror = true;
-                    node.send([null, { payload: node.msg.connectionerror }]);
-                }
-                node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 10000);
-            });
+                    // 11/12/2020 Set node output to signal connectio error
+                    if (node.msg.connectionerror == false) {
+                        node.msg.connectionerror = true;
+                        node.send([null, { payload: node.msg.connectionerror }]);
+                    }
+                    node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 10000);
+                });
+            } else {
+                node.setNodeStatus({ fill: "green", shape: "dot", text: "Sonos is connected." });
+                node.msg.connectionerror = false;
+                node.send([null, { payload: node.msg.connectionerror }]);
+            }
 
         }
 
@@ -614,6 +620,7 @@ module.exports = function (RED) {
                                 } else if (node.server.ttsservice === "googletranslate") {
                                     node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google Translate...' });
                                     // VoiceId is: code. SSML is not supported by google translate
+                                    if (node.voiceId === "cmn-Hant-TW") node.voiceId = "zh-CN"; // 06/08/2022 fix for a wrong voiceid sent by google translate as voice code
                                     const params = {
                                         text: msg,
                                         voice: node.voiceId,
@@ -894,7 +901,7 @@ module.exports = function (RED) {
             // *********************************
 
             // In case of connection error, doesn't accept any message
-            if (node.msg.connectionerror) {
+            if (node.msg.connectionerror && node.playertype !== "noplayer") {
                 RED.log.warn("ttsultimate: Sonos is offline. The new msg coming from the flow will be rejected.");
                 node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Sonos is offline. The msg has been rejected." });
                 return;
