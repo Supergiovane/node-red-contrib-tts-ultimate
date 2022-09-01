@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.51</b> September 2022<br/>
+- Updated microsoft azure sdk for compatibility with node 16.17.0<br/>
+</p>
+<p>
 <b>Version 1.0.50</b> August 2022<br/>
 - Fixed a wrong "sonos unreachable" message when you select to simply save the file instead of using it with sonos<br/>
 - FIX: temporary fix for chinese language in google translate engine, that was not working anymore.<br/>
