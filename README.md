@@ -21,7 +21,7 @@
 </details>
 
  ## WARNING 
- Due to Microsoft Azure SDK limitation, the node can only be installed on systems with **NodeJS** versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). Currently, the **Microsoft Azure SDK and, thus, TTS-Ultimate, doesn't run on NodeJS 18.x.x !!**
+ Due to Microsoft Azure SDK limitation, the node can only be installed on systems with **NodeJS** versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). 
 
 ## DESCRIPTION
 This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers.<br/>
