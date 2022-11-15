@@ -6,7 +6,7 @@ module.exports = function (RED) {
     // 31/05/2022 checking nodejs version due to Microsoft Azure SDK bad nodejs compatibility.
     let nodejsVersion = process.version.match(/^v(\d+\.\d+)/)[1];
     if (nodejsVersion.startsWith("18")) {
-        RED.log.error('ttsultimate-config: YOUR NODEJS VERSION IS CURRENTLY INCOMPATIBLE WITH Microsoft Azure SDK. Your NodeJS version: ' + nodejsVersion + ", please install one of these: (^12.22.0, ^14.17.0, or >=16.0.0), with SSL support.");
+        //RED.log.error('ttsultimate-config: YOUR NODEJS VERSION IS CURRENTLY INCOMPATIBLE WITH Microsoft Azure SDK. Your NodeJS version: ' + nodejsVersion + ", please install one of these: (^12.22.0, ^14.17.0, or >=16.0.0), with SSL support.");
     }
 
 
