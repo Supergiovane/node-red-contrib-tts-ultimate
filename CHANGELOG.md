@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.53</b> February 2023<br/>
+- Now in the list of sonos player, you can see the single speakers belonging to a group as well.<br/>
+</p>
+<p>
 <b>Version 1.0.52</b> September 2022<br/>
 - Updated microsoft azure sdk for compatibility with node 18 LTS<br/>
 </p>

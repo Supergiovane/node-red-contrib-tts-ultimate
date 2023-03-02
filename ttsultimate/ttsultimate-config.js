@@ -260,6 +260,17 @@ module.exports = function (RED) {
                         for (let index = 0; index < groups.length; index++) {
                             const element = groups[index];
                             jListGroups.push({ name: element.Name, host: element.host })
+                            // 02/03/2023 If there are speakers grouped, read the single speaker
+                            if (element.hasOwnProperty("ZoneGroupMember") && element.ZoneGroupMember.length > 0) {
+                                try {
+                                    for (let i = 0; i < element.ZoneGroupMember.length; i++) {
+                                        const single = element.ZoneGroupMember[i];
+                                        jListGroups.push({ name: single.ZoneName, host: single.Location.split("//")[1].split(":")[0] }) // Get Name and IP from Location field                                  
+                                    }
+                                } catch (error) {
+                                }
+
+                            }
                         }
                         res.json(jListGroups)
                         //return groups[0].CoordinatorDevice().togglePlayback()
