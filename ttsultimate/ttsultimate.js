@@ -739,7 +739,7 @@ module.exports = function (RED) {
                                 state = "";
                                 node.timerbTimeOutPlay = setTimeout(() => {
                                     node.bTimeOutPlay = true;
-                                }, 60000);
+                                }, 60000*10); // 10 minutes timeout
                                 while (state !== "stopped" && !node.bTimeOutPlay) {
                                     try {
                                         state = await getCurrentStateSync();
