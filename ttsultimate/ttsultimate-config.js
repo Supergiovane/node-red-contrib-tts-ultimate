@@ -259,13 +259,14 @@ module.exports = function (RED) {
                         //RED.log.warn('Groups ' + JSON.stringify(groups, null, 2))
                         for (let index = 0; index < groups.length; index++) {
                             const element = groups[index];
-                            jListGroups.push({ name: element.Name, host: element.host })
+                            if (jListGroups.find(x => x.host === element.host) === undefined) jListGroups.push({ name: element.Name, host: element.host })
                             // 02/03/2023 If there are speakers grouped, read the single speaker
                             if (element.hasOwnProperty("ZoneGroupMember") && element.ZoneGroupMember.length > 0) {
                                 try {
                                     for (let i = 0; i < element.ZoneGroupMember.length; i++) {
                                         const single = element.ZoneGroupMember[i];
-                                        jListGroups.push({ name: single.ZoneName, host: single.Location.split("//")[1].split(":")[0] }) // Get Name and IP from Location field                                  
+                                        let sHost = single.Location.split("//")[1].split(":")[0]
+                                        if (jListGroups.find(x => x.host === sHost) === undefined) jListGroups.push({ name: single.ZoneName, host: sHost }) // Get Name and IP from Location field                                  
                                     }
                                 } catch (error) {
                                 }

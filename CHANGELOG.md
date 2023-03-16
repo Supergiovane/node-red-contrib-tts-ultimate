@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.55</b> March 2023<br/>
+- Dedupes the players having the same IP, in the player's list.<br/>
+</p>
+<p>
 <b>Version 1.0.54</b> February 2023<br/>
 - OWNFILE: there was a 60 secs timeout, waiting for end play. Now it has been incfeased to 10 minutes.<br/>
 </p>
