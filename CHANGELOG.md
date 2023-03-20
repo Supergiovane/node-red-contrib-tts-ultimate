@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 1.0.56</b> March 2023<br/>
+- NEW: Added Node Name property, in the TTS Ultimate node.<br/>
+</p>
+<p>
 <b>Version 1.0.55</b> March 2023<br/>
 - Dedupes the players having the same IP, in the player's list.<br/>
 </p>
