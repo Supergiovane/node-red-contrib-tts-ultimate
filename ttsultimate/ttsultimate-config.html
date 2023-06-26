@@ -1,5 +1,5 @@
 <script type="text/javascript">
-    
+
     RED.nodes.registerType("ttsultimate-config", {
         category: 'config',
         defaults:
@@ -33,17 +33,17 @@
         },
         oneditprepare: function () {
             var node = this;
-     
+
             // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
             // $.getJSON('ttsultimateGetEthAddress', (data) => {
-                 $("#pleaseDeploy").hide();
-                $("#allGUI").show();
+            $("#pleaseDeploy").hide();
+            $("#allGUI").show();
             // }).fail(function (jqxhr) {
             //     $("#pleaseDeploy").show();
             //     $("#allGUI").hide();
             // });
 
-            
+
             if (node.noderedipaddress === undefined) {
                 // Put the default address of the machine
                 $.getJSON('ttsultimateGetEthAddress', (data) => {
@@ -136,7 +136,7 @@
 </script>
 
 
-<script type="text/x-red" data-template-name="ttsultimate-config">
+<script type="text/html" data-template-name="ttsultimate-config">
     <div id="pleaseDeploy">
         <p align="center"> THIS IS YOUR FIRST CONFIG-NODE<br/> AND I NEED TO CREATE SOME THINGS<br/> BEFORE LETTING YOU PROCEED.<br/><b>PLEASE SAVE, FULL DEPLOY <br/>AND RE-OPEN THIS WINDOW</b><br/>
             TO BE ABLE TO FINISH THE CONFIGURATION SETUP<br/>
@@ -221,7 +221,7 @@
 </script>
 
 
-<script type="text/x-red" data-help-name="ttsultimate-config">
+<script type="text/markdown" data-help-name="ttsultimate-config">
     <p>
         <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
     </p>

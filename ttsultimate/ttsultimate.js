@@ -2,7 +2,6 @@ module.exports = function (RED) {
     'use strict';
 
     var fs = require('fs');
-    var util = require('util');
     var path = require('path');
     const sonos = require('sonos');
     const crypto = require("crypto");
@@ -739,7 +738,7 @@ module.exports = function (RED) {
                                 state = "";
                                 node.timerbTimeOutPlay = setTimeout(() => {
                                     node.bTimeOutPlay = true;
-                                }, 60000*10); // 10 minutes timeout
+                                }, 60000 * 10); // 10 minutes timeout
                                 while (state !== "stopped" && !node.bTimeOutPlay) {
                                     try {
                                         state = await getCurrentStateSync();

@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 2.0.0</b> June 2023<br/>
+- Bumped paid Google TTS, free google TTS and Ms TTS dependencies.<br/>
+- Moved help to the node-red's help pane.<br/>
+</p>
+<p>
 <b>Version 1.0.56</b> March 2023<br/>
 - NEW: Added Node Name property, in the TTS Ultimate node.<br/>
 </p>
