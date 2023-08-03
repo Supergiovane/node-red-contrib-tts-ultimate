@@ -26,7 +26,8 @@
             accessKey: { type: "text" },
             secretKey: { type: "password" },
             mssubscriptionKey: { type: "text" },
-            mslocation: { type: "text" }
+            mslocation: { type: "text" },
+            elevenlabsKey:{ type: "text" }
         },
         label: function () {
             return this.name || "";
@@ -65,19 +66,28 @@
                 if ($("#node-config-input-ttsservice").val() == "polly") {
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
+                    $("#elevenlabsForm").hide(); 
                     $("#pollyForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletts") {
                     $("#microsoftAzureForm").hide();
                     $("#pollyForm").hide();
+                    $("#elevenlabsForm").hide(); 
                     $("#GoogleForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletranslate") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
+                    $("#elevenlabsForm").hide(); 
                 } else if ($("#node-config-input-ttsservice").val() == "microsoftazuretts") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
+                    $("#elevenlabsForm").hide();    
                     $("#microsoftAzureForm").show();
+                } else if ($("#node-config-input-ttsservice").val() == "elevenlabs") {
+                    $("#pollyForm").hide();
+                    $("#GoogleForm").hide();
+                    $("#microsoftAzureForm").hide();
+                    $("#elevenlabsForm").show();                    
                 }
             });
             // ##########################################################
@@ -173,7 +183,8 @@
                 <option value="polly">Amazon Polly</option>
                 <option value="googletts">Google TTS</option>
                 <option value="googletranslate">Google without authentication</option>   
-                <option value="microsoftazuretts">Microsoft Azure TTS</option>   
+                <option value="microsoftazuretts">Microsoft Azure TTS</option>
+                <option value="elevenlabs">ElevenLabs TTS (elevenlabs.io)</option>
             </select>&nbsp&nbsp<b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
         </div>
         <div id="pollyForm">
@@ -202,7 +213,12 @@
                 <input style="width:58%" type="text" id="node-config-input-mslocation">
             </div>
         </div>
-
+    <div id="elevenlabsForm">
+        <div class="form-row">
+            <label style="width:35%" for="node-config-input-elevenlabsKey"><i class="fa fa-user"></i> <a href="https://elevenlabs.io" target="_new">Elevenlabs</a>API key</label>
+            <input style="width:58%" type="text" id="node-config-input-elevenlabsKey">
+        </div>        
+    </div>
         <div class="form-row">
             <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
             <select id="node-config-input-purgediratrestart">

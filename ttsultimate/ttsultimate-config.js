@@ -10,11 +10,13 @@ module.exports = function (RED) {
     }
 
 
-
+    // Setting up the engines
     const AWS = require('aws-sdk');
     const GoogleTTS = require('@google-cloud/text-to-speech');
     const GoogleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
     const microsoftAzureTTS = require("microsoft-cognitiveservices-speech-sdk"); // 12/10/2021
+    const elevenlabsTTS = require("elevenlabs-node"); // 03/08/2023
+
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
@@ -144,7 +146,6 @@ module.exports = function (RED) {
             //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
         }
 
-
         // 12/10/2021 Microsoft Azure TTS SpeechConfig.fromSubscription(subscriptionKey, serviceRegion) 
         if (node.ttsservice === "microsoftazuretts") {
             // #########################################
@@ -215,6 +216,44 @@ module.exports = function (RED) {
             //RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service not used. ");
         }
         // #########################################
+
+        // elevenlabsTTS
+        if (node.ttsservice === "elevenlabs") {
+            node.elevenlabsTTSVoiceList = []
+            try {
+                node.elevenlabsTTS = elevenlabsTTS;
+                try {
+                    node.elevenlabsTTS.getVoices(node.credentials.elevenlabsKey).then((res) => {
+                        try {
+                            res.voices.forEach(element => {
+                                node.elevenlabsTTSVoiceList.push({ name: element.labels.accent + " - " + element.name + " (" + element.labels.gender + ")", id: element.voice_id })
+                            });
+                            node.elevenlabsTTSVoiceList.sort(function (a, b) {
+                                let x = a.name.toLowerCase();
+                                let y = b.name.toLowerCase();
+                                if (x < y) { return -1; }
+                                if (x > y) { return 1; }
+                                return 0;
+                            }); 
+                        } catch (error) {
+                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs 2 voices: ' + error.message);
+                            node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs 2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
+                        }
+                        
+                    });
+                } catch (error) {
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs voices: ' + error.message);
+                    node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
+                }
+                RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS service enabled.")
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS service disabled. " + error.message)
+            }
+
+        } else {
+            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+        }
+
 
         //#endregion
 
@@ -455,7 +494,10 @@ module.exports = function (RED) {
 
             } else if (ttsservice === "microsoftazuretts") {
                 res.json(node.microsoftAzureTTSVoiceList);
+            } else if (ttsservice === "elevenlabs") {
+                res.json(node.elevenlabsTTSVoiceList);
             }
+
         });
 
         // ########################################################
@@ -673,7 +715,8 @@ module.exports = function (RED) {
             accessKey: { type: "text" },
             secretKey: { type: "password" },
             mssubscriptionKey: { type: "text" },
-            mslocation: { type: "text" }
+            mslocation: { type: "text" },
+            elevenlabsKey: { type: "text" }
         }
     });
 

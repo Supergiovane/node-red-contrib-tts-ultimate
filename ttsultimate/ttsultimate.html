@@ -528,6 +528,34 @@
 
 <br/>
 
+### Inputs
+
+: volume (string) : Set the volume (values between "0" and "100").
+: unmute (boolean) : *true* Unmute all players then mutes it again once finished playing. *false* Leaves the player as they are.
+: nohailing (string) : Temporary stop playing the Hailing sound prior to the message (values "true" or "1" with quotes).
+: payload (string | file) : The text to be spoken (for example msg.payload = "Hello World!"). You can also play an mp3 stored on an http server, by passing the URL to the payload ( msg.payload = "www.myserver.com/alarm.mp3").
+: sonoshailing (string) : Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the .mp3 extenson. For example node.sonoshailing="ComputerCall".
+: priority (boolean) : If set to true, the inbound flow message will cancel the current TTS queue, will stop the current phrase being spoken and the node will play this priority message. If there are other priority messages in the queue, they will be retained and the inbound priority flow message is added to the queue. If the inbound priority flow message is the first in the priority queue, the hailing is played first (if the hailing has been enabled or if the hailing has been overridden by node.sonoshailing).
+: stop (boolean) : If set to true, stops whatever is playing and clears the TTS queue.
+: setConfig (json) : This is the property where you can set all the things. It must be a JSON Object with the below specified properties. The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
+: setConfig {setMainPlayerIP} (string) : Sets the main player IP. This will also be the coordinator if you have a group of players.
+: setConfig {setPlayerGroupArray} (array) : Sets the array of players beloging to the group, if any. You can also specify the volume variation from the main volume player, to adapt the additional player's perceived volume to the main sonos player volume. For example, if you have a speaker mounted in celiling, having less perceived volume, you can "push" the volume up, to match the whole perceived volume. Just add # after the IP and a number from -100 to 100 to subtract or add volume compared to the main sonos volume. For example, if the sonos main player volume is 40, you can push this celing speaker's volume to further 10, so it'll have the real volume of 50. See below, the example. Even if you have only one additional player, you need to put it into an array.
+
+### Output
+
+The node has two output pins. The first pin is to signal play status, the second one, is to signal an error
+
+1. Standard output
+: payload (boolean) : Payload is true when the node has finished playing, false if the node is playing. In case you selected No player, only output file name. in the Player property, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. The property passThroughMessage contains the input msg passed through the output.
+: passThroughMessage (json) : Original message object.
+: filesArray (array of string) : Arrays of generated files name, including paths.
+
+2. Error
+: payload (boolean) : Payload is true when error occurs (for example, lost connection with Sonos Player), otherwise false.
+
+### Samples
+
+[You'll find useful samples here](https://github.com/Supergiovane/node-red-contrib-tts-ultimate)
 
 [Find it useful?](https://www.paypal.me/techtoday)
 

@@ -1,3 +1,5 @@
+const { Readable } = require('stream');
+
 module.exports = function (RED) {
     'use strict';
 
@@ -426,8 +428,6 @@ module.exports = function (RED) {
         node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'Initialized.' });
 
 
-
-
         // 22/09/2020 Flush Queue and set to stopped
         node.flushQueue = () => {
             // 10/04/2018 Remove the TTS message from the queue
@@ -634,7 +634,16 @@ module.exports = function (RED) {
                                         voice: node.voiceId
                                     };
                                     data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
+                                } else if (node.server.ttsservice === "elevenlabs") {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from elevenLabs TTS...' });
+                                    // VoiceId is: code 
+                                    const params = {
+                                        text: msg,
+                                        voice: node.voiceId
+                                    };
+                                    data = await synthesizeSpeechElevenLabs(node.server.elevenlabsTTS, params);
                                 }
+
                                 // Save the downloaded file into the cache
                                 try {
                                     fs.writeFileSync(sFileToBePlayed, data);
@@ -1110,7 +1119,6 @@ module.exports = function (RED) {
                 throw (error);
             }
         };
-
         // 12/10/2021 Microsoft Azure TTS Service
         async function synthesizeSpeechMicrosoftAzureTTS(ttsService, params) {
 
@@ -1135,6 +1143,39 @@ module.exports = function (RED) {
                 }
             });
         };
+        // elevenLabs TTS Service
+        function synthesizeSpeechElevenLabs(ttsService, params) {
+            // const params = {
+            //     text: msg,
+            //     voice: node.voiceId
+            // };
+            function stream2buffer(stream) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const _buf = [];
+
+                        stream.on("data", (chunk) => _buf.push(chunk));
+                        stream.on("end", () => resolve(Buffer.concat(_buf)));
+                        stream.on("error", (err) => reject(err));
+                    } catch (error) {
+                    }
+                });
+            }
+            return new Promise((resolve, reject) => {
+                // "model_id": "eleven_multilingual_v1",
+                ttsService.textToSpeechStream(node.server.credentials.elevenlabsKey, params.voice, params.text, null,null,"eleven_multilingual_v1").then((res) => {
+                    try {
+                        if (res !== undefined) {
+                            resolve(stream2buffer(res));
+                        } else {
+                            reject(new Error("Please check credentials. The stream cannot be read from the elevenlabs TTS server"))
+                        }
+                    } catch (error) {
+                        reject(error)
+                    }
+                });
+            });
+        }
 
         // 04/01/2021 hashing filename to avoid issues with long filenames.
         function getFilename(_text, _sVoice, _isSSML, _extension, _speakingpitch, _speakingrate) {
