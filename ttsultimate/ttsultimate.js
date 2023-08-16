@@ -581,70 +581,109 @@ module.exports = function (RED) {
                         RED.log.info('ttsultimate: Hailing .MP3, skip tts, filename: ' + msg);
                         sFileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
                     } else {
-                        sFileToBePlayed = getFilename(msg, node.voiceId, node.ssml, "mp3", node.speakingpitch, node.speakingrate);
-                        sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
-                        // Check if cached
-                        if (!fs.existsSync(sFileToBePlayed)) {
-                            try {
-                                // No file in cache. Download from tts service
-                                var data;
-                                if (node.server.ttsservice === "polly") {
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Amazon...' });
-                                    var params = {
-                                        OutputFormat: "mp3",
-                                        SampleRate: '22050',
-                                        Text: msg,
-                                        TextType: node.ssml ? 'ssml' : 'text'
-                                    };
-                                    // 02/03/2022 check wether standard or neural engine is POLLY is selected
-                                    if (node.voiceId.includes("#engineType:")) {
-                                        params.VoiceId = node.voiceId.split("#engineType:")[0];
-                                        params.Engine = node.voiceId.split("#engineType:")[1];
-                                    } else {
-                                        params.VoiceId = node.voiceId;
-                                    }
-
-                                    data = await synthesizeSpeechPolly([node.server.polly, params]);
-                                } else if (node.server.ttsservice === "googletts") {
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google TTS...' });
-                                    // VoiceId is: name + "#" + languageCode + "#" + ssmlGender 
-                                    // speakingRate tra 0.25 e 4.0
-                                    // pitch tra -20.0 e 20.0
-                                    const params = {
-                                        voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
-                                        audioConfig: { audioEncoding: "MP3", speakingRate: parseFloat(node.speakingrate), pitch: parseFloat(node.speakingpitch), },
-                                    };
-                                    params.input = node.ssml === false ? { text: msg } : { ssml: msg };
-                                    data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
-                                } else if (node.server.ttsservice === "googletranslate") {
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Google Translate...' });
-                                    // VoiceId is: code. SSML is not supported by google translate
-                                    if (node.voiceId === "cmn-Hant-TW") node.voiceId = "zh-CN"; // 06/08/2022 fix for a wrong voiceid sent by google translate as voice code
-                                    const params = {
-                                        text: msg,
-                                        voice: node.voiceId,
-                                        slow: false // optional
-                                    };
-                                    data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
-                                } else if (node.server.ttsservice === "microsoftazuretts") {
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from Microsoft Azure TTS...' });
-                                    // VoiceId is: code 
-                                    const params = {
-                                        text: msg,
-                                        voice: node.voiceId
-                                    };
-                                    data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
-                                } else if (node.server.ttsservice === "elevenlabs") {
-                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Downloading from elevenLabs TTS...' });
-                                    // VoiceId is: code 
-                                    const params = {
-                                        text: msg,
-                                        voice: node.voiceId
-                                    };
-                                    data = await synthesizeSpeechElevenLabs(node.server.elevenlabsTTS, params);
+                        try {
+                            // No file in cache. Download from tts service
+                            var data;
+                            if (node.server.ttsservice === "polly") {
+                                var params = {
+                                    OutputFormat: "mp3",
+                                    SampleRate: '22050',
+                                    Text: msg,
+                                    TextType: node.ssml ? 'ssml' : 'text'
+                                };
+                                // 02/03/2022 check wether standard or neural engine is POLLY is selected
+                                if (node.voiceId.includes("#engineType:")) {
+                                    params.VoiceId = node.voiceId.split("#engineType:")[0];
+                                    params.Engine = node.voiceId.split("#engineType:")[1];
+                                } else {
+                                    params.VoiceId = node.voiceId;
                                 }
+                                // Download or read from cache
+                                sFileToBePlayed = getFilename(msg, params);
+                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
+                                if (!fs.existsSync(sFileToBePlayed)) {
+                                    node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                                    data = await synthesizeSpeechPolly([node.server.polly, params]);
+                                } else {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                                }
+                            } else if (node.server.ttsservice === "googletts") {
+                                // VoiceId is: name + "#" + languageCode + "#" + ssmlGender 
+                                // speakingRate tra 0.25 e 4.0
+                                // pitch tra -20.0 e 20.0
+                                const params = {
+                                    voice: { name: node.voiceId.split("#")[0], languageCode: node.voiceId.split("#")[1], ssmlGender: node.voiceId.split("#")[2] },
+                                    audioConfig: { audioEncoding: "MP3", speakingRate: parseFloat(node.speakingrate), pitch: parseFloat(node.speakingpitch), },
+                                };
+                                params.input = node.ssml === false ? { text: msg } : { ssml: msg };
 
-                                // Save the downloaded file into the cache
+                                // Download or read from cache
+                                sFileToBePlayed = getFilename(msg, params);
+                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
+                                if (!fs.existsSync(sFileToBePlayed)) {
+                                    node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                                    data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
+                                } else {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                                }
+                            } else if (node.server.ttsservice === "googletranslate") {
+                                // VoiceId is: code. SSML is not supported by google translate
+                                if (node.voiceId === "cmn-Hant-TW") node.voiceId = "zh-CN"; // 06/08/2022 fix for a wrong voiceid sent by google translate as voice code
+                                const params = {
+                                    text: msg,
+                                    voice: node.voiceId,
+                                    slow: false // optional
+                                };
+
+                                // Download or read from cache
+                                sFileToBePlayed = getFilename(msg, params);
+                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
+                                if (!fs.existsSync(sFileToBePlayed)) {
+                                    node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                                    data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
+                                } else {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                                }
+                            } else if (node.server.ttsservice === "microsoftazuretts") {
+                                // VoiceId is: code 
+                                const params = {
+                                    text: msg,
+                                    voice: node.voiceId
+                                };
+
+                                // Download or read from cache
+                                sFileToBePlayed = getFilename(msg, params);
+                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
+                                if (!fs.existsSync(sFileToBePlayed)) {
+                                    node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                                    data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
+                                } else {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                                }
+                            } else if (node.server.ttsservice === "elevenlabs") {
+                                // VoiceId is: code 
+                                const params = {
+                                    text: msg,
+                                    voice: node.voiceId,
+                                    model_id: "eleven_monolingual_v1",
+                                    voice_settings: {
+                                        stability: config.elevenlabsStability,
+                                        similarity_boost: config.elevenlabsSimilarity_boost
+                                    }
+                                };
+                                // Download or read from cache
+                                sFileToBePlayed = getFilename(msg, params);
+                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
+                                if (!fs.existsSync(sFileToBePlayed)) {
+                                    node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                                    data = await synthesizeSpeechElevenLabs(node.server.elevenlabsTTS, params);
+                                } else {
+                                    node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                                }
+                            }
+
+                            // Save the downloaded file into the cache
+                            if (data !== undefined) {
                                 try {
                                     fs.writeFileSync(sFileToBePlayed, data);
                                 } catch (error) {
@@ -652,15 +691,12 @@ module.exports = function (RED) {
                                     node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
                                     throw (error);
                                 }
-
-                            } catch (error) {
-                                RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
-                                node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
-                                sFileToBePlayed = "";
                             }
-                        }
-                        else {
-                            node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+
+                        } catch (error) {
+                            RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
+                            node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
+                            sFileToBePlayed = "";
                         }
                     }
 
@@ -1163,7 +1199,7 @@ module.exports = function (RED) {
             }
             return new Promise((resolve, reject) => {
                 // "model_id": "eleven_multilingual_v1",
-                ttsService.textToSpeechStream(node.server.credentials.elevenlabsKey, params.voice, params.text, null,null,"eleven_multilingual_v1").then((res) => {
+                ttsService.textToSpeechStream(node.server.credentials.elevenlabsKey, params.voice, params.text, null, null, "eleven_multilingual_v1").then((res) => {
                     try {
                         if (res !== undefined) {
                             resolve(stream2buffer(res));
@@ -1178,11 +1214,11 @@ module.exports = function (RED) {
         }
 
         // 04/01/2021 hashing filename to avoid issues with long filenames.
-        function getFilename(_text, _sVoice, _isSSML, _extension, _speakingpitch, _speakingrate) {
-            let sTextToBeHashed = _text.concat(_sVoice, _isSSML, _speakingpitch, _speakingrate);
+        function getFilename(_text, _params) {
+            let sTextToBeHashed = _text.concat(JSON.stringify(_params));
             const hashSum = crypto.createHash('md5');
             hashSum.update(sTextToBeHashed);
-            return hashSum.digest('hex') + "." + _extension;
+            return hashSum.digest('hex') + ".mp3";
         }
 
         function notifyError(msg, err) {

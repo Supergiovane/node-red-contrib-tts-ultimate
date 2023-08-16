@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 2.0.2</b> August 2023<br/>
+- NEW: added options for changing Elevenlabs voice settings.<br/>
+- Fixed filename of the cached files, by including all settings. Previously, some settings were not taken in consideration.<br/>
+</p>
+<p>
 <b>Version 2.0.1</b> August 2023<br/>
 - NEW: added Elevenlabs TTS engine https://elevenlabs.io.<br/>
 </p>

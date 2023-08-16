@@ -32,7 +32,17 @@
             <input type="text" id="node-input-speakingpitch" style="width:60px"> (Between -20.0 and 20.0,  default 0)
         </div>
     </div>
-    <div class="form-row">
+    <div id="divElevenLabsOptions" hidden>
+        <div class="form-row">
+            <label for="node-input-elevenlabsStability"><i class="fa fa-volume-up"></i> Stability</label>
+            <input type="text" id="node-input-elevenlabsStability" style="width:60px"> (default 0.5)
+        </div>
+        <div class="form-row">
+            <label for="node-input-elevenlabsSimilarity_boost"><i class="fa fa-volume-up"></i> Similarity boost</label>
+            <input type="text" id="node-input-elevenlabsSimilarity_boost" style="width:60px"> (Default 0.5)
+        </div>
+    </div>
+    <div class="form-row" id="divSSML">
         <label></label>
         <input type="checkbox" id="node-input-ssml" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Enable SSML (unsupported by Google without authentication)</label>
     </div>
@@ -129,8 +139,9 @@
                 playertype: { value: "sonos", required: false },
                 speakingrate: { value: "1", required: false },
                 speakingpitch: { value: "0", required: false },
-                unmuteIfMuted: { value: true }
-
+                unmuteIfMuted: { value: true },
+                elevenlabsStability: { value: "0.5", required: false },
+                elevenlabsSimilarity_boost: { value: "0.5", required: false },
             },
             inputs: 1,
             outputs: 2,
@@ -163,8 +174,15 @@
                         getVoices();
                         if (oNodeServer.ttsservice === "googletts") {
                             $("#divGoogleTTSAudioConfig").show();
+                            $("#divElevenLabsOptions").hide();
+                        } else if (oNodeServer.ttsservice === "elevenlabs") {
+                            $("#divGoogleTTSAudioConfig").hide();
+                            $("#divElevenLabsOptions").show();
+                            $("#divSSML").hide();                            
                         } else {
                             $("#divGoogleTTSAudioConfig").hide();
+                            $("#divElevenLabsOptions").hide();
+                             $("#divSSML").show();
                         }
                     } catch (error) {
                     }
