@@ -564,26 +564,26 @@ module.exports = function (RED) {
 
 
                 while (node.tempMSGStorage.length > 0) {
-                    node.currentMSGbeingSpoken = node.tempMSGStorage[0];// Advise the whole node of the currently spoken MSG
+                    node.currentMSGbeingSpoken = node.tempMSGStorage.shift()//node.tempMSGStorage[0];// Advise the whole node of the currently spoken MSG
                     const msg = node.currentMSGbeingSpoken.payload.toString(); // Get the text to be spoken
-                    node.tempMSGStorage.splice(0, 1); // Remove the first item in the array
-                    var sFileToBePlayed = "";
+                    //node.tempMSGStorage.splice(0, 1); // Remove the first item in the array
+                    node.sFileToBePlayed = "";
                     node.setNodeStatus({ fill: "gray", shape: "ring", text: "Read " + msg });
 
                     // 04/12/2020 check what really is the file to be played
                     if (msg.toLowerCase().startsWith("http://") || msg.toLowerCase().startsWith("https://")) {
                         RED.log.info('ttsultimate: HTTP filename: ' + msg);
-                        sFileToBePlayed = msg;
+                        node.sFileToBePlayed = msg;
                     } else if (msg.indexOf("OwnFile_") !== -1) {
                         RED.log.info('ttsultimate: OwnFile .MP3, skip tts, filename: ' + msg);
-                        sFileToBePlayed = path.join(node.userDir, "ttspermanentfiles", msg);
+                        node.sFileToBePlayed = path.join(node.userDir, "ttspermanentfiles", msg);
                     } else if (msg.indexOf("Hailing_") !== -1) {
                         RED.log.info('ttsultimate: Hailing .MP3, skip tts, filename: ' + msg);
-                        sFileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
+                        node.sFileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
                     } else {
                         try {
                             // No file in cache. Download from tts service
-                            var data;
+                            var data = undefined;
                             if (node.server.ttsservice === "polly") {
                                 var params = {
                                     OutputFormat: "mp3",
@@ -599,9 +599,9 @@ module.exports = function (RED) {
                                     params.VoiceId = node.voiceId;
                                 }
                                 // Download or read from cache
-                                sFileToBePlayed = getFilename(msg, params);
-                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
-                                if (!fs.existsSync(sFileToBePlayed)) {
+                                node.sFileToBePlayed = getFilename(msg, params);
+                                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
+                                if (!fs.existsSync(node.sFileToBePlayed)) {
                                     node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
                                     data = await synthesizeSpeechPolly([node.server.polly, params]);
                                 } else {
@@ -618,9 +618,9 @@ module.exports = function (RED) {
                                 params.input = node.ssml === false ? { text: msg } : { ssml: msg };
 
                                 // Download or read from cache
-                                sFileToBePlayed = getFilename(msg, params);
-                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
-                                if (!fs.existsSync(sFileToBePlayed)) {
+                                node.sFileToBePlayed = getFilename(msg, params);
+                                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
+                                if (!fs.existsSync(node.sFileToBePlayed)) {
                                     node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
                                     data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
                                 } else {
@@ -636,9 +636,9 @@ module.exports = function (RED) {
                                 };
 
                                 // Download or read from cache
-                                sFileToBePlayed = getFilename(msg, params);
-                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
-                                if (!fs.existsSync(sFileToBePlayed)) {
+                                node.sFileToBePlayed = getFilename(msg, params);
+                                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
+                                if (!fs.existsSync(node.sFileToBePlayed)) {
                                     node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
                                     data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
                                 } else {
@@ -652,9 +652,9 @@ module.exports = function (RED) {
                                 };
 
                                 // Download or read from cache
-                                sFileToBePlayed = getFilename(msg, params);
-                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
-                                if (!fs.existsSync(sFileToBePlayed)) {
+                                node.sFileToBePlayed = getFilename(msg, params);
+                                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
+                                if (!fs.existsSync(node.sFileToBePlayed)) {
                                     node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
                                     data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
                                 } else {
@@ -672,9 +672,9 @@ module.exports = function (RED) {
                                     }
                                 };
                                 // Download or read from cache
-                                sFileToBePlayed = getFilename(msg, params);
-                                sFileToBePlayed = path.join(node.userDir, "ttsfiles", sFileToBePlayed);
-                                if (!fs.existsSync(sFileToBePlayed)) {
+                                node.sFileToBePlayed = getFilename(msg, params);
+                                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
+                                if (!fs.existsSync(node.sFileToBePlayed)) {
                                     node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
                                     data = await synthesizeSpeechElevenLabs(node.server.elevenlabsTTS, params);
                                 } else {
@@ -685,10 +685,11 @@ module.exports = function (RED) {
                             // Save the downloaded file into the cache
                             if (data !== undefined) {
                                 try {
-                                    fs.writeFileSync(sFileToBePlayed, data);
+                                    console.log("Salvelox " + node.sFileToBePlayed)
+                                    fs.writeFileSync(node.sFileToBePlayed, data);
                                 } catch (error) {
                                     RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
-                                    node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + sFileToBePlayed + " " + error.message });
+                                    node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + node.sFileToBePlayed + " " + error.message });
                                     throw (error);
                                 }
                             }
@@ -696,12 +697,12 @@ module.exports = function (RED) {
                         } catch (error) {
                             RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
                             node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
-                            sFileToBePlayed = "";
+                            node.sFileToBePlayed = "";
                         }
                     }
 
                     // Ready to play
-                    if (sFileToBePlayed !== "") {
+                    if (node.sFileToBePlayed !== "") {
 
                         //#region Now i am ready to play the file
                         if (node.playertype === "sonos") {
@@ -710,8 +711,8 @@ module.exports = function (RED) {
                             node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + msg });
 
                             // Play directly files starting with http://
-                            if (!sFileToBePlayed.toLowerCase().startsWith("http://") && !sFileToBePlayed.toLowerCase().startsWith("https://")) {
-                                sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(sFileToBePlayed);
+                            if (!node.sFileToBePlayed.toLowerCase().startsWith("http://") && !node.sFileToBePlayed.toLowerCase().startsWith("https://")) {
+                                node.sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(node.sFileToBePlayed);
                             }
 
                             // Set Volume
@@ -744,11 +745,11 @@ module.exports = function (RED) {
                                 };
 
                             } catch (error) {
-                                RED.log.error("ttsultimate: Unable to set the volume for " + sFileToBePlayed);
+                                RED.log.error("ttsultimate: Unable to set the volume for " + node.sFileToBePlayed);
                             }
                             try {
 
-                                await setAVTransportURISync(sFileToBePlayed);
+                                await setAVTransportURISync(node.sFileToBePlayed);
 
                                 // Wait for start playing
                                 var state = "";
@@ -805,14 +806,14 @@ module.exports = function (RED) {
 
                             } catch (error) {
                                 if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay); // Clear the player timeout
-                                RED.log.error("ttsultimate: Error HandleQueue for " + sFileToBePlayed + " " + error.message);
+                                RED.log.error("ttsultimate: Error HandleQueue for " + node.sFileToBePlayed + " " + error.message);
                                 node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
                             }
 
                         } else if (node.playertype === "noplayer") {
                             // Output only the filename
                             if (noPlayerFileArray === undefined || noPlayerFileArray === null) var noPlayerFileArray = [];
-                            noPlayerFileArray.push({ file: sFileToBePlayed });
+                            noPlayerFileArray.push({ file: node.sFileToBePlayed });
                         }
                     }
                     //#endregion
