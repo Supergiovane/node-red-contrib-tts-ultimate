@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 2.0.5</b> October 2023<br/>
+- Speed up emitting msg, when not using Sonos.<br/>
+</p>
+<p>
 <b>Version 2.0.4</b> August 2023<br/>
 - Removed unused new AWS api.<br/>
 - Updated old AWS api to the latest.<br/>

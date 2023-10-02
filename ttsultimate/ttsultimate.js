@@ -369,7 +369,7 @@ module.exports = function (RED) {
         // 27/11/2019 Check Sonos connection health
 
         node.CheckSonosConnection = () => {
-            if (node.playertype !== "noplayer") {
+            if (node.playertype === "sonos") {
                 node.SonosClient.getCurrentState().then(state => {
 
                     // 11/12/202020 The connection with Sonos is OK. 
@@ -392,7 +392,7 @@ module.exports = function (RED) {
                     node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 10000);
                 });
             } else {
-                node.setNodeStatus({ fill: "green", shape: "dot", text: "Sonos is connected." });
+                node.setNodeStatus({ fill: "green", shape: "dot", text: "Ready." });
                 node.msg.connectionerror = false;
                 node.send([null, { payload: node.msg.connectionerror }]);
             }
@@ -417,8 +417,6 @@ module.exports = function (RED) {
                 node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: Number(element.hostVolumeAdjust) });
                 RED.log.info("ttsultimate: FOUND ADDITIONAL PLAYER " + element.host + " Adjusted volume: " + element.hostVolumeAdjust);
             }
-
-
             // 27/11/2019 Start the connection healty check
             node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
         } else if (node.playertype === "noplayer") {
@@ -426,7 +424,6 @@ module.exports = function (RED) {
         }
 
         node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'Initialized.' });
-
 
         // 22/09/2020 Flush Queue and set to stopped
         node.flushQueue = () => {
@@ -438,8 +435,6 @@ module.exports = function (RED) {
             node.currentMSGbeingSpoken = {};
             if (node.server.whoIsUsingTheServer === node.id) node.server.whoIsUsingTheServer = "";
         }
-
-
 
         // 30/12/2020 Supergiovane resume queue for radio, queue music, TV in , line in etc.
         async function resumeMusicQueue(_oTrack, _oPlayer = node.SonosClient) {
@@ -526,42 +521,45 @@ module.exports = function (RED) {
             let t = setTimeout(() => { return true; }, 5000); // Wait some seconds 
         };
 
-
         // Handle the queue
         async function HandleQueue() {
             node.bBusyPlayingQueue = true;
             node.server.whoIsUsingTheServer = node.id; // Signal to other ttsultimate node, that i'm using the Sonos device
             try {
 
-                // Get the current music queue, if one
-                var oCurTrack = null;
-                try {
-                    oCurTrack = await getMusicQueue();
-                    // 19/04/2022 The current track of additional players is read in the groupSpeakerySync function
-                } catch (error) {
-                    oCurTrack = null;
+                if (node.playertype !== "noplayer") {
+                    // Get the current music queue, if one
+                    var oCurTrack = null;
+                    try {
+                        oCurTrack = await getMusicQueue();
+                        // 19/04/2022 The current track of additional players is read in the groupSpeakerySync function
+                    } catch (error) {
+                        oCurTrack = null;
+                    }
+
+                    // 05/12/2020 Set "completed" to false and send it
+                    node.msg.completed = false;
+                    try {
+                        await groupSpeakersSync(); // 20/03/2020 Group Speakers toghether and reads each current track   
+                    } catch (error) {
+                        // Don't care.
+                        node.setNodeStatus({ fill: "red", shape: "ring", text: "Error grouping speakers: " + error.message });
+                        RED.log.error("ttsultimate: Error grouping speakers: " + error.message);
+                    }
+
+                    node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
+
+                    // 24/08/2021 If something was playing, stop the player https://github.com/Supergiovane/node-red-contrib-tts-ultimate/issues/32
+                    try {
+                        //await node.SonosClient.stop(); //.then(result => {
+                        await STOPSync();
+                    } catch (error) {
+                        //RED.log.error("ttsultimate: Error stopping in HandleSend: " + error.message);
+                    }
+                } else {
+                    node.msg.completed = false;
+                    node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
                 }
-
-                // 05/12/2020 Set "completed" to false and send it
-                node.msg.completed = false;
-                try {
-                    await groupSpeakersSync(); // 20/03/2020 Group Speakers toghether and reads each current track   
-                } catch (error) {
-                    // Don't care.
-                    node.setNodeStatus({ fill: "red", shape: "ring", text: "Error grouping speakers: " + error.message });
-                    RED.log.error("ttsultimate: Error grouping speakers: " + error.message);
-                }
-
-                node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
-
-                // 24/08/2021 If something was playing, stop the player https://github.com/Supergiovane/node-red-contrib-tts-ultimate/issues/32
-                try {
-                    //await node.SonosClient.stop(); //.then(result => {
-                    await STOPSync();
-                } catch (error) {
-                    //RED.log.error("ttsultimate: Error stopping in HandleSend: " + error.message);
-                }
-
 
                 while (node.tempMSGStorage.length > 0) {
                     node.currentMSGbeingSpoken = node.tempMSGStorage.shift()//node.tempMSGStorage[0];// Advise the whole node of the currently spoken MSG
@@ -874,20 +872,19 @@ module.exports = function (RED) {
                         node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
                         node.bBusyPlayingQueue = false
                         node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
-                    }, 1000)
+                    }, 500)
 
                 } else if (node.playertype === "noplayer") {
                     // End task if no player is selected.
                     // Output the array of files
-
                     // Signal end playing
-                    let t = setTimeout(() => {
-                        node.msg.completed = true;
-                        node.currentMSGbeingSpoken = {};
-                        node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
-                        node.bBusyPlayingQueue = false
-                        node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
-                    }, 1000)
+                    //let t = setTimeout(() => {
+                    node.msg.completed = true;
+                    node.currentMSGbeingSpoken = {};
+                    node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
+                    node.bBusyPlayingQueue = false
+                    node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
+                    //}, 1000)
                 }
 
             } catch (error) {
@@ -1028,14 +1025,18 @@ module.exports = function (RED) {
                     // There is already a priority message being spoken, do nothing
                     node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'There is already a priority message being spoken...queuing' });
                 } else {
-                    node.SonosClient.stop().then(result => {
-                        node.bTimeOutPlay = true;
+                    if (node.playertype !== 'noplayer') {
+                        node.SonosClient.stop().then(result => {
+                            node.bTimeOutPlay = true;
+                            node.currentMSGbeingSpoken = msg; // Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
+                        }).catch(err => {
+                            // Don't care
+                            node.bTimeOutPlay = true;
+                            node.currentMSGbeingSpoken = msg;// Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
+                        })
+                    } else {
                         node.currentMSGbeingSpoken = msg; // Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
-                    }).catch(err => {
-                        // Don't care
-                        node.bTimeOutPlay = true;
-                        node.currentMSGbeingSpoken = msg;// Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
-                    })
+                    }
                 }
 
             } else {
@@ -1046,44 +1047,6 @@ module.exports = function (RED) {
                 }
             }
             // ########################
-
-            // // 03/01/2022 if ssml is enabled, disable the auto split function
-            // if (!node.ssml) {
-            //     // SSML disabled
-            //     // 30/01/2021 split the text if it's too long, otherwies i'll have issues with filename too long.
-            //     if (msg.payload.length >= node.server.limitTTSFilenameLenght) {
-            //         let sTemp = "";
-            //         let aSeps = [".", ",", ":", ";", "!", "?"];
-            //         let sPayload = msg.payload.replace(/[\r\n]+/gm, "");
-            //         for (let index = 0; index < sPayload.length; index++) {
-            //             const element = sPayload.substr(index, 1);
-            //             sTemp += element;
-            //             if (aSeps.indexOf(element) > -1 && sTemp.length > 20) {
-            //                 const oMsg = RED.util.cloneMessage(msg);
-            //                 oMsg.payload = sTemp;
-            //                 node.tempMSGStorage.push(oMsg);
-            //                 sTemp = "";
-            //             }
-            //             if (sTemp.length > node.server.limitTTSFilenameLenght && element === " ") {
-            //                 // Split using space
-            //                 const oMsg = RED.util.cloneMessage(msg);
-            //                 oMsg.payload = sTemp;
-            //                 node.tempMSGStorage.push(oMsg);
-            //                 sTemp = "";
-            //             }
-            //         }
-            //         // Remaining
-            //         const oMsg = RED.util.cloneMessage(msg);
-            //         oMsg.payload = sTemp;
-            //         node.tempMSGStorage.push(oMsg);
-
-            //     } else {
-            //         node.tempMSGStorage.push(msg);
-            //     }
-            // } else {
-            //     // SSML enabled
-            //     node.tempMSGStorage.push(msg);
-            // }
 
             // Starts main queue watching
             node.tempMSGStorage.push(msg);
@@ -1107,7 +1070,8 @@ module.exports = function (RED) {
                     node.setNodeStatus({ fill: 'yellow', shape: 'ring', text: "Sonos is occupied by " + node.server.whoIsUsingTheServer + " Retry..." });
                 }
                 node.waitForQueue();
-            }, 1000);
+            }, node.playertype === "noplayer" ? 100 : 1000);
+
         }
 
         node.on('close', function (done) {
