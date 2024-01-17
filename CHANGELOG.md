@@ -3,6 +3,11 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 2.0.6</b> January 2024<br/>
+- Minor fixes.<br/>
+- Moved log into the log tab of node-red.<br/>
+</p>
+<p>
 <b>Version 2.0.5</b> October 2023<br/>
 - Speed up emitting msg, when not using Sonos.<br/>
 </p>

@@ -27,7 +27,7 @@
             secretKey: { type: "password" },
             mssubscriptionKey: { type: "text" },
             mslocation: { type: "text" },
-            elevenlabsKey:{ type: "text" }
+            elevenlabsKey: { type: "text" }
         },
         label: function () {
             return this.name || "";
@@ -66,28 +66,28 @@
                 if ($("#node-config-input-ttsservice").val() == "polly") {
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
-                    $("#elevenlabsForm").hide(); 
+                    $("#elevenlabsForm").hide();
                     $("#pollyForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletts") {
                     $("#microsoftAzureForm").hide();
                     $("#pollyForm").hide();
-                    $("#elevenlabsForm").hide(); 
+                    $("#elevenlabsForm").hide();
                     $("#GoogleForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "googletranslate") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
-                    $("#elevenlabsForm").hide(); 
+                    $("#elevenlabsForm").hide();
                 } else if ($("#node-config-input-ttsservice").val() == "microsoftazuretts") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
-                    $("#elevenlabsForm").hide();    
+                    $("#elevenlabsForm").hide();
                     $("#microsoftAzureForm").show();
                 } else if ($("#node-config-input-ttsservice").val() == "elevenlabs") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
-                    $("#elevenlabsForm").show();                    
+                    $("#elevenlabsForm").show();
                 }
             });
             // ##########################################################
@@ -238,11 +238,86 @@
 
 
 <script type="text/markdown" data-help-name="ttsultimate-config">
+<p>Here you can configure your TTS engine to be used.</p>
+
+# TTS Service node
+Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
+IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
+PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
+PLEASE ALLOW MDNS AND UDP AS WELL
+
+**TTS Service**<br/>
+You can choose between Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
+For Google TTS Engine, you can choose pitch and speed rate of the voice.
+<br/>
+<br/>
+
+* **TTS Service using Amazon AWS (Polly)**<br/>
+    > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
+    
+    **AWS Access key**<br/>
+    AWS access key credential
+    <br/><br/>
+    **AWS Secret key**<br/>
+    AWS access Secret key. 
+<br/>
+
+* **TTS Service using Google (without credentials)**<br/>
+    This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
+    
+<br/>
+
+* **TTS Service using Google TTS**<br/>
+    For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
+    **Google credentials file path**<br/>
+    Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
+    > [Select or create a Cloud Platform project](https://console.cloud.google.com/project)<br/>
+    > [Enable billing for your project](https://support.google.com/cloud/answer/6293499#enable-billing)<br/>
+    > [Enable the Google Cloud Text-to-Speech API](https://console.cloud.google.com/flows/enableapi?apiid=texttospeech.googleapis.com)<br/>
+    
+
+<br/>
+
+* **TTS Service using Microsot Azure TTS**<br/>
+    For Microsoft Azure TTS Engine, you need to have a microsoft account and register to the Azure portal.<br/>
+    See my **YOUTUBE video**, here! https://youtu.be/asXajNpRWME<br/>
+    You need to register here https://portal.azure.com, then ceate a Voice Service (please click here https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices), then click on the left "Keys and Endpoint" menu and copy/paste the KEY and your Location (for example westus).<br/>
+    Then paste both into the TTS-Ultimate engine configuration window and restart node-red.<br/>
+    
+<br/>
+
+
+**Node-Red IP**<br/>
+set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
+
+**Host Port**<br/>
+Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
+
+**TTS Cache**
+<br/>
+***Purge and delete the TTS cache folder at deploy or restart***<br/>
+On each deploy or node-red restart, delete all tts files in the cache. This is useful not to run out of disk space, in case you've a lot of TTS speech files.
+<br/>
+***Leave the TTS cache folder untouched*** (suggested only if you have enough disk space)<br/>
+Don't delete the files cached. Useful if you wish to keep the tts files, even in case of internet outages, node-red restart or reboots.
+<br/> 
+
+**Cache root folder**
+<br/>
+Set your preferred output folder for the files downloaded by the TTS Engine.<br/>
+This is useful if you wish to save the TTS cached files in a folder accessible, for example, by a third party web servers to serve an AirPlay2 speaker.<br/>
+Leave this field blank for the default.<br/>
+<br/> 
+<br/>
+
+
+
+
     <p>
         <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
     </p>
      <p>
-      Configuration help is in the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
+      Configuration help is also here <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
     </p>
    
 </script>

@@ -51,6 +51,10 @@
         <select id="node-input-sonoshailing"></select> <input id="deleteSelectedFile" type="button" value="DELETE" style="width:100px">
     </div>
     <div class="form-row">
+        <label><i class="fa fa-upload"></i> Upload hail</label>
+        <input id="ownFileUpload" type="file" multiple="multiple">
+    </div>
+    <div class="form-row">
         <label for="node-input-playertype"><i class="fa fa-play"></i> Player</label>
         <select id="node-input-playertype">
             <option value="sonos">Sonos</option>
@@ -68,10 +72,6 @@
             <input type="checkbox" id="node-input-unmuteIfMuted" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Unmute, then restore previous state after play.</label>
         </div>
         
-        <div class="form-row">
-            <label><i class="fa fa-upload"></i> Upload hail</label>
-            <input id="ownFileUpload" type="file" multiple="multiple">
-        </div>
         <div class="form-row">
             <label for="node-input-sonosipaddress"><i class="fa fa-globe"></i> Main Sonos Player</label>
             <label style="width:200px;" id="node-input-sonosipaddress">Discovering.... wait...</label>
@@ -178,11 +178,11 @@
                         } else if (oNodeServer.ttsservice === "elevenlabs") {
                             $("#divGoogleTTSAudioConfig").hide();
                             $("#divElevenLabsOptions").show();
-                            $("#divSSML").hide();                            
+                            $("#divSSML").hide();
                         } else {
                             $("#divGoogleTTSAudioConfig").hide();
                             $("#divElevenLabsOptions").hide();
-                             $("#divSSML").show();
+                            $("#divSSML").show();
                         }
                     } catch (error) {
                     }
@@ -537,7 +537,8 @@
 | Enable SSML | Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.|
 | Rate | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1). |
 | Pitch | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech pitch (Between -20.0 and 20.0, default 0). |
-| Hailing | Before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it. |
+| Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
+| Upload hail | It allows you to upload your own hailing file. |
 | Player | Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes. In case you select No player, only output file name, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
 | Volume | Set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume = "40"; to the node). |
 | Unmute | Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing msg.unmute = true; to the node). |
