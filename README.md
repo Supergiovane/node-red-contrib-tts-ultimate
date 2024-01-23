@@ -158,6 +158,13 @@ return msg;
 ```
 
 ```js
+// Play a message with custom voice ID
+msg.payload = "Hello, the current temperature is 12°";
+msg.voiceId = 2
+return msg;
+```
+
+```js
 // Play smoke detection
 msg.sonoshailing = "SmokeAlert";
 msg.payload = "Warning, smoke detected. Fire extinguishers are in the kitchen, hall and garage.";
