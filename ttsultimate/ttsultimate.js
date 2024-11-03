@@ -600,7 +600,7 @@ module.exports = function (RED) {
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
                 if (!fs.existsSync(node.sFileToBePlayed)) {
-                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechPolly([node.server.polly, params]);
                 } else {
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
@@ -619,7 +619,7 @@ module.exports = function (RED) {
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
                 if (!fs.existsSync(node.sFileToBePlayed)) {
-                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
                 } else {
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
@@ -637,7 +637,7 @@ module.exports = function (RED) {
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
                 if (!fs.existsSync(node.sFileToBePlayed)) {
-                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
                 } else {
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
@@ -653,7 +653,7 @@ module.exports = function (RED) {
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
                 if (!fs.existsSync(node.sFileToBePlayed)) {
-                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
                 } else {
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
@@ -673,8 +673,29 @@ module.exports = function (RED) {
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
                 if (!fs.existsSync(node.sFileToBePlayed)) {
-                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using' + node.server.ttsservice });
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechElevenLabs(node.server.elevenlabsTTS, params);
+                } else {
+                  node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                }
+              } else if (node.server.ttsservice === "elevenlabsv2") {
+                // VoiceId is: code 
+                const params = {
+                  stream: false,
+                  text: msg,
+                  voice: node.voiceId,
+                  model_id: "eleven_multilingual_v2",
+                  voice_settings: {
+                    stability: config.elevenlabsStability,
+                    similarity_boost: config.elevenlabsSimilarity_boost
+                  }
+                };
+                // Download or read from cache
+                node.sFileToBePlayed = getFilename(msg, params);
+                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
+                if (!fs.existsSync(node.sFileToBePlayed)) {
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
+                  data = await synthesizeSpeechElevenLabsV2(node.server.elevenlabsTTS, params);
                 } else {
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
                 }
@@ -683,7 +704,7 @@ module.exports = function (RED) {
               // Save the downloaded file into the cache
               if (data !== undefined) {
                 try {
-                  console.log("Salvelox " + node.sFileToBePlayed)
+                  //console.log("Salvelox " + node.sFileToBePlayed)
                   fs.writeFileSync(node.sFileToBePlayed, data);
                 } catch (error) {
                   RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
@@ -1181,6 +1202,20 @@ module.exports = function (RED) {
           }
         });
       });
+    }
+    // elevenLabs TTS Service
+    async function synthesizeSpeechElevenLabsV2(ttsService, params) {
+      try {
+        const audioStream = await ttsService.generate(params);
+        const chunks = [];
+        for await (const chunk of audioStream) {
+          chunks.push(chunk);
+        }
+        const content = Buffer.concat(chunks);
+        return content;
+      } catch (error) {
+        throw (error);
+      }
     }
 
     // 04/01/2021 hashing filename to avoid issues with long filenames.

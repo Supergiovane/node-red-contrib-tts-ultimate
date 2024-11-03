@@ -63,27 +63,27 @@
             // 22/12/2020 Hide parts of the ui
             // ##########################################################
             $("#node-config-input-ttsservice").change(function (e) {
-                if ($("#node-config-input-ttsservice").val() == "polly") {
+                if ($("#node-config-input-ttsservice").val() === "polly") {
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
                     $("#elevenlabsForm").hide();
                     $("#pollyForm").show();
-                } else if ($("#node-config-input-ttsservice").val() == "googletts") {
+                } else if ($("#node-config-input-ttsservice").val() === "googletts") {
                     $("#microsoftAzureForm").hide();
                     $("#pollyForm").hide();
                     $("#elevenlabsForm").hide();
                     $("#GoogleForm").show();
-                } else if ($("#node-config-input-ttsservice").val() == "googletranslate") {
+                } else if ($("#node-config-input-ttsservice").val() === "googletranslate") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
                     $("#elevenlabsForm").hide();
-                } else if ($("#node-config-input-ttsservice").val() == "microsoftazuretts") {
+                } else if ($("#node-config-input-ttsservice").val() === "microsoftazuretts") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#elevenlabsForm").hide();
                     $("#microsoftAzureForm").show();
-                } else if ($("#node-config-input-ttsservice").val() == "elevenlabs") {
+                } else if ($("#node-config-input-ttsservice").val().includes("elevenlabs")) {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
@@ -182,9 +182,10 @@
             <select id="node-config-input-ttsservice">
                 <option value="polly">Amazon Polly</option>
                 <option value="googletts">Google TTS</option>
-                <option value="googletranslate">Google without authentication</option>   
+                <option value="googletranslate">Google free TTS</option>   
                 <option value="microsoftazuretts">Microsoft Azure TTS</option>
-                <option value="elevenlabs">ElevenLabs TTS (elevenlabs.io)</option>
+                <option value="elevenlabs">ElevenLabs TTS V1 (deprecated)</option>
+                <option value="elevenlabsv2">ElevenLabs TTS V2 Multilingual</option>
             </select>&nbsp&nbsp<b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
         </div>
         <div id="pollyForm">
@@ -252,7 +253,8 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
 
-* **TTS Service using Amazon AWS (Polly)**<br/>
+* **TTS Service using Amazon AWS (Polly)**
+
     > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
     
     **AWS Access key**<br/>
@@ -262,12 +264,14 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
     AWS access Secret key. 
 <br/>
 
-* **TTS Service using Google (without credentials)**<br/>
+* **TTS Service using Google (without credentials)**
+
     This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
     
 <br/>
 
-* **TTS Service using Google TTS**<br/>
+* **TTS Service using Google TTS**
+
     For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
     **Google credentials file path**<br/>
     Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
@@ -275,15 +279,22 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
     > [Enable billing for your project](https://support.google.com/cloud/answer/6293499#enable-billing)<br/>
     > [Enable the Google Cloud Text-to-Speech API](https://console.cloud.google.com/flows/enableapi?apiid=texttospeech.googleapis.com)<br/>
     
-
 <br/>
 
-* **TTS Service using Microsot Azure TTS**<br/>
+* **TTS Service using Microsot Azure TTS**
+
     For Microsoft Azure TTS Engine, you need to have a microsoft account and register to the Azure portal.<br/>
     See my **YOUTUBE video**, here! https://youtu.be/asXajNpRWME<br/>
     You need to register here https://portal.azure.com, then ceate a Voice Service (please click here https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices), then click on the left "Keys and Endpoint" menu and copy/paste the KEY and your Location (for example westus).<br/>
     Then paste both into the TTS-Ultimate engine configuration window and restart node-red.<br/>
     
+<br/>
+
+* **TTS Service using ElevenLabs**
+
+    Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
+    You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
+    After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>    
 <br/>
 
 

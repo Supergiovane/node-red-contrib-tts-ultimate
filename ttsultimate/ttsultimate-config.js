@@ -16,6 +16,7 @@ module.exports = function (RED) {
     const GoogleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
     const microsoftAzureTTS = require("microsoft-cognitiveservices-speech-sdk"); // 12/10/2021
     const elevenlabsTTS = require("elevenlabs-node"); // 03/08/2023
+    const ElevenLabsClient = require("elevenlabs").ElevenLabsClient;
 
     var fs = require('fs');
     var path = require("path");
@@ -217,7 +218,7 @@ module.exports = function (RED) {
         }
         // #########################################
 
-        // elevenlabsTTS
+        // elevenlabsTTS v1 deprecated
         if (node.ttsservice === "elevenlabs") {
             node.elevenlabsTTSVoiceList = []
             try {
@@ -234,12 +235,12 @@ module.exports = function (RED) {
                                 if (x < y) { return -1; }
                                 if (x > y) { return 1; }
                                 return 0;
-                            }); 
+                            });
                         } catch (error) {
                             RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs 2 voices: ' + error.message);
                             node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs 2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
                         }
-                        
+
                     });
                 } catch (error) {
                     RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs voices: ' + error.message);
@@ -248,6 +249,46 @@ module.exports = function (RED) {
                 RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS service enabled.")
             } catch (error) {
                 RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS service disabled. " + error.message)
+            }
+
+        } else {
+            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+        }
+
+        // elevenlabsTTS v2
+        if (node.ttsservice === "elevenlabsv2") {
+            const elevenlabsv2 = new ElevenLabsClient({
+                apiKey: node.credentials.elevenlabsKey
+            });
+            node.elevenlabsTTSVoiceList = []
+            try {
+                node.elevenlabsTTS = elevenlabsv2;
+                try {
+                    node.elevenlabsTTS.voices.getAll().then((res) => {
+                        try {
+                            res.voices.forEach(element => {
+                                node.elevenlabsTTSVoiceList.push({ name: element.labels.accent + (element.labels.language !== undefined ? " (" + element.labels.language + ")" : "") + " - " + element.name + " (" + element.labels.gender + ")", id: element.voice_id })
+                            });
+                            node.elevenlabsTTSVoiceList.sort(function (a, b) {
+                                let x = a.name.toLowerCase();
+                                let y = b.name.toLowerCase();
+                                if (x < y) { return -1; }
+                                if (x > y) { return 1; }
+                                return 0;
+                            });
+                        } catch (error) {
+                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabsv2 voices: ' + error.message);
+                            node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabsv2  voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
+                        }
+
+                    });
+                } catch (error) {
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabsv2 voices: ' + error.message);
+                    node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabsv2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
+                }
+                RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS servicev2 enabled.")
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS servicev2 disabled. " + error.message)
             }
 
         } else {
@@ -494,7 +535,7 @@ module.exports = function (RED) {
 
             } else if (ttsservice === "microsoftazuretts") {
                 res.json(node.microsoftAzureTTSVoiceList);
-            } else if (ttsservice === "elevenlabs") {
+            } else if (ttsservice.includes("elevenlabs")) {
                 res.json(node.elevenlabsTTSVoiceList);
             }
 

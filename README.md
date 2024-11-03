@@ -42,11 +42,10 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 * **Amazon Voices, Gooogle Translate Voices, Google TTS Voices, Microsoft TTS Azure voices and Elevenlabs.io voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
-* **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time.
-* **TTS caching**. Amazon AWS and Google charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
-* **UPLOAD your own audio files**. You can upload your own audio files with OwnFile node.
+* **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
+* **TTS caching**. Elevenlabs, Amazon AWS and Google charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
 * **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
-* Send a simple payload with the text you want to speech out. For example <code>node.send({payload:"Hello there!"});</code>.
+* **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
 
 >
 > ***UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE***
@@ -75,7 +74,7 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
+You can choose between Elevenlabs.io, Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
 For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
@@ -114,6 +113,11 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
    
 <br/>
 
+* **TTS Service using ElevenLabs**<br/>
+    Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
+    You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
+    After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>    
+<br/>
 
 **Node-Red IP**<br/>
 set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
