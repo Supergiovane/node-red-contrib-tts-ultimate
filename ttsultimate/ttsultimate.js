@@ -117,7 +117,7 @@ module.exports = function (RED) {
     };
 
 
-    let iWaitAfterSync = 500;
+    let iWaitAfterSync = 100;
     // 24/08/2021 Sync wrapper
     function PLAYSync(_toPlay, _oPlayer = node.SonosClient) {
       return new Promise((resolve, reject) => {
