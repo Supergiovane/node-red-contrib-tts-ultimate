@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 2.0.9</b> November 2024<br/>
+- Fixed little issue with music queue management.<br/>
+</p>
+<p>
 <b>Version 2.0.8</b> November 2024<br/>
 - NEW: ElevenLabs V2 Multilingual TTS Engine has been added.<br/>
 - ElevenLabs V1 is now in legacy/deprecation state.<br/>
