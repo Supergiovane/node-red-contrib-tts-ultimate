@@ -687,7 +687,9 @@ module.exports = function (RED) {
                   model_id: "eleven_multilingual_v2",
                   voice_settings: {
                     stability: config.elevenlabsStability,
-                    similarity_boost: config.elevenlabsSimilarity_boost
+                    similarity_boost: config.elevenlabsSimilarity_boost,
+                    style: config.elevenlabsStyle || 0,
+                    use_speaker_boost: config.elevenlabsUse_speaker_boost === undefined ? true : config.elevenlabsUse_speaker_boost
                   }
                 };
                 // Download or read from cache

@@ -3,6 +3,10 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
 <p>
+<b>Version 2.0.10</b> November 2024<br/>
+- ElevenLabs V2: now you can set the additional parameters for the voice.<br/>
+</p>
+<p>
 <b>Version 2.0.9</b> November 2024<br/>
 - Fixed little issue with music queue management.<br/>
 </p>

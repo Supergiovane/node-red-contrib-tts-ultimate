@@ -41,6 +41,14 @@
             <label for="node-input-elevenlabsSimilarity_boost"><i class="fa fa-volume-up"></i> Similarity boost</label>
             <input type="text" id="node-input-elevenlabsSimilarity_boost" style="width:60px"> (Default 0.5)
         </div>
+        <div class="form-row">
+          <label for="node-input-elevenlabsStyle"><i class="fa fa-volume-up"></i> Style Exaggeration </label>
+          <input type="text" id="node-input-elevenlabsStyle" style="width:60px"> (Default 0.0)
+        </div>
+        <div class="form-row">
+          <label></label>
+          <input type="checkbox" id="node-input-elevenlabsUse_speaker_boost" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Speaker boost</label>
+        </div>
     </div>
     <div class="form-row" id="divSSML">
         <label></label>
@@ -142,6 +150,8 @@
         unmuteIfMuted: { value: true },
         elevenlabsStability: { value: "0.5", required: false },
         elevenlabsSimilarity_boost: { value: "0.5", required: false },
+        elevenlabsStyle: { value: "0.0", required: false },
+        elevenlabsUse_speaker_boost: { value: true, required: false },
       },
       inputs: 1,
       outputs: 2,
@@ -537,6 +547,10 @@
 | Enable SSML | Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.|
 | Rate | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1). |
 | Pitch | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech pitch (Between -20.0 and 20.0, default 0). |
+| Stability | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
+| Similarity | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
+| Style Exaggeration | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.)|
+| Speaker boost | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
 | Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
 | Upload hail | It allows you to upload your own hailing file. |
 | Player | Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes. In case you select No player, only output file name, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
