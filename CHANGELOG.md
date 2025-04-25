@@ -2,6 +2,17 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
+## BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE !
+
+<p>
+<b>Version 3.0.0</b> April 2025<br/>
+- BREAKING CHANGE: Amazon Polly and Microsoft Azure TTS have been removed due to lack of time to update the old and complex API's. Anyone can add these again by forking the project and do a PR. Thank you!. If you still need those TTS, please stay or revert to 2.0.10.<br/>
+</p>
+
+-----------------------------------------------------------------------
+  
+    
+    
 <p>
 <b>Version 2.0.10</b> November 2024<br/>
 - ElevenLabs V2: now you can set the additional parameters for the voice.<br/>

@@ -20,13 +20,11 @@
 ```
 </details>
 
- ## WARNING 
- Due to Microsoft Azure SDK limitation, the node can only be installed on systems with **NodeJS** versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). 
 
 ## DESCRIPTION
-This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers.<br/>
+This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers, but you can also simply create an audio file, without using SONOS at all.<br/>
 You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
-Uses Amazon Polly (standard and neural engines), Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, ElevenLabs.io TTS voices and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
+You can also use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 
@@ -39,22 +37,23 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 ## FEATURES
 * **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
 * **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
-* **Amazon Voices, Gooogle Translate Voices, Google TTS Voices, Microsoft TTS Azure voices and Elevenlabs.io voices** are all supported, with all avaiables languages and genders.
+* **Gooogle Translate Voices, Google TTS Voices and Elevenlabs.io voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
 * **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
-* **TTS caching**. Elevenlabs, Amazon AWS and Google charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
+* **TTS caching**. Elevenlabs and Google paid service, charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
 * **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
 * **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
 
->
-> ***UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE***
->
-> Supergiovane takes care about your brain and your time.<br/>
-> Install TTS-Ultimate. Both SonosPollyTTS and TTS-Ultimate can cohexist.<br/>
-> Then just delete your old SonosPollyTTS nodes and replace it with TTS-Ultimate nodes.<br/>
-> The cache will remain the same. Your own audio files and hailing files won't be touched. You'll find it again in TTS-Ultimate<br/>
-> 
+
+## BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE !
+
+<p>
+<b>Version 3.0.0</b> April 2025<br/>
+- BREAKING CHANGE: Amazon Polly and Microsoft Azure TTS have been removed due to lack of time to update the old and complex API's. Anyone can add these again by forking the project and do a PR. Thank you!. If you still need those TTS, please stay or revert to 2.0.10.<br/>
+</p>
+
+-----------------------------------------------------------------------
 
 <br/>
 
@@ -74,19 +73,20 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Elevenlabs.io, Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
+You can choose between Elevenlabs.io, Google (without credentials), Google TTS (require credentials and registration to google).<br/>
 For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
 
-* **TTS Service using Amazon AWS (Polly)**<br/>
-    > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
-   
-   **AWS Access key**<br/>
-   AWS access key credential
-   <br/><br/>
-   **AWS Secret key**<br/>
-   AWS access Secret key. 
+* **TTS Service using Amazon AWS (Polly)**<br/>  
+
+    (REMOVED IN v3.0.0 AND NOT USED ANYMORE)  
+    
+    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
+    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```  
+
+    [Navigate here go here to view the old version](https://www.npmjs.com/package/node-red-contrib-tts-ultimate/v/2.0.10)
+    
 <br/>
 
 * **TTS Service using Google (without credentials)**<br/>
@@ -105,12 +105,16 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 
 <br/>
 
-* **TTS Service using Microsot Azure TTS**<br/>
-   For Microsoft Azure TTS Engine, you need to have a microsoft account and register to the Azure portal.<br/>
-   See my **YOUTUBE video**, here! https://youtu.be/asXajNpRWME<br/>
-   You need to register here https://portal.azure.com, then ceate a Voice Service (please click here https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices), then click on the left "Keys and Endpoint" menu and copy/paste the KEY and your Location (for example westus).<br/>
-   Then paste both into the TTS-Ultimate engine configuration window and restart node-red.<br/>
-   
+* **TTS Service using Microsot Azure TTS**
+
+    (REMOVED IN v3.0.0 AND NOT USED ANYMORE)  
+
+    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
+    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```  
+    
+    [Navigate here go here to view the old version](https://www.npmjs.com/package/node-red-contrib-tts-ultimate/v/2.0.10)  
+
+  
 <br/>
 
 * **TTS Service using ElevenLabs**<br/>
