@@ -1,5 +1,5 @@
 <script type="text/javascript">
-
+    
     RED.nodes.registerType("ttsultimate-config", {
         category: 'config',
         defaults:
@@ -26,25 +26,24 @@
             accessKey: { type: "text" },
             secretKey: { type: "password" },
             mssubscriptionKey: { type: "text" },
-            mslocation: { type: "text" },
-            elevenlabsKey: { type: "text" }
+            mslocation: { type: "text" }
         },
         label: function () {
             return this.name || "";
         },
         oneditprepare: function () {
             var node = this;
-
+     
             // 21/03/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
             // $.getJSON('ttsultimateGetEthAddress', (data) => {
-            $("#pleaseDeploy").hide();
-            $("#allGUI").show();
+                 $("#pleaseDeploy").hide();
+                $("#allGUI").show();
             // }).fail(function (jqxhr) {
             //     $("#pleaseDeploy").show();
             //     $("#allGUI").hide();
             // });
 
-
+            
             if (node.noderedipaddress === undefined) {
                 // Put the default address of the machine
                 $.getJSON('ttsultimateGetEthAddress', (data) => {
@@ -63,31 +62,22 @@
             // 22/12/2020 Hide parts of the ui
             // ##########################################################
             $("#node-config-input-ttsservice").change(function (e) {
-                if ($("#node-config-input-ttsservice").val() === "polly") {
+                if ($("#node-config-input-ttsservice").val() == "polly") {
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
-                    $("#elevenlabsForm").hide();
                     $("#pollyForm").show();
-                } else if ($("#node-config-input-ttsservice").val() === "googletts") {
+                } else if ($("#node-config-input-ttsservice").val() == "googletts") {
                     $("#microsoftAzureForm").hide();
                     $("#pollyForm").hide();
-                    $("#elevenlabsForm").hide();
                     $("#GoogleForm").show();
-                } else if ($("#node-config-input-ttsservice").val() === "googletranslate") {
+                } else if ($("#node-config-input-ttsservice").val() == "googletranslate") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
                     $("#microsoftAzureForm").hide();
-                    $("#elevenlabsForm").hide();
-                } else if ($("#node-config-input-ttsservice").val() === "microsoftazuretts") {
+                } else if ($("#node-config-input-ttsservice").val() == "microsoftazuretts") {
                     $("#pollyForm").hide();
                     $("#GoogleForm").hide();
-                    $("#elevenlabsForm").hide();
                     $("#microsoftAzureForm").show();
-                } else if ($("#node-config-input-ttsservice").val().includes("elevenlabs")) {
-                    $("#pollyForm").hide();
-                    $("#GoogleForm").hide();
-                    $("#microsoftAzureForm").hide();
-                    $("#elevenlabsForm").show();
                 }
             });
             // ##########################################################
@@ -146,7 +136,7 @@
 </script>
 
 
-<script type="text/html" data-template-name="ttsultimate-config">
+<script type="text/x-red" data-template-name="ttsultimate-config">
     <div id="pleaseDeploy">
         <p align="center"> THIS IS YOUR FIRST CONFIG-NODE<br/> AND I NEED TO CREATE SOME THINGS<br/> BEFORE LETTING YOU PROCEED.<br/><b>PLEASE SAVE, FULL DEPLOY <br/>AND RE-OPEN THIS WINDOW</b><br/>
             TO BE ABLE TO FINISH THE CONFIGURATION SETUP<br/>
@@ -180,12 +170,10 @@
         <div class="form-row">
             <label for="node-config-input-ttsservice"><i class="fa fa-comments"></i> TTS Service</label>
             <select id="node-config-input-ttsservice">
-                <option value="polly">(REMOVED. SEE THE GITHUB PROJECT PAGE)Amazon Polly</option>
+                <option value="polly">Amazon Polly</option>
                 <option value="googletts">Google TTS</option>
-                <option value="googletranslate">Google free TTS</option>   
-                <option value="microsoftazuretts">(REMOVED. SEE THE GITHUB PROJECT PAGE)Microsoft Azure TTS</option>
-                <option value="elevenlabs">ElevenLabs TTS V1 (deprecated)</option>
-                <option value="elevenlabsv2">ElevenLabs TTS V2 Multilingual</option>
+                <option value="googletranslate">Google without authentication</option>   
+                <option value="microsoftazuretts">Microsoft Azure TTS</option>   
             </select>&nbsp&nbsp<b><span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help configure</u></a></span>
         </div>
         <div id="pollyForm">
@@ -214,12 +202,7 @@
                 <input style="width:58%" type="text" id="node-config-input-mslocation">
             </div>
         </div>
-    <div id="elevenlabsForm">
-        <div class="form-row">
-            <label style="width:35%" for="node-config-input-elevenlabsKey"><i class="fa fa-user"></i> <a href="https://elevenlabs.io" target="_new">Elevenlabs</a>API key</label>
-            <input style="width:58%" type="text" id="node-config-input-elevenlabsKey">
-        </div>        
-    </div>
+
         <div class="form-row">
             <label for="node-config-input-purgediratrestart"><i class="fa fa-folder-o"></i> TTS Cache</label>
             <select id="node-config-input-purgediratrestart">
@@ -238,93 +221,12 @@
 </script>
 
 
-<script type="text/markdown" data-help-name="ttsultimate-config">
-<p>Here you can configure your TTS engine to be used.</p>
-
-# TTS Service node
-Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
-IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
-PLEASE ALLOW MDNS AND UDP AS WELL
-
-**TTS Service**<br/>
-You can choose between Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
-For Google TTS Engine, you can choose pitch and speed rate of the voice.
-<br/>
-<br/>
-
-* **(REMOVED AND NOT USED ANYMORE) TTS Service using Amazon AWS (Polly)**
-
-    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
-    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```
-
-    > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
-       
-<br/>
-
-* **TTS Service using Google (without credentials)**
-
-    This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
-    
-<br/>
-
-* **TTS Service using Google TTS**
-
-    For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
-    **Google credentials file path**<br/>
-    Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
-    > [Select or create a Cloud Platform project](https://console.cloud.google.com/project)<br/>
-    > [Enable billing for your project](https://support.google.com/cloud/answer/6293499#enable-billing)<br/>
-    > [Enable the Google Cloud Text-to-Speech API](https://console.cloud.google.com/flows/enableapi?apiid=texttospeech.googleapis.com)<br/>
-    
-<br/>
-
-* **(REMOVED AND NOT USED ANYMORE) TTS Service using Microsot Azure TTS**
-
-    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
-    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```
-   
-<br/>
-
-* **TTS Service using ElevenLabs**
-
-    Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
-    You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
-    After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>    
-<br/>
-
-
-**Node-Red IP**<br/>
-set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
-
-**Host Port**<br/>
-Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
-
-**TTS Cache**
-<br/>
-***Purge and delete the TTS cache folder at deploy or restart***<br/>
-On each deploy or node-red restart, delete all tts files in the cache. This is useful not to run out of disk space, in case you've a lot of TTS speech files.
-<br/>
-***Leave the TTS cache folder untouched*** (suggested only if you have enough disk space)<br/>
-Don't delete the files cached. Useful if you wish to keep the tts files, even in case of internet outages, node-red restart or reboots.
-<br/> 
-
-**Cache root folder**
-<br/>
-Set your preferred output folder for the files downloaded by the TTS Engine.<br/>
-This is useful if you wish to save the TTS cached files in a folder accessible, for example, by a third party web servers to serve an AirPlay2 speaker.<br/>
-Leave this field blank for the default.<br/>
-<br/> 
-<br/>
-
-
-
-
+<script type="text/x-red" data-help-name="ttsultimate-config">
     <p>
         <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
     </p>
      <p>
-      Configuration help is also here <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
+      Configuration help is in the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
     </p>
    
 </script>

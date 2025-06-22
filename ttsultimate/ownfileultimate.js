@@ -2,7 +2,7 @@
 
 
 module.exports = function (RED) {
-    var formidable = import('formidable');
+    var formidable = require('formidable');
     var fs = require('fs');
     var path = require('path');
 

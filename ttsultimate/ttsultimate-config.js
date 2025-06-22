@@ -1,3 +1,4 @@
+const { Redshift } = require('aws-sdk');
 
 module.exports = function (RED) {
     'use strict';
@@ -9,17 +10,20 @@ module.exports = function (RED) {
     }
 
 
-    // Setting up the engines
+
+    const AWS = require('aws-sdk');
     const GoogleTTS = require('@google-cloud/text-to-speech');
     const GoogleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
-    const elevenlabsTTS = require("elevenlabs-node"); // 03/08/2023
-    const ElevenLabsClient = require("elevenlabs").ElevenLabsClient;
-
+    const microsoftAzureTTS = require("microsoft-cognitiveservices-speech-sdk"); // 12/10/2021
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
     const oOS = require('os');
     const sonos = require('sonos');
+
+    AWS.config.update({
+        region: 'us-east-1'
+    });
 
     // Configuration Node Register
     function TTSConfigNode(config) {
@@ -89,6 +93,23 @@ module.exports = function (RED) {
 
 
         //#region "INSTANTIATE SERVICE ENGINES"
+        // POLLY
+        if (node.ttsservice === "polly") {
+            var params = {
+                accessKeyId: node.credentials.accessKey,
+                secretAccessKey: node.credentials.secretKey,
+                apiVersion: '2016-06-10'
+            };
+            try {
+                node.polly = new AWS.Polly(params);
+                RED.log.info("ttsultimate-config " + node.id + ": Polly service enabled.")
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": Polly service disabled. " + error.message)
+            }
+        } else {
+            //RED.log.info("ttsultimate-config " + node.id + ": Polly service not used.");
+        }
+
 
         // Google TTS with authentication
         if (node.ttsservice === "googletts") {
@@ -124,85 +145,76 @@ module.exports = function (RED) {
         }
 
 
+        // 12/10/2021 Microsoft Azure TTS SpeechConfig.fromSubscription(subscriptionKey, serviceRegion) 
+        if (node.ttsservice === "microsoftazuretts") {
+            // #########################################
+            node.setMicrosoftAzureVoice = function (_voiceName) {
+                let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
+                speechConfig.speechSynthesisVoiceName = _voiceName;
+                speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+                node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
+                return node.microsoftAzureTTS;
+            }
+            try {
+
+                let speechConfig = microsoftAzureTTS.SpeechConfig.fromSubscription(node.credentials.mssubscriptionKey, node.credentials.mslocation);
+                //speechConfig.speechSynthesisLanguage = "it-IT";
+                //speechConfig.speechSynthesisVoiceName = "it-IT-IsabellaNeural";
+                speechConfig.speechSynthesisOutputFormat = microsoftAzureTTS.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+                node.microsoftAzureTTS = new microsoftAzureTTS.SpeechSynthesizer(speechConfig);
+                node.microsoftAzureTTSVoiceList = [];
+                // Get the voices
+                async function listVoicesAzure() {
+                    const httpsAzure = require('https')
+                    let options = {
+                        hostname: node.credentials.mslocation + '.tts.speech.microsoft.com',
+                        port: 443,
+                        path: '/cognitiveservices/voices/list',
+                        method: 'GET',
+                        headers: {
+                            'Ocp-Apim-Subscription-Key': node.credentials.mssubscriptionKey
+                        }
+                    }
+                    const reqAzure = httpsAzure.request(options, resVoices => {
+                        var sChunkResponse = "";
+                        resVoices.on('data', d => {
+                            sChunkResponse += d.toString();
+                        })
+                        resVoices.on('end', () => {
+                            try {
+                                let oVoices = JSON.parse(sChunkResponse);
+                                RED.log.info('ttsultimate-config ' + node.id + ': Microsoft Azure voices count: ' + oVoices.length);
+                                for (let index = 0; index < oVoices.length; index++) {
+                                    const element = oVoices[index];
+                                    node.microsoftAzureTTSVoiceList.push({ name: element.ShortName + " (" + element.Gender + ")", id: element.ShortName })
+                                }
+                            } catch (error) {
+                                RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error parsing Microsoft Azure TTS voices: ' + error.message);
+                                node.microsoftAzureTTSVoiceList.push({ name: "Error parsing Microsoft Azure voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" });
+                            }
+                        })
+                    })
+                    reqAzure.on('error', error => {
+                        RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error contacting Azure for getting the voices list: ' + error.message);
+                        node.microsoftAzureTTSVoiceList.push({ name: "Error getting Microsoft Azure voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
+                        reqAzure.end();
+                    })
+                    reqAzure.end();
+                };
+                RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service enabled.")
+                try {
+                    listVoicesAzure();
+                } catch (error) {
+                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting Microsoft Azure voices: ' + error.message);
+                }
+
+            } catch (error) {
+                RED.log.warn("ttsultimate-config " + node.id + ": Microsoft AzureTTS service disabled. " + error.message)
+            }
+        } else {
+            //RED.log.info("ttsultimate-config " + node.id + ": Microsoft AzureTTS service not used. ");
+        }
         // #########################################
-
-        // elevenlabsTTS v1 deprecated
-        if (node.ttsservice === "elevenlabs") {
-            node.elevenlabsTTSVoiceList = []
-            try {
-                node.elevenlabsTTS = elevenlabsTTS;
-                try {
-                    node.elevenlabsTTS.getVoices(node.credentials.elevenlabsKey).then((res) => {
-                        try {
-                            res.voices.forEach(element => {
-                                node.elevenlabsTTSVoiceList.push({ name: element.labels.accent + " - " + element.name + " (" + element.labels.gender + ")", id: element.voice_id })
-                            });
-                            node.elevenlabsTTSVoiceList.sort(function (a, b) {
-                                let x = a.name.toLowerCase();
-                                let y = b.name.toLowerCase();
-                                if (x < y) { return -1; }
-                                if (x > y) { return 1; }
-                                return 0;
-                            });
-                        } catch (error) {
-                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs 2 voices: ' + error.message);
-                            node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs 2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                        }
-
-                    });
-                } catch (error) {
-                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs voices: ' + error.message);
-                    node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                }
-                RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS service enabled.")
-            } catch (error) {
-                RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS service disabled. " + error.message)
-            }
-
-        } else {
-            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
-        }
-
-        // elevenlabsTTS v2
-        if (node.ttsservice === "elevenlabsv2") {
-            const elevenlabsv2 = new ElevenLabsClient({
-                apiKey: node.credentials.elevenlabsKey
-            });
-            node.elevenlabsTTSVoiceList = []
-            try {
-                node.elevenlabsTTS = elevenlabsv2;
-                try {
-                    node.elevenlabsTTS.voices.getAll().then((res) => {
-                        try {
-                            res.voices.forEach(element => {
-                                node.elevenlabsTTSVoiceList.push({ name: element.labels.accent + (element.labels.language !== undefined ? " (" + element.labels.language + ")" : "") + " - " + element.name + " (" + element.labels.gender + ")", id: element.voice_id })
-                            });
-                            node.elevenlabsTTSVoiceList.sort(function (a, b) {
-                                let x = a.name.toLowerCase();
-                                let y = b.name.toLowerCase();
-                                if (x < y) { return -1; }
-                                if (x > y) { return 1; }
-                                return 0;
-                            });
-                        } catch (error) {
-                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabsv2 voices: ' + error.message);
-                            node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabsv2  voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                        }
-
-                    });
-                } catch (error) {
-                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabsv2 voices: ' + error.message);
-                    node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabsv2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                }
-                RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS servicev2 enabled.")
-            } catch (error) {
-                RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS servicev2 disabled. " + error.message)
-            }
-
-        } else {
-            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
-        }
-
 
         //#endregion
 
@@ -365,7 +377,40 @@ module.exports = function (RED) {
             var jListVoices = [];
 
             // 23/12/2020 Based on tts service engine, return appropriate voice list
-            if (ttsservice === "googletts") {
+            if (ttsservice === "polly") {
+                try {
+                    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Polly.html#describeVoices-property
+                    var jfiltroVoci = {
+                        //Engine: standard | neural,
+                        //IncludeAdditionalLanguageCodes: true 
+                        //LanguageCode: arb | cmn-CN | cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-MX | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | hi-IN | ko-KR | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR,
+                        //NextToken: "STRING_VALUE"
+                    };
+                    node.polly.describeVoices(jfiltroVoci, function (err, data) {
+                        if (err) {
+                            RED.log.warn('ttsultimate-config ' + node.id + ': Error getting polly voices ' + err);
+                            jListVoices.push({ name: "Error retrieving voices. " + err + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
+                            res.json(jListVoices)
+                        } else {
+                            for (let index = 0; index < data.Voices.length; index++) {
+                                const oVoice = data.Voices[index];
+                                if (oVoice.hasOwnProperty("SupportedEngines")) {
+                                    oVoice.SupportedEngines.forEach(voicetype => {
+                                        jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender + " - " + voicetype, id: oVoice.Id + "#engineType:" + voicetype })
+                                    });
+                                } else {
+                                    jListVoices.push({ name: oVoice.LanguageName + " (" + oVoice.LanguageCode + ") " + oVoice.Name + " - " + oVoice.Gender, id: oVoice.Id })
+                                }
+                            }
+                            res.json(jListVoices)
+                        }
+                    });
+
+                } catch (error) {
+                    jListVoices.push({ name: "Error " + error, id: "Ivy" })
+                    res.json(jListVoices)
+                }
+            } else if (ttsservice === "googletts") {
                 async function listVoices() {
                     try {
                         const [result] = await node.googleTTS.listVoices({});
@@ -408,10 +453,9 @@ module.exports = function (RED) {
                     RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting google Translate voices ' + error.message + " Please deploy and restart node-red.");
                 }
 
-            } else if (ttsservice.includes("elevenlabs")) {
-                res.json(node.elevenlabsTTSVoiceList);
+            } else if (ttsservice === "microsoftazuretts") {
+                res.json(node.microsoftAzureTTSVoiceList);
             }
-
         });
 
         // ########################################################
@@ -629,8 +673,7 @@ module.exports = function (RED) {
             accessKey: { type: "text" },
             secretKey: { type: "password" },
             mssubscriptionKey: { type: "text" },
-            mslocation: { type: "text" },
-            elevenlabsKey: { type: "text" }
+            mslocation: { type: "text" }
         }
     });
 

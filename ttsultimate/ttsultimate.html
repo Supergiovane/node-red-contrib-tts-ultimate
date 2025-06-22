@@ -1,4 +1,14 @@
-<script type="text/html" data-template-name="ttsultimate">
+<script type="text/x-red" data-help-name="ttsultimate">
+    <p>
+        <a href="https://www.paypal.me/techtoday" target="_blank"><img src='https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square' width='30%'></a>
+    </p>
+     <p>
+      Configuration help is in the <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/README.md">README</a><br/>
+    </p>
+
+</script>
+
+<script type="text/x-red" data-template-name="ttsultimate">
     <div class="form-row">
         <b>TTS Ultimate configuration</b>&nbsp&nbsp&nbsp&nbsp<span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help online</u></a></span>
         <br/>
@@ -32,35 +42,13 @@
             <input type="text" id="node-input-speakingpitch" style="width:60px"> (Between -20.0 and 20.0,  default 0)
         </div>
     </div>
-    <div id="divElevenLabsOptions" hidden>
-        <div class="form-row">
-            <label for="node-input-elevenlabsStability"><i class="fa fa-volume-up"></i> Stability</label>
-            <input type="text" id="node-input-elevenlabsStability" style="width:60px"> (default 0.5)
-        </div>
-        <div class="form-row">
-            <label for="node-input-elevenlabsSimilarity_boost"><i class="fa fa-volume-up"></i> Similarity boost</label>
-            <input type="text" id="node-input-elevenlabsSimilarity_boost" style="width:60px"> (Default 0.5)
-        </div>
-        <div class="form-row">
-          <label for="node-input-elevenlabsStyle"><i class="fa fa-volume-up"></i> Style Exaggeration </label>
-          <input type="text" id="node-input-elevenlabsStyle" style="width:60px"> (Default 0.0)
-        </div>
-        <div class="form-row">
-          <label></label>
-          <input type="checkbox" id="node-input-elevenlabsUse_speaker_boost" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Speaker boost</label>
-        </div>
-    </div>
-    <div class="form-row" id="divSSML">
+    <div class="form-row">
         <label></label>
-        <input type="checkbox" id="node-input-ssml" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Enable SSML (unsupported by Google free TTS)</label>
+        <input type="checkbox" id="node-input-ssml" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Enable SSML (unsupported by Google without authentication)</label>
     </div>
     <div class="form-row">
         <label for="node-input-sonoshailing"><i class="fa fa-bell"></i> Hailing</label>
         <select id="node-input-sonoshailing"></select> <input id="deleteSelectedFile" type="button" value="DELETE" style="width:100px">
-    </div>
-    <div class="form-row">
-        <label><i class="fa fa-upload"></i> Upload hail</label>
-        <input id="ownFileUpload" type="file" multiple="multiple">
     </div>
     <div class="form-row">
         <label for="node-input-playertype"><i class="fa fa-play"></i> Player</label>
@@ -80,6 +68,10 @@
             <input type="checkbox" id="node-input-unmuteIfMuted" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Unmute, then restore previous state after play.</label>
         </div>
         
+        <div class="form-row">
+            <label><i class="fa fa-upload"></i> Upload hail</label>
+            <input id="ownFileUpload" type="file" multiple="multiple">
+        </div>
         <div class="form-row">
             <label for="node-input-sonosipaddress"><i class="fa fa-globe"></i> Main Sonos Player</label>
             <label style="width:200px;" id="node-input-sonosipaddress">Discovering.... wait...</label>
@@ -103,503 +95,425 @@
 </script>
 
 <script type="text/javascript">
-  RED.nodes.registerType('ttsultimate',
-    {
-      category: 'TTSUltimate',
-      color: '#ffe6ff', // #ffe6ff
-      defaults:
-      {
-        name: { value: "TTS-Ultimate" },
-        voice:
+    RED.nodes.registerType('ttsultimate',
         {
-          value: "Ivy",
-          required: false
-        },
-        ssml:
-        {
-          value: false,
-          required: false
-        },
-        sonosipaddress:
-        {
-          value: "",
-          required: false
-        },
-        sonosvolume:
-        {
-          value: "20",
-          required: false,
-          type: "text"
-        },
-        sonoshailing:
-        {
-          value: "Hailing_Hailing.mp3",
-          required: false,
-        },
-        config:
-        {
-          type: "ttsultimate-config",
-          required: false
-        },
-        property: { value: "payload", required: false, validate: RED.validators.typedInput("propertyType") },
-        propertyType: { value: "msg" },
-        rules: { value: [] },
-        playertype: { value: "sonos", required: false },
-        speakingrate: { value: "1", required: false },
-        speakingpitch: { value: "0", required: false },
-        unmuteIfMuted: { value: true },
-        elevenlabsStability: { value: "0.5", required: false },
-        elevenlabsSimilarity_boost: { value: "0.5", required: false },
-        elevenlabsStyle: { value: "0.0", required: false },
-        elevenlabsUse_speaker_boost: { value: true, required: false },
-      },
-      inputs: 1,
-      outputs: 2,
-      outputLabels: function (i) {
-        var ret = "";
-        switch (i) {
-          case 0:
-            return "Play Status";
-            break;
-          case 1:
-            return "Error";
-            break;
-          default:
-            break;
-        }
-      },
-      icon: "tts-icon.png",
-      label: function () {
-        return this.name || "TTS-ultimate";
-      },
-      oneditprepare: function () {
-        var node = this;
-        var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
+            category: 'TTSUltimate',
+            color: '#ffe6ff', // #ffe6ff
+            defaults:
+            {
+                name: { value: "TTS-Ultimate" },
+                voice:
+                {
+                    value: "Ivy",
+                    required: false
+                },
+                ssml:
+                {
+                    value: false,
+                    required: false
+                },
+                sonosipaddress:
+                {
+                    value: "",
+                    required: false
+                },
+                sonosvolume:
+                {
+                    value: "20",
+                    required: false,
+                    type: "text"
+                },
+                sonoshailing:
+                {
+                    value: "Hailing_Hailing.mp3",
+                    required: false,
+                },
+                config:
+                {
+                    type: "ttsultimate-config",
+                    required: false
+                },
+                property: { value: "payload", required: false, validate: RED.validators.typedInput("propertyType") },
+                propertyType: { value: "msg" },
+                rules: { value: [] },
+                playertype: { value: "sonos", required: false },
+                speakingrate: { value: "1", required: false },
+                speakingpitch: { value: "0", required: false },
+                unmuteIfMuted: { value: true }
 
-        // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
-        // ###########################
-        $("#node-input-config").change(function () {
-          try {
-            oNodeServer = RED.nodes.node($(this).val());
-            getVoices();
-            if (oNodeServer.ttsservice === "googletts") {
-              $("#divGoogleTTSAudioConfig").show();
-              $("#divElevenLabsOptions").hide();
-            } else if (oNodeServer.ttsservice.includes("elevenlabs")) {
-              $("#divGoogleTTSAudioConfig").hide();
-              $("#divElevenLabsOptions").show();
-              $("#divSSML").hide();
-            } else {
-              $("#divGoogleTTSAudioConfig").hide();
-              $("#divElevenLabsOptions").hide();
-              $("#divSSML").show();
-            }
-          } catch (error) {
-          }
-        });
-        // ###########################
-
-
-        // 20/09/2021 Player type
-        // ###########################
-        if (node.playertype === undefined) {
-          node.playertype = "sonos";
-          $("#node-input-playertype").val("sonos");
-        }
-        if (node.playertype === "sonos") {
-          $("#divSonos").show();
-        } else {
-          $("#divSonos").hide();
-        }
-
-        $("#node-input-playertype").change(function () {
-          if ($("#node-input-playertype").val() === "sonos") {
-            $("#divSonos").show();
-          } else {
-            $("#divSonos").hide();
-          }
-        });
-        // ###########################
-
-
-        // 24/12/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
-        // !oNodeServer.hasOwnProperty("noderedipaddress") is when the config node exists, but not deployed
-        // oNodeServer.noderedipaddress === "" is when the config node has been deployed, but not configured
-        if (oNodeServer === null || oNodeServer === undefined || !oNodeServer.hasOwnProperty("noderedipaddress")) {
-          $("#pleaseDeploy").show();
-          $("#allGUI").hide();
-        } else if (oNodeServer.hasOwnProperty("noderedipaddress") && oNodeServer.noderedipaddress === "") {
-          // Config Node deployed but not configured
-          $("#pleaseDeploy").html("<p align=\"center\"><b>GOOD, YOU'RE ALMOST DONE</b><br/>PLEASE FINISH CONFIGURING<br/>THE CONFIG NODE ABOVE,<br/><b>THEN SAVE AND FULL DEPLOY</b>.</p>");
-          $("#pleaseDeploy").show();
-          $("#allGUI").hide();
-        } else {
-          $("#pleaseDeploy").hide();
-          $("#allGUI").show();
-        };
-
-
-        // 26/10/2020 Retrieve all avaiables voices
-        // #####################################
-        function getVoices() {
-          $('#node-input-voice')
-            .find('option')
-            .remove()
-            .end();
-          $.getJSON("ttsgetvoices" + encodeURIComponent(oNodeServer.id) + "?ttsservice=" + oNodeServer.ttsservice, new Date().getTime(), (data) => {
-            var aVoices = data.sort(compareVoices);
-            for (let index = 0; index < aVoices.length; index++) {
-              const oVoice = aVoices[index];
-              $("#node-input-voice").append($("<option></option>")
-                .attr("value", oVoice.id)
-                .text(`${oVoice.name} (ID: ${oVoice.id})`)
-              )
-              if (oVoice.name.indexOf("ttsultimategooglecredentials") > -1) {
-                // Cred file not present or invalid
-                // The only way is to wait some time, then refresh
-                let myNotification = RED.notify("Either you haven't uploaded the credential file, or the file is invalid. " + oVoice.name,
-                  {
-                    modal: true,
-                    fixed: true,
-                    type: 'error',
-                    buttons: [
-                      {
-                        "text": "OK",
-                        "class": "primary",
-                        "click": function (e) {
-                          myNotification.close();
-                        }
-                      }]
-                  });
-                break;
-              };
-            };
-            $("#node-input-voice").val(node.voice);
-          });
-          function compareVoices(a, b) {
-            // Use toUpperCase() to ignore character casing
-            const bandA = a.name.toUpperCase();
-            const bandB = b.name.toUpperCase();
-
-            let comparison = 0;
-            if (bandA > bandB) {
-              comparison = 1;
-            } else if (bandA < bandB) {
-              comparison = -1;
-            }
-            return comparison;
-          }
-        }
-        getVoices();
-        // #####################################
-
-        // Refresh the combo
-        // #####################################
-        node.refreshHailingList = () => {
-          return new Promise((resolve, reject) => {
-            $('#node-input-sonoshailing')
-              .find('option')
-              .remove()
-              .end();
-            try {
-              $.getJSON("getHailingFilesList", new Date().getTime(), (data) => {
-                $("#node-input-sonoshailing").append($("<option></option>")
-                  .attr("value", "0")
-                  .text("Disable")
-                )
-                data.sort().forEach(oFile => {
-                  $("#node-input-sonoshailing").append($("<option></option>")
-                    .attr("value", oFile.filename)
-                    .text(oFile.name)
-                  )
-                });
-                $("#node-input-sonoshailing").val(typeof node.sonoshailing === "undefined" ? "Hailing_Hailing.mp3" : node.sonoshailing);
-                resolve(true);
-              });
-            } catch (error) {
-              return reject(error);
-            }
-          });
-        }
-        // #####################################
-
-
-        // 09/03/2020 Upload  file or files
-        // ##########################################################
-        $("#ownFileUpload").change(function (e) {
-          var oFiles;
-          oFiles = this.files;
-          $.each(oFiles, function (i, file) {
-            var fdata = new FormData();
-            fdata.append("customHailing", file);
-
-            $.ajax({
-              url: "ttsultimateHailing",
-              type: "POST",
-              data: fdata, //add the FormData object to the data parameter
-              processData: false, //tell jquery not to process data
-              contentType: false,
-              success: function (response, status, jqxhr) {
-                if (typeof response === "object" && response.status === 404) {
-                  let myNotification = RED.notify(response.message,
-                    {
-                      modal: true,
-                      fixed: true,
-                      type: 'error',
-                      buttons: [
-                        {
-                          text: "Understood",
-                          click: function (e) {
-                            myNotification.close();
-                          }
-                        }]
-
-                    });
-                  return;
+            },
+            inputs: 1,
+            outputs: 2,
+            outputLabels: function (i) {
+                var ret = "";
+                switch (i) {
+                    case 0:
+                        return "Play Status";
+                        break;
+                    case 1:
+                        return "Error";
+                        break;
+                    default:
+                        break;
                 }
-                // Refresh the combo
-                // The only way is to wait some time, then refresh
-                let t = setTimeout(function () {
-                  node.refreshHailingList().then((success, error) => {
-                    $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
-                    $("#node-input-sonoshailing").val("Hailing_" + file.name);
-                  });
-                }, 500);
-              },
-              error: function (jqxhr, status, errorMessage) {
-                let myNotification = RED.notify(errorMessage,
-                  {
-                    modal: true,
-                    fixed: true,
-                    type: 'error',
-                    buttons: [
-                      {
-                        text: "Understood",
-                        click: function (e) {
-                          myNotification.close();
+            },
+            icon: "tts-icon.png",
+            label: function () {
+                return this.name || "TTS-ultimate";
+            },
+            oneditprepare: function () {
+                var node = this;
+                var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
+
+                // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
+                // ###########################
+                $("#node-input-config").change(function () {
+                    try {
+                        oNodeServer = RED.nodes.node($(this).val());
+                        getVoices();
+                        if (oNodeServer.ttsservice === "googletts") {
+                            $("#divGoogleTTSAudioConfig").show();
+                        } else {
+                            $("#divGoogleTTSAudioConfig").hide();
                         }
-                      }]
-
-                  });
-              }
-            });
-          });
-        });
-        // ##########################################################
-
-
-
-        // Delete selected file
-        // ##########################################################
-        $("#deleteSelectedFile").click(function () {
-          $.getJSON('deleteHailingFile?FileName=' + $("#node-input-sonoshailing").val(), (data) => {
-            node.refreshHailingList();
-          });
-        });
-        // ##########################################################
-
-
-
-        // 20/03/2020 Coronavirus issue in Itay. Getting all Sonos Groups
-        // ##########################################################
-        $.getJSON('sonosgetAllGroups', (data) => {
-          if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
-            // Transform the dropdown to a simple input
-            $("#node-input-sonosipaddress").replaceWith('<input type="text" id="node-input-sonosipaddress" style="width:150px">');
-          } else {
-            $("#node-input-sonosipaddress").replaceWith('<select id="node-input-sonosipaddress"></select>');
-            data.sort().forEach(oGroup => {
-              $("#node-input-sonosipaddress").append($("<option></option>")
-                .attr("value", oGroup.host)
-                .text(oGroup.name + " (" + oGroup.host + ")")
-              )
-            });
-          }
-          if (typeof node.sonosipaddress === "undefined" || node.sonosipaddress == "") {
-            $("#node-input-sonosipaddress").val($("#node-input-sonosipaddress option:first").val());
-          } else { $("#node-input-sonosipaddress").val(node.sonosipaddress) }
-        });
-        // ##########################################################
-
-
-        //#region ADDITIONAL PLAYERS
-        // 20/03/2020 ADDITIONAL PLAYERS
-        // ##########################################################
-        //var previousValueType = { value: "prev", label: this._("switch.previous"), hasValue: false };
-
-        // Add Selectbox with the volume for the additional players
-        function addAdditionalPlayerVolumeUI(row, _currentVolume = 0) {
-          let oAdjustVolume = $('<select/>', { class: "rowRulePlayerHostAdjustVolume", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
-          for (let index = -100; index < 100; index += 5) {
-            let sTesto = "";
-            if (index === 0) sTesto = "Same volume as Main Sonos Player";
-            if (index < 0) sTesto = "Decrease volume by " + Math.abs(index);
-            if (index > 0) sTesto = "Increase volume by " + index;
-            oAdjustVolume.append($("<option></option>")
-              .attr("value", index)
-              .text(sTesto)
-            )
-          }
-          oAdjustVolume.val(_currentVolume);
-        }
-        function resizeRule(rule) { }
-
-        $("#node-input-rule-container").css('min-height', '150px').css('min-width', '450px').editableList({
-          addItem: function (container, i, opt) { // row, index, data
-
-            if (!opt.hasOwnProperty('r')) {
-              opt.r = {};
-            }
-            let rule = opt.r;
-            if (!opt.hasOwnProperty('i')) {
-              opt._i = Math.floor((0x99999 - 0x10000) * Math.random()).toString();
-            }
-            container.css({
-              overflow: 'hidden',
-              whiteSpace: 'nowrap'
-            });
-
-
-            var row = $('<div class="form-row"/>').appendTo(container);
-            var oPlayer = $('<label>Discovering.... wait...</label>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
-            oPlayer.on("change", function () {
-              resizeRule(container);
-            });
-
-            $.getJSON('sonosgetAllGroups', (data) => {
-              if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
-                // Transform the dropdown to a simple input
-                oPlayer.remove();
-                oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
-                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
-              } else {
-                oPlayer.remove();
-                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
-                data.sort().forEach(oGroup => {
-                  oPlayer.append($("<option></option>")
-                    .attr("value", oGroup.host)
-                    .text(oGroup.name + " (" + oGroup.host + ")")
-                  )
+                    } catch (error) {
+                    }
                 });
-                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
-              }
-              oPlayer.val(rule.host);
-            });
+                // ###########################
 
-            //oPlayer.change();
-          },
-          removeItem: function (opt) {
 
-          },
-          resizeItem: resizeRule,
-          sortItems: function (rules) {
-          },
-          sortable: true,
-          removable: true
+                // 20/09/2021 Player type
+                // ###########################
+                if (node.playertype === undefined) {
+                    node.playertype = "sonos";
+                    $("#node-input-playertype").val("sonos");
+                }
+                if (node.playertype === "sonos") {
+                    $("#divSonos").show();
+                } else {
+                    $("#divSonos").hide();
+                }
+
+                $("#node-input-playertype").change(function () {
+                    if ($("#node-input-playertype").val() === "sonos") {
+                        $("#divSonos").show();
+                    } else {
+                        $("#divSonos").hide();
+                    }
+                });
+                // ###########################
+
+
+                // 24/12/2020 Check if the node is the absolute first in the flow. In this case, it has no http server instatiaced
+                // !oNodeServer.hasOwnProperty("noderedipaddress") is when the config node exists, but not deployed
+                // oNodeServer.noderedipaddress === "" is when the config node has been deployed, but not configured
+                if (oNodeServer === null || oNodeServer === undefined || !oNodeServer.hasOwnProperty("noderedipaddress")) {
+                    $("#pleaseDeploy").show();
+                    $("#allGUI").hide();
+                } else if (oNodeServer.hasOwnProperty("noderedipaddress") && oNodeServer.noderedipaddress === "") {
+                    // Config Node deployed but not configured
+                    $("#pleaseDeploy").html("<p align=\"center\"><b>GOOD, YOU'RE ALMOST DONE</b><br/>PLEASE FINISH CONFIGURING<br/>THE CONFIG NODE ABOVE,<br/><b>THEN SAVE AND FULL DEPLOY</b>.</p>");
+                    $("#pleaseDeploy").show();
+                    $("#allGUI").hide();
+                } else {
+                    $("#pleaseDeploy").hide();
+                    $("#allGUI").show();
+                };
+
+
+                // 26/10/2020 Retrieve all avaiables voices
+                // #####################################
+                function getVoices() {
+                    $('#node-input-voice')
+                        .find('option')
+                        .remove()
+                        .end();
+                    $.getJSON("ttsgetvoices" + encodeURIComponent(oNodeServer.id) + "?ttsservice=" + oNodeServer.ttsservice, new Date().getTime(), (data) => {
+                        var aVoices = data.sort(compareVoices);
+                        for (let index = 0; index < aVoices.length; index++) {
+                            const oVoice = aVoices[index];
+                            $("#node-input-voice").append($("<option></option>")
+                                .attr("value", oVoice.id)
+                                .text(oVoice.name)
+                            )
+                            if (oVoice.name.indexOf("ttsultimategooglecredentials") > -1) {
+                                // Cred file not present or invalid
+                                // The only way is to wait some time, then refresh
+                                let myNotification = RED.notify("Either you haven't uploaded the credential file, or the file is invalid. " + oVoice.name,
+                                    {
+                                        modal: true,
+                                        fixed: true,
+                                        type: 'error',
+                                        buttons: [
+                                            {
+                                                "text": "OK",
+                                                "class": "primary",
+                                                "click": function (e) {
+                                                    myNotification.close();
+                                                }
+                                            }]
+                                    });
+                                break;
+                            };
+                        };
+                        $("#node-input-voice").val(node.voice);
+                    });
+                    function compareVoices(a, b) {
+                        // Use toUpperCase() to ignore character casing
+                        const bandA = a.name.toUpperCase();
+                        const bandB = b.name.toUpperCase();
+
+                        let comparison = 0;
+                        if (bandA > bandB) {
+                            comparison = 1;
+                        } else if (bandA < bandB) {
+                            comparison = -1;
+                        }
+                        return comparison;
+                    }
+                }
+                getVoices();
+                // #####################################
+
+                // Refresh the combo
+                // #####################################
+                node.refreshHailingList = () => {
+                    return new Promise((resolve, reject) => {
+                        $('#node-input-sonoshailing')
+                            .find('option')
+                            .remove()
+                            .end();
+                        try {
+                            $.getJSON("getHailingFilesList", new Date().getTime(), (data) => {
+                                $("#node-input-sonoshailing").append($("<option></option>")
+                                    .attr("value", "0")
+                                    .text("Disable")
+                                )
+                                data.sort().forEach(oFile => {
+                                    $("#node-input-sonoshailing").append($("<option></option>")
+                                        .attr("value", oFile.filename)
+                                        .text(oFile.name)
+                                    )
+                                });
+                                $("#node-input-sonoshailing").val(typeof node.sonoshailing === "undefined" ? "Hailing_Hailing.mp3" : node.sonoshailing);
+                                resolve(true);
+                            });
+                        } catch (error) {
+                            return reject(error);
+                        }
+                    });
+                }
+                // #####################################
+
+
+                // 09/03/2020 Upload  file or files
+                // ##########################################################
+                $("#ownFileUpload").change(function (e) {
+                    var oFiles;
+                    oFiles = this.files;
+                    $.each(oFiles, function (i, file) {
+                        var fdata = new FormData();
+                        fdata.append("customHailing", file);
+
+                        $.ajax({
+                            url: "ttsultimateHailing",
+                            type: "POST",
+                            data: fdata, //add the FormData object to the data parameter
+                            processData: false, //tell jquery not to process data
+                            contentType: false,
+                            success: function (response, status, jqxhr) {
+                                if (typeof response === "object" && response.status === 404) {
+                                    let myNotification = RED.notify(response.message,
+                                        {
+                                            modal: true,
+                                            fixed: true,
+                                            type: 'error',
+                                            buttons: [
+                                                {
+                                                    text: "Understood",
+                                                    click: function (e) {
+                                                        myNotification.close();
+                                                    }
+                                                }]
+
+                                        });
+                                    return;
+                                }
+                                // Refresh the combo
+                                // The only way is to wait some time, then refresh
+                                let t = setTimeout(function () {
+                                    node.refreshHailingList().then((success, error) => {
+                                        $("#ownFileUpload").val("");// Otherwise will not re-upload a file with the same name
+                                        $("#node-input-sonoshailing").val("Hailing_" + file.name);
+                                    });
+                                }, 500);
+                            },
+                            error: function (jqxhr, status, errorMessage) {
+                                let myNotification = RED.notify(errorMessage,
+                                    {
+                                        modal: true,
+                                        fixed: true,
+                                        type: 'error',
+                                        buttons: [
+                                            {
+                                                text: "Understood",
+                                                click: function (e) {
+                                                    myNotification.close();
+                                                }
+                                            }]
+
+                                    });
+                            }
+                        });
+                    });
+                });
+                // ##########################################################
+
+
+
+                // Delete selected file
+                // ##########################################################
+                $("#deleteSelectedFile").click(function () {
+                    $.getJSON('deleteHailingFile?FileName=' + $("#node-input-sonoshailing").val(), (data) => {
+                        node.refreshHailingList();
+                    });
+                });
+                // ##########################################################
+
+
+
+                // 20/03/2020 Coronavirus issue in Itay. Getting all Sonos Groups
+                // ##########################################################
+                $.getJSON('sonosgetAllGroups', (data) => {
+                    if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
+                        // Transform the dropdown to a simple input
+                        $("#node-input-sonosipaddress").replaceWith('<input type="text" id="node-input-sonosipaddress" style="width:150px">');
+                    } else {
+                        $("#node-input-sonosipaddress").replaceWith('<select id="node-input-sonosipaddress"></select>');
+                        data.sort().forEach(oGroup => {
+                            $("#node-input-sonosipaddress").append($("<option></option>")
+                                .attr("value", oGroup.host)
+                                .text(oGroup.name + " (" + oGroup.host + ")")
+                            )
+                        });
+                    }
+                    if (typeof node.sonosipaddress === "undefined" || node.sonosipaddress == "") {
+                        $("#node-input-sonosipaddress").val($("#node-input-sonosipaddress option:first").val());
+                    } else { $("#node-input-sonosipaddress").val(node.sonosipaddress) }
+                });
+                // ##########################################################
+
+
+                //#region ADDITIONAL PLAYERS
+                // 20/03/2020 ADDITIONAL PLAYERS
+                // ##########################################################
+                //var previousValueType = { value: "prev", label: this._("switch.previous"), hasValue: false };
+
+                // Add Selectbox with the volume for the additional players
+                function addAdditionalPlayerVolumeUI(row, _currentVolume = 0) {
+                    let oAdjustVolume = $('<select/>', { class: "rowRulePlayerHostAdjustVolume", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                    for (let index = -100; index < 100; index += 5) {
+                        let sTesto = "";
+                        if (index === 0) sTesto = "Same volume as Main Sonos Player";
+                        if (index < 0) sTesto = "Decrease volume by " + Math.abs(index) ;
+                        if (index > 0) sTesto = "Increase volume by " + index;
+                        oAdjustVolume.append($("<option></option>")
+                            .attr("value", index)
+                            .text(sTesto)
+                        )
+                    }
+                    oAdjustVolume.val(_currentVolume);
+                }
+                function resizeRule(rule) { }
+
+                $("#node-input-rule-container").css('min-height', '150px').css('min-width', '450px').editableList({
+                    addItem: function (container, i, opt) { // row, index, data
+
+                        if (!opt.hasOwnProperty('r')) {
+                            opt.r = {};
+                        }
+                        let rule = opt.r;
+                        if (!opt.hasOwnProperty('i')) {
+                            opt._i = Math.floor((0x99999 - 0x10000) * Math.random()).toString();
+                        }
+                        container.css({
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap'
+                        });
+
+
+                        var row = $('<div class="form-row"/>').appendTo(container);
+                        var oPlayer = $('<label>Discovering.... wait...</label>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                        oPlayer.on("change", function () {
+                            resizeRule(container);
+                        });
+
+                        $.getJSON('sonosgetAllGroups', (data) => {
+                            if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
+                                // Transform the dropdown to a simple input
+                                oPlayer.remove();
+                                oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
+                            } else {
+                                oPlayer.remove();
+                                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+                                data.sort().forEach(oGroup => {
+                                    oPlayer.append($("<option></option>")
+                                        .attr("value", oGroup.host)
+                                        .text(oGroup.name + " (" + oGroup.host + ")")
+                                    )
+                                });
+                                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
+                            }
+                            oPlayer.val(rule.host);
+                        });
+
+                        //oPlayer.change();
+                    },
+                    removeItem: function (opt) {
+
+                    },
+                    resizeItem: resizeRule,
+                    sortItems: function (rules) {
+                    },
+                    sortable: true,
+                    removable: true
+                });
+
+                // 20/03/2020 For each rule, create a row
+                for (var i = 0; i < this.rules.length; i++) {
+                    let rule = this.rules[i];
+                    $("#node-input-rule-container").editableList('addItem', { r: rule, i: i });
+                }
+                // ##########################################################
+                //#endregion
+
+                node.refreshHailingList();
+
+            }, oneditsave: function () {
+                let node = this;
+                let rules = $("#node-input-rule-container").editableList('items');
+                node.rules = [];
+                rules.each(function (i) {
+                    let rule = $(this);
+                    let rowRulePlayerHost = rule.find(".rowRulePlayerHost").val();
+                    let rowRulePlayerHostAdjustVolume = rule.find(".rowRulePlayerHostAdjustVolume").val();
+                    node.rules.push({ host: rowRulePlayerHost, hostVolumeAdjust: rowRulePlayerHostAdjustVolume });
+                });
+                this.propertyType = $("#node-input-property").typedInput('type');
+            },
+            oneditresize: function (size) {
+                var node = this;
+
+                var rows = $("#dialog-form>div:not(.node-input-rule-container-row)");
+                var height = size.height;
+                for (var i = 0; i < rows.length; i++) {
+                    height -= $(rows[i]).outerHeight(true);
+                }
+                var editorRow = $("#dialog-form>div.node-input-rule-container-row");
+                height -= (parseInt(editorRow.css("marginTop")) + parseInt(editorRow.css("marginBottom")));
+                height += 16;
+                $("#node-input-rule-container").editableList('height', height);
+            }
         });
-
-        // 20/03/2020 For each rule, create a row
-        for (var i = 0; i < this.rules.length; i++) {
-          let rule = this.rules[i];
-          $("#node-input-rule-container").editableList('addItem', { r: rule, i: i });
-        }
-        // ##########################################################
-        //#endregion
-
-        node.refreshHailingList();
-
-      }, oneditsave: function () {
-        let node = this;
-        let rules = $("#node-input-rule-container").editableList('items');
-        node.rules = [];
-        rules.each(function (i) {
-          let rule = $(this);
-          let rowRulePlayerHost = rule.find(".rowRulePlayerHost").val();
-          let rowRulePlayerHostAdjustVolume = rule.find(".rowRulePlayerHostAdjustVolume").val();
-          node.rules.push({ host: rowRulePlayerHost, hostVolumeAdjust: rowRulePlayerHostAdjustVolume });
-        });
-        this.propertyType = $("#node-input-property").typedInput('type');
-      },
-      oneditresize: function (size) {
-        var node = this;
-
-        var rows = $("#dialog-form>div:not(.node-input-rule-container-row)");
-        var height = size.height;
-        for (var i = 0; i < rows.length; i++) {
-          height -= $(rows[i]).outerHeight(true);
-        }
-        var editorRow = $("#dialog-form>div.node-input-rule-container-row");
-        height -= (parseInt(editorRow.css("marginTop")) + parseInt(editorRow.css("marginBottom")));
-        height += 16;
-        $("#node-input-rule-container").editableList('height', height);
-      }
-    });
-</script>
-
-<script type="text/markdown" data-help-name="ttsultimate">
-<p>This node transforms a text into a speech audio that you can hear natively via SONOS speakers, or save it to a file.</p>
-
-**General**
-|Property|Description|
-|--|--|
-| TTS Service | Select the TTS SERVICE ENGINE NODE. |
-| Voice | Select your preferred voice. If you use Amazon, Polly voices will be displayed (standard and neural). If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices. |
-| Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
-| Upload hail | It allows you to upload your own hailing file. |
-| Player | Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes. In case you select No player, only output file name, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
-| Volume | Set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume = "40"; to the node). |
-| Unmute | Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing msg.unmute = true; to the node). |
-| Main Sonos Player | Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server). It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator. |
-| Additional Players | Here you can add all additional players that will be grouped toghether to the Main Sonos Player coordinator group. You can add a player using the "ADD" button, below the list. For each additional player, you can adjust their volume, based on the Main Sonos Player volume -+100. |
-
-**Google TTS Engines specific options**
-|Property|Description|
-|--|--|
-| Enable SSML | Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.|
-| Rate | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1). |
-| Pitch | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech pitch (Between -20.0 and 20.0, default 0). |
-
-**Elevenlabs TTS Engines specific options**
-|Property|Description|
-|--|--|
-| Stability | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
-| Similarity | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
-| Style Exaggeration | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.)|
-| Speaker boost | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
-
-<br/>
-
-### Inputs
-
-: volume (string) : Set the volume (values between "0" and "100").
-: unmute (boolean) : *true* Unmute all players then mutes it again once finished playing. *false* Leaves the player as they are.
-: nohailing (string) : Temporary stop playing the Hailing sound prior to the message (values "true" or "1" with quotes).
-: payload (string | file) : The text to be spoken (for example msg.payload = "Hello World!"). You can also play an mp3 stored on an http server, by passing the URL to the payload ( msg.payload = "www.myserver.com/alarm.mp3").
-: sonoshailing (string) : Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the .mp3 extenson. For example node.sonoshailing="ComputerCall".
-: priority (boolean) : If set to true, the inbound flow message will cancel the current TTS queue, will stop the current phrase being spoken and the node will play this priority message. If there are other priority messages in the queue, they will be retained and the inbound priority flow message is added to the queue. If the inbound priority flow message is the first in the priority queue, the hailing is played first (if the hailing has been enabled or if the hailing has been overridden by node.sonoshailing).
-: stop (boolean) : If set to true, stops whatever is playing and clears the TTS queue.
-: voiceId (number) : Play a message with custom voice ID.
-: setConfig (json) : This is the property where you can set all the things. It must be a JSON Object with the below specified properties. The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
-: setConfig {setMainPlayerIP} (string) : Sets the main player IP. This will also be the coordinator if you have a group of players.
-: setConfig {setPlayerGroupArray} (array) : Sets the array of players beloging to the group, if any. You can also specify the volume variation from the main volume player, to adapt the additional player's perceived volume to the main sonos player volume. For example, if you have a speaker mounted in celiling, having less perceived volume, you can "push" the volume up, to match the whole perceived volume. Just add # after the IP and a number from -100 to 100 to subtract or add volume compared to the main sonos volume. For example, if the sonos main player volume is 40, you can push this celing speaker's volume to further 10, so it'll have the real volume of 50. See below, the example. Even if you have only one additional player, you need to put it into an array.
-
-### Output
-
-The node has two output pins. The first pin is to signal play status, the second one, is to signal an error
-
-1. Standard output
-: payload (boolean) : Payload is true when the node has finished playing, false if the node is playing. In case you selected No player, only output file name. in the Player property, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. The property passThroughMessage contains the input msg passed through the output.
-: passThroughMessage (json) : Original message object.
-: filesArray (array of string) : Arrays of generated files name, including paths.
-
-2. Error
-: payload (boolean) : Payload is true when error occurs (for example, lost connection with Sonos Player), otherwise false.
-
-### Samples
-
-[You'll find useful samples here](https://github.com/Supergiovane/node-red-contrib-tts-ultimate)
-
-[Find it useful?](https://www.paypal.me/techtoday)
-
-<br/>
 </script>
