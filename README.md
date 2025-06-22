@@ -20,13 +20,11 @@
 ```
 </details>
 
- ## WARNING 
- Due to Microsoft Azure SDK limitation, the node can only be installed on systems with **NodeJS** versions: (^12.22.0, ^14.17.0, or >=16.0.0) built with SSL support. (If you are using an official Node.js distribution, SSL is always built in.). 
 
 ## DESCRIPTION
-This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers.<br/>
+This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers, but you can also simply create an audio file, without using SONOS at all.<br/>
 You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
-Uses Amazon Polly (standard and neural engines), Google TTS voices (even without credentials nor registration) and Microsoft TTS Azure voices, and you can use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
+You can also use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 
@@ -39,23 +37,23 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 ## FEATURES
 * **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
 * **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
-* **Amazon Voices, Gooogle Translate Voices, Google TTS Voices and Microsoft TTS Azure voices** are all supported, with all avaiables languages and genders.
+* **Gooogle Translate Voices, Google TTS Voices and Elevenlabs.io voices** are all supported, with all avaiables languages and genders.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
-* **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time.
-* **TTS caching**. Amazon AWS and Google charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
-* **UPLOAD your own audio files**. You can upload your own audio files with OwnFile node.
+* **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
+* **TTS caching**. Elevenlabs and Google paid service, charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
 * **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
-* Send a simple payload with the text you want to speech out. For example <code>node.send({payload:"Hello there!"});</code>.
+* **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
 
->
-> ***UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE***
->
-> Supergiovane takes care about your brain and your time.<br/>
-> Install TTS-Ultimate. Both SonosPollyTTS and TTS-Ultimate can cohexist.<br/>
-> Then just delete your old SonosPollyTTS nodes and replace it with TTS-Ultimate nodes.<br/>
-> The cache will remain the same. Your own audio files and hailing files won't be touched. You'll find it again in TTS-Ultimate<br/>
-> 
+
+## BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE !
+
+<p>
+<b>Version 3.0.0</b> April 2025<br/>
+- BREAKING CHANGE: Amazon Polly and Microsoft Azure TTS have been removed due to lack of time to update the old and complex API's. Anyone can add these again by forking the project and do a PR. Thank you!. If you still need those TTS, please stay or revert to 2.0.10.<br/>
+</p>
+
+-----------------------------------------------------------------------
 
 <br/>
 
@@ -75,19 +73,20 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Google (without credentials), Amazon AWS (Polly), Google TTS (require credentials and registration to google) or Microsoft Azure TTS engines.<br/>
+You can choose between Elevenlabs.io, Google (without credentials), Google TTS (require credentials and registration to google).<br/>
 For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
 
-* **TTS Service using Amazon AWS (Polly)**<br/>
-    > HOW-TO in Deutsch: for german users, there is a very helpful how-to, where you can learn how to use the node and how to register to Amazon AWS Polly as well: here: https://technikkram.net/blog/2020/09/26/sonos-sprachausgabe-mit-raspberry-pi-node-red-und-amazon-polly-fuer-homematic-oder-knx-systeme
-   
-   **AWS Access key**<br/>
-   AWS access key credential
-   <br/><br/>
-   **AWS Secret key**<br/>
-   AWS access Secret key. 
+* **TTS Service using Amazon AWS (Polly)**<br/>  
+
+    (REMOVED IN v3.0.0 AND NOT USED ANYMORE)  
+    
+    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
+    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```  
+
+    [Navigate here go here to view the old version](https://www.npmjs.com/package/node-red-contrib-tts-ultimate/v/2.0.10)
+    
 <br/>
 
 * **TTS Service using Google (without credentials)**<br/>
@@ -106,14 +105,23 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 
 <br/>
 
-* **TTS Service using Microsot Azure TTS**<br/>
-   For Microsoft Azure TTS Engine, you need to have a microsoft account and register to the Azure portal.<br/>
-   See my **YOUTUBE video**, here! https://youtu.be/asXajNpRWME<br/>
-   You need to register here https://portal.azure.com, then ceate a Voice Service (please click here https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices), then click on the left "Keys and Endpoint" menu and copy/paste the KEY and your Location (for example westus).<br/>
-   Then paste both into the TTS-Ultimate engine configuration window and restart node-red.<br/>
-   
+* **TTS Service using Microsot Azure TTS**
+
+    (REMOVED IN v3.0.0 AND NOT USED ANYMORE)  
+
+    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
+    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```  
+    
+    [Navigate here go here to view the old version](https://www.npmjs.com/package/node-red-contrib-tts-ultimate/v/2.0.10)  
+
+  
 <br/>
 
+* **TTS Service using ElevenLabs**<br/>
+    Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
+    You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
+    After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>    
+<br/>
 
 **Node-Red IP**<br/>
 set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
@@ -140,68 +148,7 @@ Leave this field blank for the default.<br/>
 
 # TTS-ULTIMATE NODE
 
-**TTS Service**<br/>
-Select the TTS SERVICE ENGINE NODE, as stated above.
-
-**Voice**<br/>
-Select your preferred voice. If you use Amazon, Polly voices will be displayed (standard and neural). If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices.
-
-**Enable SSML**<br/>
-Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.
-
-**Rate**<br/>
-Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1).
-
-**Pitch**<br/>
-Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech pitch (Between -20.0 and 20.0,  default 0).
-
-**Hailing**<br/>
-Before the first TTS message of the message queues, Sonos will play an "hailing" sound. You can select the hailing or totally disable it.
-
-**Player**<br/>
-Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes.<br/>
-In case you select ***No player, only output file name***, you'll get a message with an additional property *filesArray*, containing an array of all mp3 files ready to be played with third party nodes. Please see below the **OUTPUT MESSAGES FROM THE NODE** section.
-
-**Volume** <br/>
-Set the preferred TTS volume, from "0" to "100" (can be overridden by passing <code>msg.volume = "40";</code> to the node)
-
-**Unmute** <br/>
-Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing <code>msg.unmute = true;</code> to the node)
-
-**Main Sonos Player** <br/>
-Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server).<br/>
-It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator.
-
-**Additional Players** <br/>
-Here you can add all additional players that will be grouped toghether to the *Main Sonos Player* coordinator group. You can add a player using the "ADD" button, below the list.<br/>
-For each additional player, you can adjust their volume, based on the **Main Sonos Player** volume -+100.
-
-
 ## INPUT MESSAGES TO THE NODE <br/>
-
-**msg.volume**<br/>
-Set the volume (values between "0" and "100" with quotes)</br>
-
-**msg.unmute**<br/>
-*true*: Unmute all players then mutes it again once finished playing.</br>
-*false*: Leave the player as they are.</br>
-
-**msg.nohailing**<br/>
-Temporarely doesn't play the Hailing sound prior to the message (values "true" or "1" with quotes)</br>
-
-**msg.payload** <br/>
-The text to be spoken (for example msg.payload = "Hello World!";). You can also play an mp3 stored on an http server, by passing the URL to the payload ( <code>msg.payload = "http://www.myserver.com/alarm.mp3"</code>)</br>
-
-**msg.sonoshailing**<br/>
-Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the <b>.mp3</b> extenson. For example *node.sonoshailing="ComputerCall"*<br/>
-
-**msg.priority**<br/>
-If set to <b>true</b>, the inbound flow message will cancel the current TTS queue, will stop the current phrase being spoken and the node will play this priority message.<br/>
-If there are other priority messages in the queue, they will be retained and the inbound priority flow message is added to the queue.<br/>
-If the inbound priority flow message is the first in the priority queue, the hailing is played first (if the hailing has been enabled or if the hailing has been overridden by *node.sonoshailing*)<br/>
-
-**msg.stop**<br/>
-If set to <b>true</b>, stops whatever is playing and clears the TTS queue.<br/>
 
 *Examples*
 
@@ -215,6 +162,13 @@ return msg;
 // Play a message, forcing no hailing
 msg.nohailing = true;
 msg.payload = "I won't disturb with my hailing, this time.";
+return msg;
+```
+
+```js
+// Play a message with custom voice ID
+msg.payload = "Hello, the current temperature is 12°";
+msg.voiceId = 2
 return msg;
 ```
 
@@ -245,44 +199,6 @@ msg.stop = true;
 return msg;
 ```
 
-## OUTPUT MESSAGES FROM THE NODE
-
-The node has two output pins. The first pin is to signal play status, the second one, is to signal an error.
-
-**OUTPUT PIN 1**<br/>
-Payload is ***true*** when the node has finished playing, ***false*** if the node is playing<br/>
-In case you selected ***No player, only output file name.*** in the **Player** property, you'll get a message with an additional property *filesArray*, containing an array of all mp3 files ready to be played with third party nodes.<br/>
-The property ***passThroughMessage*** contains the input msg passed through the output.<br/>
-
-```js
-{
-   "payload":true,
-   "passThroughMessage" : {original message object}
-   "filesArray":[
-      {
-         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/hailingpermanentfiles/hail.mp3"
-      },
-      {
-         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/345938475938457.mp3"
-      },
-      {
-         "file":"/Users/supergiovane/.node-red/sonospollyttsstorage/ttsfiles/3666HJGH565656.mp3"
-      }
-   ],
-   "_msgid":"8b6b22a45dfd5236"
-}
-```
-
-**OUTPUT PIN 2**<br/>
-Payload is ***true*** when error occurs (for example, lost connection with Sonos Player), otherwise ***false***.<br/>
-
-In this sample, you see the TTS-Ultimate node connected with two debug nodes, to catch the errors.
-
-<img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/error.png' width="80%">
-
-<br/>
-<br/>
-
 ## CHANGE CONFIGURATION VIA MSG PROPERTY
 
 You can change the configuration of tts-ultimate, *via msg.setConfig* property.<br/>
@@ -290,18 +206,6 @@ The property is a JSON object.
 
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/setConfig.png' width="80%">
 
-**msg.setConfig**<br/>
-This is the property where you can set all the things. It must be a JSON Object with the below specified properties.<br/>
-The setting is retained until the node receives another msg.setConfig or until node-red is restarted.<br/>
-
- >  **property setMainPlayerIP**<br/>
-   Sets the main player IP. This will also be the coordinator if you have a group of players.
-
- >  **property setPlayerGroupArray**<br/>
-   Sets the array of players beloging to the group, if any.<br/>
-   You can also specify the volume variation from the main volume player, to adapt the additional player's perceived volume to the main sonos player volume.<br/>
-   For example, if you have a speaker mounted in celiling, having less perceived volume, you can "push" the volume up, to match the whole perceived volume. Just add **#** after the IP and a number from -100 to 100 to subtract or add volume ***compared to the main sonos volume***. For example, if the sonos main player volume is 40, you can push this celing speaker's volume to further 10, so it'll have the real volume of 50. See below, the example.<br/>
-   Note: Even if you have only one additional player, you need to put it into an array.
 
 ```js
 // Set main player IP

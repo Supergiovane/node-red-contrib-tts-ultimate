@@ -2,6 +2,67 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
+## BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE !
+
+<p>
+<b>Version 3.0.0</b> June 2025<br/>
+- BREAKING CHANGE: Amazon Polly and Microsoft Azure TTS have been removed due to lack of time to update the old and complex API's. Anyone can add these again by forking the project and do a PR. Thank you!. If you still need those TTS, please stay or revert to 2.0.10.<br/>
+- NEW: Added option to avoid resuming music if it was playing before TTS messages.<br/>
+</p>
+
+-----------------------------------------------------------------------
+  
+    
+    
+<p>
+<b>Version 2.0.10</b> November 2024<br/>
+- ElevenLabs V2: now you can set the additional parameters for the voice.<br/>
+</p>
+<p>
+<b>Version 2.0.9</b> November 2024<br/>
+- Fixed little issue with music queue management.<br/>
+</p>
+<p>
+<b>Version 2.0.8</b> November 2024<br/>
+- NEW: ElevenLabs V2 Multilingual TTS Engine has been added.<br/>
+- ElevenLabs V1 is now in legacy/deprecation state.<br/>
+</p>
+<p>
+<b>Version 2.0.7</b> January 2024<br/>
+- NEW: input messages can override selected voice.<br/>
+</p>
+<p>
+<b>Version 2.0.6</b> January 2024<br/>
+- Minor fixes.<br/>
+- Moved log into the log tab of node-red.<br/>
+</p>
+<p>
+<b>Version 2.0.5</b> October 2023<br/>
+- Speed up emitting msg, when not using Sonos.<br/>
+</p>
+<p>
+<b>Version 2.0.4</b> August 2023<br/>
+- Removed unused new AWS api.<br/>
+- Updated old AWS api to the latest.<br/>
+</p>
+<p>
+<b>Version 2.0.3</b> August 2023<br/>
+- Fixed duplicated filenames.<br/>
+</p>
+<p>
+<b>Version 2.0.2</b> August 2023<br/>
+- NEW: added options for changing Elevenlabs voice settings.<br/>
+- Fixed filename of the cached files, by including all settings. Previously, some settings were not taken in consideration.<br/>
+</p>
+<p>
+<b>Version 2.0.1</b> August 2023<br/>
+- NEW: added Elevenlabs TTS engine https://elevenlabs.io.<br/>
+</p>
+<p>
+<b>Version 2.0.0</b> June 2023<br/>
+- Bumped paid Google TTS, free google TTS and Ms TTS dependencies.<br/>
+- Moved help to the node-red's help pane.<br/>
+</p>
 <p>
 <b>Version 1.0.56</b> March 2023<br/>
 - NEW: Added Node Name property, in the TTS Ultimate node.<br/>
