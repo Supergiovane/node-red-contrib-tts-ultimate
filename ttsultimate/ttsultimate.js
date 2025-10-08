@@ -660,15 +660,18 @@ module.exports = function (RED) {
                 }
               } else if (node.server.ttsservice === "elevenlabs") {
                 // VoiceId is: code 
+                const stability = config.elevenlabsStability !== undefined && config.elevenlabsStability !== "" ? Number(config.elevenlabsStability) : undefined;
+                const similarity = config.elevenlabsSimilarity_boost !== undefined && config.elevenlabsSimilarity_boost !== "" ? Number(config.elevenlabsSimilarity_boost) : undefined;
+                const resolvedModel = config.elevenlabsModel && config.elevenlabsModel !== "" ? config.elevenlabsModel : "eleven_monolingual_v1";
                 const params = {
                   text: msg,
                   voice: node.voiceId,
-                  model_id: "eleven_monolingual_v1",
-                  voice_settings: {
-                    stability: config.elevenlabsStability,
-                    similarity_boost: config.elevenlabsSimilarity_boost
-                  }
+                  model_id: resolvedModel,
+                  voice_settings: {}
                 };
+                if (stability !== undefined && !Number.isNaN(stability)) params.voice_settings.stability = stability;
+                if (similarity !== undefined && !Number.isNaN(similarity)) params.voice_settings.similarity_boost = similarity;
+                if (Object.keys(params.voice_settings).length === 0) delete params.voice_settings;
                 // Download or read from cache
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
@@ -680,18 +683,29 @@ module.exports = function (RED) {
                 }
               } else if (node.server.ttsservice === "elevenlabsv2") {
                 // VoiceId is: code 
+                const stability = config.elevenlabsStability !== undefined && config.elevenlabsStability !== "" ? Number(config.elevenlabsStability) : undefined;
+                const similarity = config.elevenlabsSimilarity_boost !== undefined && config.elevenlabsSimilarity_boost !== "" ? Number(config.elevenlabsSimilarity_boost) : undefined;
+                const style = config.elevenlabsStyle !== undefined && config.elevenlabsStyle !== "" ? Number(config.elevenlabsStyle) : undefined;
+                const resolvedModel = config.elevenlabsModel && config.elevenlabsModel !== "" ? config.elevenlabsModel : "eleven_multilingual_v2";
+                const latencyPreset = config.elevenlabsOptimizeLatency && config.elevenlabsOptimizeLatency !== "" ? config.elevenlabsOptimizeLatency : undefined;
+                const outputFormat = config.elevenlabsOutputFormat && config.elevenlabsOutputFormat !== "" ? config.elevenlabsOutputFormat : undefined;
+                const seed = config.elevenlabsSeed && config.elevenlabsSeed !== "" ? Number(config.elevenlabsSeed) : undefined;
+                const useSpeakerBoost = config.elevenlabsUse_speaker_boost === undefined ? true : config.elevenlabsUse_speaker_boost;
                 const params = {
                   stream: false,
                   text: msg,
                   voice: node.voiceId,
-                  model_id: "eleven_multilingual_v2",
-                  voice_settings: {
-                    stability: config.elevenlabsStability,
-                    similarity_boost: config.elevenlabsSimilarity_boost,
-                    style: config.elevenlabsStyle || 0,
-                    use_speaker_boost: config.elevenlabsUse_speaker_boost === undefined ? true : config.elevenlabsUse_speaker_boost
-                  }
+                  model_id: resolvedModel,
+                  voice_settings: {}
                 };
+                if (stability !== undefined && !Number.isNaN(stability)) params.voice_settings.stability = stability;
+                if (similarity !== undefined && !Number.isNaN(similarity)) params.voice_settings.similarity_boost = similarity;
+                if (style !== undefined && !Number.isNaN(style)) params.voice_settings.style = style;
+                params.voice_settings.use_speaker_boost = useSpeakerBoost;
+                if (Object.keys(params.voice_settings).length === 0) delete params.voice_settings;
+                if (latencyPreset !== undefined) params.optimize_streaming_latency = latencyPreset;
+                if (outputFormat !== undefined) params.output_format = outputFormat;
+                if (seed !== undefined && !Number.isNaN(seed)) params.seed = seed;
                 // Download or read from cache
                 node.sFileToBePlayed = getFilename(msg, params);
                 node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
@@ -1194,7 +1208,10 @@ module.exports = function (RED) {
       }
       return new Promise((resolve, reject) => {
         // "model_id": "eleven_multilingual_v1",
-        ttsService.textToSpeechStream(node.server.credentials.elevenlabsKey, params.voice, params.text, null, null, "eleven_multilingual_v1").then((res) => {
+        const stability = params.voice_settings && params.voice_settings.stability !== undefined ? params.voice_settings.stability : null;
+        const similarity = params.voice_settings && params.voice_settings.similarity_boost !== undefined ? params.voice_settings.similarity_boost : null;
+        const model = params.model_id !== undefined && params.model_id !== "" ? params.model_id : "eleven_monolingual_v1";
+        ttsService.textToSpeechStream(node.server.credentials.elevenlabsKey, params.voice, params.text, stability, similarity, model).then((res) => {
           try {
             if (res !== undefined) {
               resolve(stream2buffer(res));

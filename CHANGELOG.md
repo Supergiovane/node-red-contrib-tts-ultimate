@@ -2,7 +2,11 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
 
-## BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE !
+
+<p>
+<b>Version 3.0.1</b> October 2025<br/>
+- Elevenlabs Engine: added more option to personalize the voice.<br/>
+</p>
 
 <p>
 <b>Version 3.0.0</b> June 2025<br/>

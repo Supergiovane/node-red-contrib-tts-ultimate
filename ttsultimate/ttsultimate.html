@@ -49,6 +49,47 @@
           <label></label>
           <input type="checkbox" id="node-input-elevenlabsUse_speaker_boost" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Speaker boost</label>
         </div>
+        <div class="form-row">
+          <label for="node-input-elevenlabsModel"><i class="fa fa-cubes"></i> Model</label>
+          <select id="node-input-elevenlabsModel" style="width:60%">
+            <option value="">Automatic</option>
+            <option value="eleven_monolingual_v1">Eleven Monolingual v1</option>
+            <option value="eleven_multilingual_v1">Eleven Multilingual v1</option>
+            <option value="eleven_multilingual_v2">Eleven Multilingual v2</option>
+            <option value="eleven_turbo_v2">Eleven Turbo v2</option>
+            <option value="eleven_turbo_v2_5">Eleven Turbo v2.5</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="node-input-elevenlabsOptimizeLatency"><i class="fa fa-tachometer"></i> Latency preset</label>
+          <select id="node-input-elevenlabsOptimizeLatency" style="width:60%">
+            <option value="">Default</option>
+            <option value="0">0 - Best quality</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4 - Lowest latency</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="node-input-elevenlabsOutputFormat"><i class="fa fa-file-audio-o"></i> Output format</label>
+          <select id="node-input-elevenlabsOutputFormat" style="width:60%">
+            <option value="">Default (mp3_44100_128)</option>
+            <option value="mp3_44100_192">mp3_44100_192</option>
+            <option value="mp3_44100_128">mp3_44100_128</option>
+            <option value="mp3_44100_64">mp3_44100_64</option>
+            <option value="mp3_44100_32">mp3_44100_32</option>
+            <option value="mp3_22050_128">mp3_22050_128</option>
+            <option value="mp3_22050_64">mp3_22050_64</option>
+            <option value="pcm_16000">pcm_16000</option>
+            <option value="pcm_22050">pcm_22050</option>
+            <option value="ulaw_8000">ulaw_8000</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="node-input-elevenlabsSeed"><i class="fa fa-random"></i> Seed</label>
+          <input type="text" id="node-input-elevenlabsSeed" style="width:120px" placeholder="Leave blank for random">
+        </div>
     </div>
     <div class="form-row" id="divSSML">
         <label></label>
@@ -161,6 +202,10 @@
         elevenlabsSimilarity_boost: { value: "0.5", required: false },
         elevenlabsStyle: { value: "0.0", required: false },
         elevenlabsUse_speaker_boost: { value: true, required: false },
+        elevenlabsModel: { value: "", required: false },
+        elevenlabsOptimizeLatency: { value: "", required: false },
+        elevenlabsOutputFormat: { value: "", required: false },
+        elevenlabsSeed: { value: "", required: false },
       },
       inputs: 1,
       outputs: 2,
@@ -184,6 +229,10 @@
       oneditprepare: function () {
         var node = this;
         var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
+        if (node.elevenlabsModel !== undefined) $("#node-input-elevenlabsModel").val(node.elevenlabsModel);
+        if (node.elevenlabsOptimizeLatency !== undefined) $("#node-input-elevenlabsOptimizeLatency").val(node.elevenlabsOptimizeLatency);
+        if (node.elevenlabsOutputFormat !== undefined) $("#node-input-elevenlabsOutputFormat").val(node.elevenlabsOutputFormat);
+        if (node.elevenlabsSeed !== undefined) $("#node-input-elevenlabsSeed").val(node.elevenlabsSeed);
 
         // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
         // ###########################
