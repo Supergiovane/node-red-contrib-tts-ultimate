@@ -43,7 +43,7 @@ module.exports = function (RED) {
             if (!fs.existsSync(_aPath)) {
                 // Create the path
                 try {
-                    fs.mkdirSync(_aPath);
+                    fs.mkdirSync(_aPath, { recursive: true });
                     return true;
                 } catch (error) { return false; }
             } else {
@@ -54,9 +54,15 @@ module.exports = function (RED) {
             RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up MAIN directory: ' + node.TTSRootFolderPath);
         }
         if (!setupDirectory(path.join(node.TTSRootFolderPath, "ttsfiles"))) {
-            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up cache directory: ' + path.join(node.TTSRootFolderPath, "ttsfiles"));
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up cache root directory: ' + path.join(node.TTSRootFolderPath, "ttsfiles"));
         } else {
-            RED.log.info('ttsultimate-config ' + node.id + ': TTS cache set to ' + path.join(node.TTSRootFolderPath, "ttsfiles"));
+            RED.log.info('ttsultimate-config ' + node.id + ': TTS cache root set to ' + path.join(node.TTSRootFolderPath, "ttsfiles"));
+        }
+        node.ttsCacheFolder = path.join(node.TTSRootFolderPath, "ttsfiles", node.id);
+        if (!setupDirectory(node.ttsCacheFolder)) {
+            RED.log.error('ttsultimate-config ' + node.id + ': Unable to set up cache directory: ' + node.ttsCacheFolder);
+        } else {
+            RED.log.info('ttsultimate-config ' + node.id + ': TTS cache set to ' + node.ttsCacheFolder);
         }
         if (!setupDirectory(path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials"))) {
             RED.log.error('ttsultimate-config ' + node.id + ': Unable to set google creds directory: ' + path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials"));
@@ -517,15 +523,14 @@ module.exports = function (RED) {
 
         // 26/02/2020
         if (node.purgediratrestart === "purge") {
-            // Delete all files, that are'nt OwnFiles_
             try {
-                let files = fs.readdirSync(path.join(node.TTSRootFolderPath, "ttsfiles"));
+                let files = fs.readdirSync(node.ttsCacheFolder);
                 try {
                     if (files.length > 0) {
                         files.forEach(function (file) {
-                            RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.TTSRootFolderPath, "ttsfiles", file));
+                            RED.log.info("ttsultimate-config " + node.id + ": Deleted TTS file " + path.join(node.ttsCacheFolder, file));
                             try {
-                                fs.unlinkSync(path.join(node.TTSRootFolderPath, "ttsfiles", file));
+                                fs.unlinkSync(path.join(node.ttsCacheFolder, file));
                             } catch (error) {
                             }
                         });
@@ -551,13 +556,24 @@ module.exports = function (RED) {
                 var query = url_parts.query;
 
                 res.setHeader('Content-Disposition', 'attachment; filename=tts.mp3')
-                if (fs.existsSync(query.f.toString())) {
-                    // 26/01/2021 security check
-                    // File should be something like mydocs/.node-red/sonospollyttsstorage/ttsfiles/Hello_de-DE.mp3
-                    if (path.extname(query.f.toString()) === ".mp3" && path.dirname(path.dirname(query.f.toString())).endsWith("sonospollyttsstorage")) {
-                        var readStream = fs.createReadStream(query.f.toString());
+                if (!query || query.f === undefined || query.f === null) {
+                    res.write("File not specified");
+                    res.end();
+                    return;
+                }
+
+                const requestedPath = query.f.toString();
+                if (fs.existsSync(requestedPath)) {
+                    // Security check: allow only mp3 files under the configured storage folder.
+                    const resolvedRequested = path.resolve(requestedPath);
+                    const resolvedAllowedRoot = path.resolve(node.TTSRootFolderPath);
+                    const isInsideRoot =
+                        resolvedRequested === resolvedAllowedRoot || resolvedRequested.startsWith(resolvedAllowedRoot + path.sep);
+
+                    if (path.extname(resolvedRequested) === ".mp3" && isInsideRoot) {
+                        var readStream = fs.createReadStream(resolvedRequested);
                         readStream.on("error", function (error) {
-                            RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + query.f.toString() + ' : ' + error);
+                            RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + resolvedRequested + ' : ' + error);
                             res.end();
                             return;
                         });
@@ -576,7 +592,7 @@ module.exports = function (RED) {
                 }
 
             } catch (error) {
-                RED.log.error("ttsultimate-config " + node.id + ": Playsonos RED.httpAdmin error: " + error + " on: " + query.f);
+                RED.log.error("ttsultimate-config " + node.id + ": Playsonos RED.httpAdmin error: " + error);
                 res.end();
             }
 
@@ -635,4 +651,3 @@ module.exports = function (RED) {
     });
 
 }
-

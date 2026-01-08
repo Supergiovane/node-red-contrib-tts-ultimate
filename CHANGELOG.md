@@ -4,6 +4,16 @@
 
 
 <p>
+<b>Version 3.0.4</b> January 2026<br/>
+- Fix: cache purge at restart/deploy is now isolated per `ttsultimate-config` node (no more deleting other config caches).<br/>
+</p>
+
+<p>
+<b>Version 3.0.3</b> January 2026<br/>
+- Google (without credentials): automatically split long texts into 200-char chunks and merge audio output.<br/>
+</p>
+
+<p>
 <b>Version 3.0.1</b> October 2025<br/>
 - Elevenlabs Engine: added more option to personalize the voice.<br/>
 </p>

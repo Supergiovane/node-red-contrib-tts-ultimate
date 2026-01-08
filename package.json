@@ -1,10 +1,11 @@
 {
   "name": "node-red-contrib-tts-ultimate",
-  "version": "3.0.2",
+  "version": "3.0.4",
   "description": "Transforms the text in speech and hear it using Sonos player or generate an audio file to be used with third parties nodes. Works with voices from Amazon, Google (without credentials as well), Microsoft TTS Azure, ElevenLabs.io TTS or your own voice. You can also only create a TTS file to be read by third party nodes. Update of the popular SonosPollyTTS node.",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "test",
+    "verify:googletranslate-split": "node scripts/verify-googletranslate-split.js"
   },
   "repository": {
     "type": "git",

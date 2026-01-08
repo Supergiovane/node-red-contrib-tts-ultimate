@@ -65,6 +65,8 @@ module.exports = function (RED) {
     node.msg.completed = true;
     node.msg.connectionerror = true;
     node.userDir = node.server.TTSRootFolderPath === undefined ? path.join(RED.settings.userDir, "sonospollyttsstorage") : node.server.TTSRootFolderPath;
+    node.ttsCacheFolder = node.server.ttsCacheFolder === undefined ? path.join(node.userDir, "ttsfiles") : node.server.ttsCacheFolder;
+    node.legacyTtsCacheFolder = path.join(node.userDir, "ttsfiles");
     node.oAdditionalSonosPlayers = []; // 20/03/2020 Contains other players to be grouped
     node.rules = config.rules || [{}];
     node.sNoderedURL = "";
@@ -566,17 +568,42 @@ module.exports = function (RED) {
           const msg = node.currentMSGbeingSpoken.payload.toString(); // Get the text to be spoken
           //node.tempMSGStorage.splice(0, 1); // Remove the first item in the array
           node.sFileToBePlayed = "";
+          let audioSource = "unknown"; // internet|cache|local|http|unknown
+          const resolveCachePath = (cacheFilename) => {
+            const primaryPath = path.join(node.ttsCacheFolder, cacheFilename);
+            const legacyPath = path.join(node.legacyTtsCacheFolder, cacheFilename);
+            if (fs.existsSync(primaryPath)) return { isCached: true, resolvedPath: primaryPath };
+            if (fs.existsSync(legacyPath)) return { isCached: true, resolvedPath: legacyPath };
+            return { isCached: false, resolvedPath: primaryPath };
+          };
+          const formatAudioSourceTag = (source) => {
+            switch (source) {
+              case "internet":
+                return "[CLOUD] ";
+              case "cache":
+                return "[CACHE] ";
+              case "local":
+                return "[LOCAL] ";
+              case "http":
+                return "[HTTP] ";
+              default:
+                return "";
+            }
+          };
           node.setNodeStatus({ fill: "gray", shape: "ring", text: "Read " + msg });
 
           // 04/12/2020 check what really is the file to be played
           if (msg.toLowerCase().startsWith("http://") || msg.toLowerCase().startsWith("https://")) {
             RED.log.info('ttsultimate: HTTP filename: ' + msg);
+            audioSource = "http";
             node.sFileToBePlayed = msg;
           } else if (msg.indexOf("OwnFile_") !== -1) {
             RED.log.info('ttsultimate: OwnFile .MP3, skip tts, filename: ' + msg);
+            audioSource = "local";
             node.sFileToBePlayed = path.join(node.userDir, "ttspermanentfiles", msg);
           } else if (msg.indexOf("Hailing_") !== -1) {
             RED.log.info('ttsultimate: Hailing .MP3, skip tts, filename: ' + msg);
+            audioSource = "local";
             node.sFileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
           } else {
             try {
@@ -597,9 +624,11 @@ module.exports = function (RED) {
                   params.VoiceId = node.voiceId;
                 }
                 // Download or read from cache
-                node.sFileToBePlayed = getFilename(msg, params);
-                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
-                if (!fs.existsSync(node.sFileToBePlayed)) {
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechPolly([node.server.polly, params]);
                 } else {
@@ -616,9 +645,11 @@ module.exports = function (RED) {
                 params.input = node.ssml === false ? { text: msg } : { ssml: msg };
 
                 // Download or read from cache
-                node.sFileToBePlayed = getFilename(msg, params);
-                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
-                if (!fs.existsSync(node.sFileToBePlayed)) {
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechGoogleTTS([node.server.googleTTS, params]);
                 } else {
@@ -634,9 +665,11 @@ module.exports = function (RED) {
                 };
 
                 // Download or read from cache
-                node.sFileToBePlayed = getFilename(msg, params);
-                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
-                if (!fs.existsSync(node.sFileToBePlayed)) {
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechGoogleTranslate(node.server.googleTranslateTTS, params);
                 } else {
@@ -650,9 +683,11 @@ module.exports = function (RED) {
                 };
 
                 // Download or read from cache
-                node.sFileToBePlayed = getFilename(msg, params);
-                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
-                if (!fs.existsSync(node.sFileToBePlayed)) {
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechMicrosoftAzureTTS(node.server.microsoftAzureTTS, params);
                 } else {
@@ -673,9 +708,11 @@ module.exports = function (RED) {
                 if (similarity !== undefined && !Number.isNaN(similarity)) params.voice_settings.similarity_boost = similarity;
                 if (Object.keys(params.voice_settings).length === 0) delete params.voice_settings;
                 // Download or read from cache
-                node.sFileToBePlayed = getFilename(msg, params);
-                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
-                if (!fs.existsSync(node.sFileToBePlayed)) {
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechElevenLabs(node.server.elevenlabsTTS, params);
                 } else {
@@ -707,9 +744,11 @@ module.exports = function (RED) {
                 if (outputFormat !== undefined) params.output_format = outputFormat;
                 if (seed !== undefined && !Number.isNaN(seed)) params.seed = seed;
                 // Download or read from cache
-                node.sFileToBePlayed = getFilename(msg, params);
-                node.sFileToBePlayed = path.join(node.userDir, "ttsfiles", node.sFileToBePlayed);
-                if (!fs.existsSync(node.sFileToBePlayed)) {
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
                   data = await synthesizeSpeechElevenLabsV2(node.server.elevenlabsTTS, params);
                 } else {
@@ -743,7 +782,7 @@ module.exports = function (RED) {
             if (node.playertype === "sonos") {
 
               // Play with Sonos
-              node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + msg });
+              node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + formatAudioSourceTag(audioSource) + msg });
 
               // Play directly files starting with http://
               if (!node.sFileToBePlayed.toLowerCase().startsWith("http://") && !node.sFileToBePlayed.toLowerCase().startsWith("https://")) {
@@ -806,7 +845,7 @@ module.exports = function (RED) {
                 if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
                 switch (node.bTimeOutPlay) {
                   case false:
-                    node.setNodeStatus({ fill: 'green', shape: 'dot', text: 'Playing ' + msg });
+                    node.setNodeStatus({ fill: 'green', shape: 'dot', text: 'Playing ' + formatAudioSourceTag(audioSource) + msg });
                     break;
                   default:
                     node.setNodeStatus({ fill: 'grey', shape: 'dot', text: 'Timeout waiting start play state: ' + msg });
@@ -1154,12 +1193,62 @@ module.exports = function (RED) {
     // 26/12/2020 Google TTS Service
     async function synthesizeSpeechGoogleTranslate(ttsService, params) {
       try {
-        // 30/01/2021 changed how google handles voices 
-        // https://github.com/ncpierson/google-translate-tts/issues/5#issuecomment-770209715
-        if (params.voice.includes("-")) params.voice = params.voice.split("-")[0];
+        const GOOGLE_TRANSLATE_MAX_CHARS = 200;
 
-        const buffer = await ttsService.synthesize(params);
-        return (buffer);
+        const stripId3v2 = (buffer) => {
+          if (!Buffer.isBuffer(buffer) || buffer.length < 10) return buffer;
+          if (buffer[0] !== 0x49 || buffer[1] !== 0x44 || buffer[2] !== 0x33) return buffer; // "ID3"
+          const size =
+            ((buffer[6] & 0x7f) << 21) |
+            ((buffer[7] & 0x7f) << 14) |
+            ((buffer[8] & 0x7f) << 7) |
+            (buffer[9] & 0x7f);
+          const tagEnd = 10 + size;
+          if (tagEnd <= 10 || tagEnd >= buffer.length) return buffer;
+          return buffer.subarray(tagEnd);
+        };
+
+        const splitText = (text, maxLen) => {
+          const chunks = [];
+          let remaining = (text ?? "").toString().trim();
+          if (remaining === "") return chunks;
+
+          const breakChars = ["\n", ".", "!", "?", ";", ":", ",", " "];
+          while (remaining.length > maxLen) {
+            const window = remaining.slice(0, maxLen + 1);
+            let breakAt = -1;
+            for (const ch of breakChars) {
+              const idx = window.lastIndexOf(ch);
+              if (idx > breakAt) breakAt = idx;
+            }
+            if (breakAt <= 0) breakAt = maxLen;
+            const cutAt = breakAt === maxLen ? maxLen : breakAt + 1;
+            const chunk = remaining.slice(0, cutAt).trim();
+            if (chunk !== "") chunks.push(chunk);
+            remaining = remaining.slice(cutAt).trimStart();
+          }
+          if (remaining !== "") chunks.push(remaining);
+          return chunks;
+        };
+
+        // 30/01/2021 changed how google handles voices
+        // https://github.com/ncpierson/google-translate-tts/issues/5#issuecomment-770209715
+        const resolvedVoice =
+          typeof params.voice === "string" && params.voice.includes("-") ? params.voice.split("-")[0] : params.voice;
+
+        const textChunks = splitText(params.text, GOOGLE_TRANSLATE_MAX_CHARS);
+        if (textChunks.length === 0) return Buffer.from([]);
+
+        if (textChunks.length === 1) {
+          return await ttsService.synthesize({ ...params, voice: resolvedVoice, text: textChunks[0] });
+        }
+
+        const buffers = [];
+        for (let i = 0; i < textChunks.length; i += 1) {
+          const chunkBuffer = await ttsService.synthesize({ ...params, voice: resolvedVoice, text: textChunks[i] });
+          buffers.push(i === 0 ? chunkBuffer : stripId3v2(chunkBuffer));
+        }
+        return Buffer.concat(buffers);
       } catch (error) {
         throw (error);
       }

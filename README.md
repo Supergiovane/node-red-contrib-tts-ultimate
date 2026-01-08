@@ -91,6 +91,8 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 
 * **TTS Service using Google (without credentials)**<br/>
    This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
+   Note: long texts are automatically split into 200-character chunks (Google Translate TTS limit) and merged into a single audio output.
+   Manual verify: `npm run verify:googletranslate-split -- --voice it-IT --text "..." --out ./out.mp3`
    
 <br/>
 
@@ -128,6 +130,8 @@ set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to aut
 
 **Host Port**<br/>
 Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
+
+Note: if you use multiple `ttsultimate-config` nodes, each one now keeps its own TTS cache folder; the “purge on restart/deploy” option only affects that config node’s cache.
 
 **TTS Cache**
 <br/>
