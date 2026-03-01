@@ -1,12 +1,11 @@
-
-![Sample Node](img/logo.png) 
+![Sample Node](img/logo.png)
 
 [![NPM version][npm-version-image]][npm-url]
 [![NPM downloads per month][npm-downloads-month-image]][npm-url]
 [![NPM downloads total][npm-downloads-total-image]][npm-url]
 [![MIT License][license-image]][license-url]
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
+[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 [![Facebook][facebook-image]][facebook-url]
 
 <img src='https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/main.png' width="80%">
@@ -16,19 +15,160 @@
 > Adjust the nodes according to your setup
 
 ```js
-[{"id":"569773ae.930abc","type":"inject","z":"344c547c.b230c4","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":230,"y":300,"wires":[["e066ce90.46f758"]]},{"id":"e066ce90.46f758","type":"function","z":"344c547c.b230c4","name":"Via function","func":"// The simplest way\nmsg.payload=\"Benvenuti,Wilkommen,Wellcome!\";\nreturn msg;\n","outputs":1,"noerr":0,"x":370,"y":300,"wires":[["3d9635bc.53c14a"]]},{"id":"c272b47c.41e238","type":"inject","z":"344c547c.b230c4","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":230,"y":340,"wires":[["2fcffdb7.1c76ea"]]},{"id":"2fcffdb7.1c76ea","type":"function","z":"344c547c.b230c4","name":"Set volume","func":"// Set the Volume\nmsg.volume=\"60\"; // If not set, will take the volume from setting page\nmsg.payload=\"Benvenuti,Wilkommen,Wellcome!\";\nreturn msg;\n\n","outputs":1,"noerr":0,"x":370,"y":340,"wires":[["3d9635bc.53c14a"]]},{"id":"2bd6fd7f.9b9ae2","type":"inject","z":"344c547c.b230c4","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":230,"y":380,"wires":[["aa3b6e42.669fc"]]},{"id":"aa3b6e42.669fc","type":"function","z":"344c547c.b230c4","name":"Array of messages","func":"// Create an array of messages\nvar aMessages=[];\n// Add random messages\naMessages.push({volume:\"50\",payload:\"Benvenuti.\"});\n// Wheater in Italy\naMessages.push({volume:\"40\",payload:\"http://media.ilmeteo.it/audio/2020-12-23.mp3\"});\n// Add random messages\naMessages.push({volume:\"30\",payload:\"Cambia la tua voce nei settaggi.\"});\nreturn [aMessages];\n","outputs":1,"noerr":0,"x":390,"y":380,"wires":[["3d9635bc.53c14a"]]},{"id":"3e0d9b5c.fe01b4","type":"inject","z":"344c547c.b230c4","name":"Hello World","topic":"","payload":"Ciao Mondo! Come stai?","payloadType":"str","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":250,"y":260,"wires":[["3d9635bc.53c14a"]]},{"id":"42e6fab4.e8d154","type":"comment","z":"344c547c.b230c4","name":"Play text on Sonos. Single player or Group of players","info":"","x":360,"y":220,"wires":[]},{"id":"3d9635bc.53c14a","type":"ttsultimate","z":"344c547c.b230c4","name":"","voice":"Brian","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"30","sonoshailing":"Hailing_Hailing.mp3","config":"557d8082.eb5a8","property":"payload","propertyType":{},"rules":[],"x":610,"y":260,"wires":[[]]},{"id":"557d8082.eb5a8","type":"ttsultimate-config","z":"","name":"googletranslate","noderedipaddress":"192.168.1.219","noderedport":"1980","purgediratrestart":"leave","ttsservice":"googletranslate"}]
+[
+  {
+    id: "569773ae.930abc",
+    type: "inject",
+    z: "344c547c.b230c4",
+    name: "",
+    topic: "",
+    payload: "true",
+    payloadType: "bool",
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    x: 230,
+    y: 300,
+    wires: [["e066ce90.46f758"]],
+  },
+  {
+    id: "e066ce90.46f758",
+    type: "function",
+    z: "344c547c.b230c4",
+    name: "Via function",
+    func: '// The simplest way\nmsg.payload="Benvenuti,Wilkommen,Wellcome!";\nreturn msg;\n',
+    outputs: 1,
+    noerr: 0,
+    x: 370,
+    y: 300,
+    wires: [["3d9635bc.53c14a"]],
+  },
+  {
+    id: "c272b47c.41e238",
+    type: "inject",
+    z: "344c547c.b230c4",
+    name: "",
+    topic: "",
+    payload: "true",
+    payloadType: "bool",
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    x: 230,
+    y: 340,
+    wires: [["2fcffdb7.1c76ea"]],
+  },
+  {
+    id: "2fcffdb7.1c76ea",
+    type: "function",
+    z: "344c547c.b230c4",
+    name: "Set volume",
+    func: '// Set the Volume\nmsg.volume="60"; // If not set, will take the volume from setting page\nmsg.payload="Benvenuti,Wilkommen,Wellcome!";\nreturn msg;\n\n',
+    outputs: 1,
+    noerr: 0,
+    x: 370,
+    y: 340,
+    wires: [["3d9635bc.53c14a"]],
+  },
+  {
+    id: "2bd6fd7f.9b9ae2",
+    type: "inject",
+    z: "344c547c.b230c4",
+    name: "",
+    topic: "",
+    payload: "true",
+    payloadType: "bool",
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    x: 230,
+    y: 380,
+    wires: [["aa3b6e42.669fc"]],
+  },
+  {
+    id: "aa3b6e42.669fc",
+    type: "function",
+    z: "344c547c.b230c4",
+    name: "Array of messages",
+    func: '// Create an array of messages\nvar aMessages=[];\n// Add random messages\naMessages.push({volume:"50",payload:"Benvenuti."});\n// Wheater in Italy\naMessages.push({volume:"40",payload:"http://media.ilmeteo.it/audio/2020-12-23.mp3"});\n// Add random messages\naMessages.push({volume:"30",payload:"Cambia la tua voce nei settaggi."});\nreturn [aMessages];\n',
+    outputs: 1,
+    noerr: 0,
+    x: 390,
+    y: 380,
+    wires: [["3d9635bc.53c14a"]],
+  },
+  {
+    id: "3e0d9b5c.fe01b4",
+    type: "inject",
+    z: "344c547c.b230c4",
+    name: "Hello World",
+    topic: "",
+    payload: "Ciao Mondo! Come stai?",
+    payloadType: "str",
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    x: 250,
+    y: 260,
+    wires: [["3d9635bc.53c14a"]],
+  },
+  {
+    id: "42e6fab4.e8d154",
+    type: "comment",
+    z: "344c547c.b230c4",
+    name: "Play text on Sonos. Single player or Group of players",
+    info: "",
+    x: 360,
+    y: 220,
+    wires: [],
+  },
+  {
+    id: "3d9635bc.53c14a",
+    type: "ttsultimate",
+    z: "344c547c.b230c4",
+    name: "",
+    voice: "Brian",
+    ssml: false,
+    sonosipaddress: "192.168.1.109",
+    sonosvolume: "30",
+    sonoshailing: "Hailing_Hailing.mp3",
+    config: "557d8082.eb5a8",
+    property: "payload",
+    propertyType: {},
+    rules: [],
+    x: 610,
+    y: 260,
+    wires: [[]],
+  },
+  {
+    id: "557d8082.eb5a8",
+    type: "ttsultimate-config",
+    z: "",
+    name: "googletranslate",
+    noderedipaddress: "192.168.1.219",
+    noderedport: "1980",
+    purgediratrestart: "leave",
+    ttsservice: "googletranslate",
+  },
+];
 ```
+
 </details>
 
-
 ## DESCRIPTION
+
 This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers, but you can also simply create an audio file, without using SONOS at all.<br/>
 You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
 You can also use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
-The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
-This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
+The node can also create a **_TTS file (without the use of any Sonos device)_**, to be read by third parties nodes.<br/>
+This is a major **_upgrade from the previously popular node SonosPollyTTS_** (SonosPollyTTS is not developed anymore).<br/>
 
 ## SUPPORTED TTS ENGINES
+
 <p>
   <a href="https://www.npmjs.com/package/google-translate-tts" title="Google Translate TTS (free)">
     <img src="https://cdn.simpleicons.org/googletranslate/4285F4" height="26" alt="Google Translate logo"/>
@@ -44,46 +184,45 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
   </a>
 </p>
 
-
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 ## CHANGELOG
-* See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
+
+- See <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/CHANGELOG.md">here the changelog</a>
 
 ## FEATURES
-* **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
-* **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
-* **Google Translate Voices, Google TTS Voices, ElevenLabs voices and Voice.ai voices** are supported.
-* **Automatic grouping** is supported. You can group all players you want to play your announcements.
-* **Automatic discovery** of your players.
-* **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
-* **TTS caching**. ElevenLabs and Google paid service charge you for a high rate of text-to-speech requests. TTS-Ultimate caches the TTS files: it downloads each generated audio only once, and then reads it from cache. The cache is resilient (survives reboots and updates).
-* **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
-* **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
 
+- **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
+- **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
+- **Google Translate Voices, Google TTS Voices, ElevenLabs voices and Voice.ai voices** are supported.
+- **Automatic grouping** is supported. You can group all players you want to play your announcements.
+- **Automatic discovery** of your players.
+- **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming **_radio stations_** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
+- **TTS caching**. ElevenLabs and Google paid service charge you for a high rate of text-to-speech requests. TTS-Ultimate caches the TTS files: it downloads each generated audio only once, and then reads it from cache. The cache is resilient (survives reboots and updates).
+- **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
+- **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
 
-## BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE ! BREAKING CHANGE !
+## BREAKING CHANGE !
 
 <p>
 <b>Version 3.0.0</b> April 2025<br/>
 - BREAKING CHANGE: Amazon Polly and Microsoft Azure TTS have been removed due to lack of time to update the old and complex API's. Anyone can add these again by forking the project and do a PR. Thank you!. If you still need those TTS, please stay or revert to 2.0.10.<br/>
 </p>
 
------------------------------------------------------------------------
+---
 
 <br/>
 
->
-> ***NOTE IF YOU CANNOT UPLOAD YOUR OWN FILES***
+> **_NOTE IF YOU CANNOT UPLOAD YOUR OWN FILES_**
 >
 > If you're running node-red as "plugin" for homeassistant, redmatic etc...<br/>
 > You may expect not to be able to upload your own files. Please check that the user running node-red, has premission **to write to the filesystem**.<br/>
-> 
 
 <br/><br/>
 
 # TTS Service node
-Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
+
+Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/>
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
 PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
@@ -94,34 +233,33 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
 
-* **TTS Service using Google (without credentials)**<br/>
-   This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
-   Note: long texts are automatically split into 200-character chunks (Google Translate TTS limit) and merged into a single audio output.
-   Manual verify: `npm run verify:googletranslate-split -- --voice it-IT --text "..." --out ./out.mp3`
-   
-<br/>
-
-* **TTS Service using Google TTS**<br/>
-   For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
-   **Google credentials file path**<br/>
-   Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
-   > [Select or create a Cloud Platform project](https://console.cloud.google.com/project)<br/>
-   > [Enable billing for your project](https://support.google.com/cloud/answer/6293499#enable-billing)<br/>
-   > [Enable the Google Cloud Text-to-Speech API](https://console.cloud.google.com/flows/enableapi?apiid=texttospeech.googleapis.com)<br/>
-   
+- **TTS Service using Google (without credentials)**<br/>
+  This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
+  Note: long texts are automatically split into 200-character chunks (Google Translate TTS limit) and merged into a single audio output.
+  Manual verify: `npm run verify:googletranslate-split -- --voice it-IT --text "..." --out ./out.mp3`
 
 <br/>
 
-* **TTS Service using ElevenLabs**<br/>
-    Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
-    You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
-    After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>    
+- **TTS Service using Google TTS**<br/>
+  For Google TTS Engine, you can choose pitch and speed rate of the voice.<br/>
+  **Google credentials file path**<br/>
+  Here you must select your credential file, previously downloaded from Google, [with these steps](https://www.npmjs.com/package/@google-cloud/text-to-speech):
+  > [Select or create a Cloud Platform project](https://console.cloud.google.com/project)<br/>
+  > [Enable billing for your project](https://support.google.com/cloud/answer/6293499#enable-billing)<br/>
+  > [Enable the Google Cloud Text-to-Speech API](https://console.cloud.google.com/flows/enableapi?apiid=texttospeech.googleapis.com)<br/>
+
 <br/>
 
-* **TTS Service using Voice.ai**<br/>
-    Add your Voice.ai API key in the config node, deploy and restart Node-RED. The node will load your available voices and show them in the Voice dropdown.  
-    Note: SSML is not supported by this engine.
-<br/>
+- **TTS Service using ElevenLabs**<br/>
+  Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
+   You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
+   After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>  
+  <br/>
+
+- **TTS Service using Voice.ai**<br/>
+  Add your Voice.ai API key in the config node, deploy and restart Node-RED. The node will load your available voices and show them in the Voice dropdown.  
+   Note: SSML is not supported by this engine.
+  <br/>
 
 **Node-Red IP**<br/>
 set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
@@ -133,26 +271,26 @@ Note: if you use multiple `ttsultimate-config` nodes, each one now keeps its own
 
 **TTS Cache**
 <br/>
-***Purge and delete the TTS cache folder at deploy or restart***<br/>
+**_Purge and delete the TTS cache folder at deploy or restart_**<br/>
 On each deploy or node-red restart, delete all tts files in the cache. This is useful not to run out of disk space, in case you've a lot of TTS speech files.
 <br/>
-***Leave the TTS cache folder untouched*** (suggested only if you have enough disk space)<br/>
+**_Leave the TTS cache folder untouched_** (suggested only if you have enough disk space)<br/>
 Don't delete the files cached. Useful if you wish to keep the tts files, even in case of internet outages, node-red restart or reboots.
-<br/> 
+<br/>
 
 **Cache root folder**
 <br/>
 Set your preferred output folder for the files downloaded by the TTS Engine.<br/>
 This is useful if you wish to save the TTS cached files in a folder accessible, for example, by a third party web servers to serve an AirPlay2 speaker.<br/>
 Leave this field blank for the default.<br/>
-<br/> 
+<br/>
 <br/>
 
 # TTS-ULTIMATE NODE
 
 ## INPUT MESSAGES TO THE NODE <br/>
 
-*Examples*
+_Examples_
 
 ```js
 // Play a message
@@ -170,14 +308,15 @@ return msg;
 ```js
 // Play a message with custom voice ID
 msg.payload = "Hello, the current temperature is 12°";
-msg.voiceId = 2
+msg.voiceId = 2;
 return msg;
 ```
 
 ```js
 // Play smoke detection
 msg.sonoshailing = "SmokeAlert";
-msg.payload = "Warning, smoke detected. Fire extinguishers are in the kitchen, hall and garage.";
+msg.payload =
+  "Warning, smoke detected. Fire extinguishers are in the kitchen, hall and garage.";
 return msg;
 ```
 
@@ -203,17 +342,16 @@ return msg;
 
 ## CHANGE CONFIGURATION VIA MSG PROPERTY
 
-You can change the configuration of tts-ultimate, *via msg.setConfig* property.<br/>
-The property is a JSON object. 
+You can change the configuration of tts-ultimate, _via msg.setConfig_ property.<br/>
+The property is a JSON object.
 
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/setConfig.png' width="80%">
-
 
 ```js
 // Set main player IP
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
-var config= {
-    setMainPlayerIP:"192.168.1.109"
+var config = {
+  setMainPlayerIP: "192.168.1.109",
 };
 msg.setConfig = config;
 return msg;
@@ -223,13 +361,13 @@ return msg;
 // Set player IP and additional players with their optional adapted volume, relative to the main sonos player volume.
 // You can specify the aditional player's volume adaptation
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
-var config= {
-    setMainPlayerIP:"192.168.1.109",
-    setPlayerGroupArray:[
-        "192.168.1.110", // This additional player will use the same volume as the main sonos player.
-        "192.168.1.111#-10", // This additional player will use the main sonos player's volume, minus 10.
-        "192.168.1.112#20" // This additional player will use the main sonos player's volume, plus 20.
-    ]
+var config = {
+  setMainPlayerIP: "192.168.1.109",
+  setPlayerGroupArray: [
+    "192.168.1.110", // This additional player will use the same volume as the main sonos player.
+    "192.168.1.111#-10", // This additional player will use the main sonos player's volume, minus 10.
+    "192.168.1.112#20", // This additional player will use the main sonos player's volume, plus 20.
+  ],
 };
 msg.setConfig = config;
 return msg;
@@ -238,9 +376,9 @@ return msg;
 ```js
 // If you have only one additional player, without setting their adjusted volume.
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
-var config= {
-    setMainPlayerIP:"192.168.1.109",
-    setPlayerGroupArray:["192.168.1.110"]
+var config = {
+  setMainPlayerIP: "192.168.1.109",
+  setPlayerGroupArray: ["192.168.1.110"],
 };
 msg.setConfig = config;
 return msg;
@@ -253,8 +391,112 @@ return msg;
 > Adjust the nodes according to your setup
 
 ```js
-[{"id":"4b4514d.047366c","type":"ttsultimate","z":"235d8e3d.a7583a","name":"","voice":"de-DE","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"5","sonoshailing":"0","config":"feee307e.54bca","property":"payload","propertyType":{},"rules":[],"x":430,"y":360,"wires":[["2b2d7556.251d0a"],["2978fe86.e680aa"]]},{"id":"2b2d7556.251d0a","type":"debug","z":"235d8e3d.a7583a","name":"","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","statusVal":"","statusType":"auto","x":610,"y":340,"wires":[]},{"id":"2978fe86.e680aa","type":"debug","z":"235d8e3d.a7583a","name":"","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","statusVal":"","statusType":"auto","x":610,"y":380,"wires":[]},{"id":"9d9e06be.09718","type":"function","z":"235d8e3d.a7583a","name":"Change Config","func":"// Set the main player IP and each IP belonging to the player's group\nvar config= {\n    setMainPlayerIP:\"192.168.1.109\",\n    setPlayerGroupArray:[\n        \"192.168.1.110\",\n        \"192.168.1.111\",\n        \"192.168.1.112\"\n    ]\n};\nmsg.setConfig = config;\nreturn msg;","outputs":1,"noerr":0,"initialize":"","finalize":"","x":260,"y":360,"wires":[["4b4514d.047366c"]]},{"id":"c3da8b3a.e8f2c8","type":"inject","z":"235d8e3d.a7583a","name":"","props":[{"p":"payload"}],"repeat":"","crontab":"","once":false,"onceDelay":0.1,"topic":"","payload":"Hello","payloadType":"str","x":110,"y":360,"wires":[["9d9e06be.09718"]]},{"id":"c55b7140.4a7cc8","type":"comment","z":"235d8e3d.a7583a","name":"Change the player and/or group of players via msg property.","info":"","x":270,"y":300,"wires":[]},{"id":"feee307e.54bca","type":"ttsultimate-config","name":"Config","noderedipaddress":"192.168.1.161","noderedport":"1980","purgediratrestart":"leave","ttsservice":"googletranslate"}]
+[
+  {
+    id: "4b4514d.047366c",
+    type: "ttsultimate",
+    z: "235d8e3d.a7583a",
+    name: "",
+    voice: "de-DE",
+    ssml: false,
+    sonosipaddress: "192.168.1.109",
+    sonosvolume: "5",
+    sonoshailing: "0",
+    config: "feee307e.54bca",
+    property: "payload",
+    propertyType: {},
+    rules: [],
+    x: 430,
+    y: 360,
+    wires: [["2b2d7556.251d0a"], ["2978fe86.e680aa"]],
+  },
+  {
+    id: "2b2d7556.251d0a",
+    type: "debug",
+    z: "235d8e3d.a7583a",
+    name: "",
+    active: true,
+    tosidebar: true,
+    console: false,
+    tostatus: false,
+    complete: "true",
+    targetType: "full",
+    statusVal: "",
+    statusType: "auto",
+    x: 610,
+    y: 340,
+    wires: [],
+  },
+  {
+    id: "2978fe86.e680aa",
+    type: "debug",
+    z: "235d8e3d.a7583a",
+    name: "",
+    active: true,
+    tosidebar: true,
+    console: false,
+    tostatus: false,
+    complete: "true",
+    targetType: "full",
+    statusVal: "",
+    statusType: "auto",
+    x: 610,
+    y: 380,
+    wires: [],
+  },
+  {
+    id: "9d9e06be.09718",
+    type: "function",
+    z: "235d8e3d.a7583a",
+    name: "Change Config",
+    func: '// Set the main player IP and each IP belonging to the player\'s group\nvar config= {\n    setMainPlayerIP:"192.168.1.109",\n    setPlayerGroupArray:[\n        "192.168.1.110",\n        "192.168.1.111",\n        "192.168.1.112"\n    ]\n};\nmsg.setConfig = config;\nreturn msg;',
+    outputs: 1,
+    noerr: 0,
+    initialize: "",
+    finalize: "",
+    x: 260,
+    y: 360,
+    wires: [["4b4514d.047366c"]],
+  },
+  {
+    id: "c3da8b3a.e8f2c8",
+    type: "inject",
+    z: "235d8e3d.a7583a",
+    name: "",
+    props: [{ p: "payload" }],
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    topic: "",
+    payload: "Hello",
+    payloadType: "str",
+    x: 110,
+    y: 360,
+    wires: [["9d9e06be.09718"]],
+  },
+  {
+    id: "c55b7140.4a7cc8",
+    type: "comment",
+    z: "235d8e3d.a7583a",
+    name: "Change the player and/or group of players via msg property.",
+    info: "",
+    x: 270,
+    y: 300,
+    wires: [],
+  },
+  {
+    id: "feee307e.54bca",
+    type: "ttsultimate-config",
+    name: "Config",
+    noderedipaddress: "192.168.1.161",
+    noderedport: "1980",
+    purgediratrestart: "leave",
+    ttsservice: "googletranslate",
+  },
+];
 ```
+
 </details>
 
 <br/>
@@ -271,8 +513,111 @@ return msg;
 > Adjust the nodes according to your setup
 
 ```js
-[{"id":"db0ea33.f1186e","type":"ttsultimate","z":"c6efd2b6.ab02e8","name":"","voice":"en-AU-Standard-A#en-AU#FEMALE","ssml":false,"sonosipaddress":"192.168.1.109","sonosvolume":"25","sonoshailing":"Hailing_Hailing.mp3","config":"4f941d61.f52c4c","propertyType":{},"rules":[],"x":670,"y":240,"wires":[[]]},{"id":"c7fb2970.271978","type":"ownfileultimate","z":"c6efd2b6.ab02e8","name":"","selectedFile":"OwnFile_Tur geoeffnet.mp3","x":490,"y":220,"wires":[["db0ea33.f1186e"]]},{"id":"fef80c5b.49f9e","type":"inject","z":"c6efd2b6.ab02e8","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":130,"y":220,"wires":[["c7fb2970.271978"]]},{"id":"807f0f6c.6d59c","type":"comment","z":"c6efd2b6.ab02e8","name":"You can upload your own voice messages and use it with ttsultimate","info":"","x":310,"y":180,"wires":[]},{"id":"536e58b3.bb8468","type":"ownfileultimate","z":"c6efd2b6.ab02e8","name":"","selectedFile":"OwnFile_Tur geoeffnet.mp3","x":490,"y":260,"wires":[["db0ea33.f1186e"]]},{"id":"26c339f9.346fbe","type":"inject","z":"c6efd2b6.ab02e8","name":"","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":130,"y":260,"wires":[["25016441.6447bc"]]},{"id":"25016441.6447bc","type":"function","z":"c6efd2b6.ab02e8","name":"Dynamically Select file","func":"// Override the selected file.\nmsg.selectedFile=\"Porta aperta\"\nreturn msg;","outputs":1,"noerr":0,"x":300,"y":260,"wires":[["536e58b3.bb8468"]]},{"id":"4f941d61.f52c4c","type":"ttsultimate-config","z":"","name":"GoogleTTS","noderedipaddress":"192.168.1.219","noderedport":"1980","purgediratrestart":"leave","ttsservice":"googletts"}]
+[
+  {
+    id: "db0ea33.f1186e",
+    type: "ttsultimate",
+    z: "c6efd2b6.ab02e8",
+    name: "",
+    voice: "en-AU-Standard-A#en-AU#FEMALE",
+    ssml: false,
+    sonosipaddress: "192.168.1.109",
+    sonosvolume: "25",
+    sonoshailing: "Hailing_Hailing.mp3",
+    config: "4f941d61.f52c4c",
+    propertyType: {},
+    rules: [],
+    x: 670,
+    y: 240,
+    wires: [[]],
+  },
+  {
+    id: "c7fb2970.271978",
+    type: "ownfileultimate",
+    z: "c6efd2b6.ab02e8",
+    name: "",
+    selectedFile: "OwnFile_Tur geoeffnet.mp3",
+    x: 490,
+    y: 220,
+    wires: [["db0ea33.f1186e"]],
+  },
+  {
+    id: "fef80c5b.49f9e",
+    type: "inject",
+    z: "c6efd2b6.ab02e8",
+    name: "",
+    topic: "",
+    payload: "true",
+    payloadType: "bool",
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    x: 130,
+    y: 220,
+    wires: [["c7fb2970.271978"]],
+  },
+  {
+    id: "807f0f6c.6d59c",
+    type: "comment",
+    z: "c6efd2b6.ab02e8",
+    name: "You can upload your own voice messages and use it with ttsultimate",
+    info: "",
+    x: 310,
+    y: 180,
+    wires: [],
+  },
+  {
+    id: "536e58b3.bb8468",
+    type: "ownfileultimate",
+    z: "c6efd2b6.ab02e8",
+    name: "",
+    selectedFile: "OwnFile_Tur geoeffnet.mp3",
+    x: 490,
+    y: 260,
+    wires: [["db0ea33.f1186e"]],
+  },
+  {
+    id: "26c339f9.346fbe",
+    type: "inject",
+    z: "c6efd2b6.ab02e8",
+    name: "",
+    topic: "",
+    payload: "true",
+    payloadType: "bool",
+    repeat: "",
+    crontab: "",
+    once: false,
+    onceDelay: 0.1,
+    x: 130,
+    y: 260,
+    wires: [["25016441.6447bc"]],
+  },
+  {
+    id: "25016441.6447bc",
+    type: "function",
+    z: "c6efd2b6.ab02e8",
+    name: "Dynamically Select file",
+    func: '// Override the selected file.\nmsg.selectedFile="Porta aperta"\nreturn msg;',
+    outputs: 1,
+    noerr: 0,
+    x: 300,
+    y: 260,
+    wires: [["536e58b3.bb8468"]],
+  },
+  {
+    id: "4f941d61.f52c4c",
+    type: "ttsultimate-config",
+    z: "",
+    name: "GoogleTTS",
+    noderedipaddress: "192.168.1.219",
+    noderedport: "1980",
+    purgediratrestart: "leave",
+    ttsservice: "googletts",
+  },
+];
 ```
+
 </details>
 
 This node allow you to upload your custom message and play it via ttsultimate without the need of an internet connection. You can use it, for example, with your alarm panel, to annuce a zone breach, a doorbell or so.
@@ -285,9 +630,9 @@ Select a file to be played. You can upload one or multiple files at the same tim
 
 **Priority**<br/>
 If set to <b>true</b>, the OwnFile message will cancel the current TTS queue, will stop the current phrase being spoken and the TTS-Ultimate node will play this priority message.<br/>
-Please refer to *msg.priority* msg input property of TTS-Ultimate for info on how this message will be handled<br/>
+Please refer to _msg.priority_ msg input property of TTS-Ultimate for info on how this message will be handled<br/>
 
-## INPUT MESSAGE 
+## INPUT MESSAGE
 
 **msg.payload = true**<br/>
 Begin play of the message <br/>
@@ -297,11 +642,10 @@ Overrides the selected message and plays the filename you passed in. Please doub
 
 **msg.priority**<br/>
 If set to <b>true</b>, the OwnFile message will cancel the current TTS queue, will stop the current phrase being spoken and the TTS-Ultimate node will play this priority message.<br/>
-Please refer to *msg.priority* msg input property of TTS-Ultimate for info on how this message will be handled<br/>
-
+Please refer to _msg.priority_ msg input property of TTS-Ultimate for info on how this message will be handled<br/>
 
 ![Logo](https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/madeinitaly.png)
-    
+
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
 [license-url]: https://github.com/Supergiovane/node-red-contrib-tts-ultimate/master/LICENSE
 [npm-url]: https://npmjs.org/package/node-red-contrib-tts-ultimate
