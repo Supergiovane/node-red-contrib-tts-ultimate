@@ -28,6 +28,22 @@ You can also use it with **your own audio file** as well and it can be used **to
 The node can also create a ***TTS file (without the use of any Sonos device)***, to be read by third parties nodes.<br/>
 This is a major ***upgrade from the previously popular node SonosPollyTTS*** (SonosPollyTTS is not developed anymore).<br/>
 
+## SUPPORTED TTS ENGINES
+<p>
+  <a href="https://www.npmjs.com/package/google-translate-tts" title="Google Translate TTS (free)">
+    <img src="https://cdn.simpleicons.org/googletranslate/4285F4" height="26" alt="Google Translate logo"/>
+  </a>&nbsp;&nbsp;
+  <a href="https://cloud.google.com/text-to-speech" title="Google Cloud Text-to-Speech">
+    <img src="https://cdn.simpleicons.org/googlecloud/4285F4" height="26" alt="Google Cloud logo"/>
+  </a>&nbsp;&nbsp;
+  <a href="https://elevenlabs.io" title="ElevenLabs">
+    <img src="https://cdn.simpleicons.org/elevenlabs/000000" height="26" alt="ElevenLabs logo"/>
+  </a>&nbsp;&nbsp;
+  <a href="https://voice.ai/docs/api-reference/text-to-speech/generate-speech" title="Voice.ai">
+    <img src="https://voice.ai/favicon.ico" height="26" alt="Voice.ai logo"/>
+  </a>
+</p>
+
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
@@ -37,11 +53,11 @@ This is a major ***upgrade from the previously popular node SonosPollyTTS*** (So
 ## FEATURES
 * **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
 * **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
-* **Gooogle Translate Voices, Google TTS Voices and Elevenlabs.io voices** are all supported, with all avaiables languages and genders.
+* **Google Translate Voices, Google TTS Voices, ElevenLabs voices and Voice.ai voices** are supported.
 * **Automatic grouping** is supported. You can group all players you want to play your announcements.
 * **Automatic discovery** of your players.
 * **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming ***radio stations*** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
-* **TTS caching**. Elevenlabs and Google paid service, charges you if you use they tts service for a high rate of text to speech requests. TTS-Ultimate caches the TTS files. It downloads the TTS audio from Amazon or Google only once. The second time, the node will read it from the cache. The caches is resilient, that means it survives reboots and updates.
+* **TTS caching**. ElevenLabs and Google paid service charge you for a high rate of text-to-speech requests. TTS-Ultimate caches the TTS files: it downloads each generated audio only once, and then reads it from cache. The cache is resilient (survives reboots and updates).
 * **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
 * **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
 
