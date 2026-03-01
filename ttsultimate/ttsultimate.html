@@ -226,35 +226,48 @@
       label: function () {
         return this.name || "TTS-ultimate";
       },
-      oneditprepare: function () {
-        var node = this;
-        var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
-        if (node.elevenlabsModel !== undefined) $("#node-input-elevenlabsModel").val(node.elevenlabsModel);
-        if (node.elevenlabsOptimizeLatency !== undefined) $("#node-input-elevenlabsOptimizeLatency").val(node.elevenlabsOptimizeLatency);
-        if (node.elevenlabsOutputFormat !== undefined) $("#node-input-elevenlabsOutputFormat").val(node.elevenlabsOutputFormat);
-        if (node.elevenlabsSeed !== undefined) $("#node-input-elevenlabsSeed").val(node.elevenlabsSeed);
+	      oneditprepare: function () {
+	        var node = this;
+	        var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
+	        if (node.elevenlabsModel !== undefined) $("#node-input-elevenlabsModel").val(node.elevenlabsModel);
+	        if (node.elevenlabsOptimizeLatency !== undefined) $("#node-input-elevenlabsOptimizeLatency").val(node.elevenlabsOptimizeLatency);
+	        if (node.elevenlabsOutputFormat !== undefined) $("#node-input-elevenlabsOutputFormat").val(node.elevenlabsOutputFormat);
+	        if (node.elevenlabsSeed !== undefined) $("#node-input-elevenlabsSeed").val(node.elevenlabsSeed);
+	
+	        function updateTtsOptionsVisibility() {
+	          try {
+	            if (!oNodeServer || !oNodeServer.ttsservice) return;
+	            if (oNodeServer.ttsservice === "googletts") {
+	              $("#divGoogleTTSAudioConfig").show();
+	              $("#divElevenLabsOptions").hide();
+	              $("#divSSML").show();
+	            } else if (oNodeServer.ttsservice.includes("elevenlabs")) {
+	              $("#divGoogleTTSAudioConfig").hide();
+	              $("#divElevenLabsOptions").show();
+	              $("#divSSML").hide();
+	            } else if (oNodeServer.ttsservice === "voiceai") {
+	              $("#divGoogleTTSAudioConfig").hide();
+	              $("#divElevenLabsOptions").hide();
+	              $("#divSSML").hide();
+	            } else {
+	              $("#divGoogleTTSAudioConfig").hide();
+	              $("#divElevenLabsOptions").hide();
+	              $("#divSSML").show();
+	            }
+	          } catch (error) {
+	          }
+	        }
 
         // 19/02/2020 Used to alert the user if the CSV file has not been loaded and to get the server sooner als deploy
         // ###########################
-        $("#node-input-config").change(function () {
-          try {
-            oNodeServer = RED.nodes.node($(this).val());
-            getVoices();
-            if (oNodeServer.ttsservice === "googletts") {
-              $("#divGoogleTTSAudioConfig").show();
-              $("#divElevenLabsOptions").hide();
-            } else if (oNodeServer.ttsservice.includes("elevenlabs")) {
-              $("#divGoogleTTSAudioConfig").hide();
-              $("#divElevenLabsOptions").show();
-              $("#divSSML").hide();
-            } else {
-              $("#divGoogleTTSAudioConfig").hide();
-              $("#divElevenLabsOptions").hide();
-              $("#divSSML").show();
-            }
-          } catch (error) {
-          }
-        });
+	        $("#node-input-config").change(function () {
+	          try {
+	            oNodeServer = RED.nodes.node($(this).val());
+	            getVoices();
+	            updateTtsOptionsVisibility();
+	          } catch (error) {
+	          }
+	        });
         // ###########################
 
 
@@ -347,9 +360,10 @@
             }
             return comparison;
           }
-        }
-        getVoices();
-        // #####################################
+	        }
+	        updateTtsOptionsVisibility();
+	        getVoices();
+	        // #####################################
 
         // Refresh the combo
         // #####################################
@@ -601,7 +615,7 @@
 |Property|Description|
 |--|--|
 | TTS Service | Select the TTS SERVICE ENGINE NODE. |
-| Voice | Select your preferred voice. If you use Amazon, Polly voices will be displayed (standard and neural). If you use Google, google voices will be displayed. Google service without authentication, has a limited set of voices. |
+| Voice | Select your preferred voice. The list depends on the selected TTS engine (Google / ElevenLabs / Voice.ai). Google service without authentication has a limited set of voices. |
 | Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
 | Upload hail | It allows you to upload your own hailing file. |
 | Player | Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes. In case you select No player, only output file name, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
@@ -614,7 +628,7 @@
 **Google TTS Engines specific options**
 |Property|Description|
 |--|--|
-| Enable SSML | Enable the SSML XML notation. Please be aware, not all the TTS engines supports that.|
+| Enable SSML | Enable the SSML XML notation. Please be aware, not all the TTS engines supports that (for example Voice.ai).|
 | Rate | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech speed (Between 0.25 and 4.0, default 1). |
 | Pitch | Only avaiable if you choose Google TTS Engine (with credentials). Specifies the speech pitch (Between -20.0 and 20.0, default 0). |
 
@@ -637,7 +651,7 @@
 : sonoshailing (string) : Overrides the selected hailing and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your hailing files, in the ttsultimate config window) and do not include the .mp3 extenson. For example node.sonoshailing="ComputerCall".
 : priority (boolean) : If set to true, the inbound flow message will cancel the current TTS queue, will stop the current phrase being spoken and the node will play this priority message. If there are other priority messages in the queue, they will be retained and the inbound priority flow message is added to the queue. If the inbound priority flow message is the first in the priority queue, the hailing is played first (if the hailing has been enabled or if the hailing has been overridden by node.sonoshailing).
 : stop (boolean) : If set to true, stops whatever is playing and clears the TTS queue.
-: voiceId (number) : Play a message with custom voice ID.
+: voiceId (string) : Play a message with custom voice ID (engine-specific).
 : setConfig (json) : This is the property where you can set all the things. It must be a JSON Object with the below specified properties. The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 : setConfig {setMainPlayerIP} (string) : Sets the main player IP. This will also be the coordinator if you have a group of players.
 : setConfig {setPlayerGroupArray} (array) : Sets the array of players beloging to the group, if any. You can also specify the volume variation from the main volume player, to adapt the additional player's perceived volume to the main sonos player volume. For example, if you have a speaker mounted in celiling, having less perceived volume, you can "push" the volume up, to match the whole perceived volume. Just add # after the IP and a number from -100 to 100 to subtract or add volume compared to the main sonos volume. For example, if the sonos main player volume is 40, you can push this celing speaker's volume to further 10, so it'll have the real volume of 50. See below, the example. Even if you have only one additional player, you need to put it into an array.

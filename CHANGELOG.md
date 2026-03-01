@@ -4,6 +4,17 @@
 
 
 <p>
+<b>Version 3.0.6</b> March 2026<br/>
+- Fix: Voice.ai voice list parsing (now shows all available voices).<br/>
+- Change: removed legacy/removed engines (Polly/Azure) from the config UI and docs.<br/>
+</p>
+
+<p>
+<b>Version 3.0.5</b> March 2026<br/>
+- NEW: Voice.ai TTS engine.<br/>
+</p>
+
+<p>
 <b>Version 3.0.4</b> January 2026<br/>
 - Fix: cache purge at restart/deploy is now isolated per `ttsultimate-config` node (no more deleting other config caches).<br/>
 </p>

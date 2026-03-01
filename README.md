@@ -73,20 +73,9 @@ PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Elevenlabs.io, Google (without credentials), Google TTS (require credentials and registration to google).<br/>
+You can choose between Voice.ai, Elevenlabs.io, Google (without credentials), Google TTS (require credentials and registration to google).<br/>
 For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
-<br/>
-
-* **TTS Service using Amazon AWS (Polly)**<br/>  
-
-    (REMOVED IN v3.0.0 AND NOT USED ANYMORE)  
-    
-    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
-    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```  
-
-    [Navigate here go here to view the old version](https://www.npmjs.com/package/node-red-contrib-tts-ultimate/v/2.0.10)
-    
 <br/>
 
 * **TTS Service using Google (without credentials)**<br/>
@@ -107,22 +96,15 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 
 <br/>
 
-* **TTS Service using Microsot Azure TTS**
-
-    (REMOVED IN v3.0.0 AND NOT USED ANYMORE)  
-
-    !IF YOU NEED THIS SERVICE, INSTALL ANY VERSION < 3.0.0 (ANY 2.x.x IS FINE)!
-    > ``` npm install node-red-contrib-tts-ultimate@2.0.10 ```  
-    
-    [Navigate here go here to view the old version](https://www.npmjs.com/package/node-red-contrib-tts-ultimate/v/2.0.10)  
-
-  
-<br/>
-
 * **TTS Service using ElevenLabs**<br/>
     Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
     You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
     After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>    
+<br/>
+
+* **TTS Service using Voice.ai**<br/>
+    Add your Voice.ai API key in the config node, deploy and restart Node-RED. The node will load your available voices and show them in the Voice dropdown.  
+    Note: SSML is not supported by this engine.
 <br/>
 
 **Node-Red IP**<br/>

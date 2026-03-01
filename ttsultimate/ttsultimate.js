@@ -7,6 +7,7 @@ module.exports = function (RED) {
   var path = require('path');
   const sonos = require('sonos');
   const crypto = require("crypto");
+  const VOICEAI_API_BASE_URL = "https://dev.voice.ai/api/v1/tts";
 
   function slug(_text) {
     var sRet = _text;
@@ -675,6 +676,28 @@ module.exports = function (RED) {
                 } else {
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
                 }
+              } else if (node.server.ttsservice === "voiceai") {
+                const apiKey = node.server.credentials.voiceaiKey;
+                if (!apiKey || apiKey.trim() === "") throw new Error("Voice.ai API key missing");
+
+                const params = {
+                  text: msg,
+                  audio_format: "mp3"
+                };
+                if (node.voiceId && node.voiceId !== "" && node.voiceId !== "voiceai_default") {
+                  params.voice_id = node.voiceId;
+                }
+
+                const cacheFilename = getFilename(msg, params);
+                const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
+                node.sFileToBePlayed = resolvedPath;
+                audioSource = isCached ? "cache" : "internet";
+                if (!isCached) {
+                  node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
+                  data = await synthesizeSpeechVoiceAi(apiKey, params);
+                } else {
+                  node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Reading offline from cache' });
+                }
               } else if (node.server.ttsservice === "microsoftazuretts") {
                 // VoiceId is: code 
                 const params = {
@@ -1323,6 +1346,29 @@ module.exports = function (RED) {
         }
         const content = Buffer.concat(chunks);
         return content;
+      } catch (error) {
+        throw (error);
+      }
+    }
+
+    async function synthesizeSpeechVoiceAi(apiKey, params) {
+      try {
+        const res = await fetch(`${VOICEAI_API_BASE_URL}/speech`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(params)
+        });
+
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          throw new Error(`HTTP ${res.status} ${res.statusText}${body ? " - " + body : ""}`);
+        }
+
+        const ab = await res.arrayBuffer();
+        return Buffer.from(ab);
       } catch (error) {
         throw (error);
       }

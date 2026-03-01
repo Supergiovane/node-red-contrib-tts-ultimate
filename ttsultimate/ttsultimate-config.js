@@ -21,6 +21,8 @@ module.exports = function (RED) {
     const oOS = require('os');
     const sonos = require('sonos');
 
+    const VOICEAI_API_BASE_URL = "https://dev.voice.ai/api/v1/tts";
+
     // Configuration Node Register
     function TTSConfigNode(config) {
         RED.nodes.createNode(this, config);
@@ -207,6 +209,52 @@ module.exports = function (RED) {
 
         } else {
             //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+        }
+
+        // Voice.ai TTS
+        if (node.ttsservice === "voiceai") {
+            node.voiceAiVoiceList = [];
+
+            const loadVoiceAiVoices = async () => {
+                try {
+                    const apiKey = node.credentials.voiceaiKey;
+                    if (!apiKey || apiKey.trim() === "") {
+                        node.voiceAiVoiceList = [{ name: "Voice.ai API key missing. Please configure, deploy and restart node-red.", id: "voiceai_default" }];
+                        return;
+                    }
+
+                    const res = await fetch(`${VOICEAI_API_BASE_URL}/voices`, {
+                        method: "GET",
+                        headers: { Authorization: `Bearer ${apiKey}` }
+                    });
+
+                    if (!res.ok) {
+                        const body = await res.text().catch(() => "");
+                        throw new Error(`HTTP ${res.status} ${res.statusText}${body ? " - " + body : ""}`);
+                    }
+
+                    const payload = await res.json();
+                    const voices = Array.isArray(payload) ? payload : [];
+
+                    const list = [{ name: "Default (built-in)", id: "voiceai_default" }];
+                    const voiceEntries = [];
+                    voices.forEach(v => {
+                        if (v && v.voice_id) {
+                            const extra = [v.voice_visibility, v.status].filter(Boolean).join(", ");
+                            voiceEntries.push({ name: `${v.name || v.voice_id}${extra ? " (" + extra + ")" : ""}`, id: v.voice_id });
+                        }
+                    });
+                    voiceEntries.sort((a, b) => (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase()));
+                    node.voiceAiVoiceList = list.concat(voiceEntries);
+                    RED.log.info("ttsultimate-config " + node.id + ": Voice.ai TTS enabled.");
+                } catch (error) {
+                    RED.log.warn("ttsultimate-config " + node.id + ": Voice.ai TTS disabled. " + error.message);
+                    node.voiceAiVoiceList = [{ name: "Error getting Voice.ai voices: " + error.message + " Check credentials, deploy and restart node-red.", id: "voiceai_default" }];
+                }
+            };
+
+            // Fire and forget; list will be available shortly after restart/deploy
+            loadVoiceAiVoices();
         }
 
 
@@ -416,6 +464,43 @@ module.exports = function (RED) {
 
             } else if (ttsservice.includes("elevenlabs")) {
                 res.json(node.elevenlabsTTSVoiceList);
+            } else if (ttsservice === "voiceai") {
+                const ensureList = async () => {
+                    try {
+                        if (Array.isArray(node.voiceAiVoiceList) && node.voiceAiVoiceList.length > 0) {
+                            return node.voiceAiVoiceList;
+                        }
+                        const apiKey = node.credentials.voiceaiKey;
+                        if (!apiKey || apiKey.trim() === "") {
+                            return [{ name: "Voice.ai API key missing. Please configure, deploy and restart node-red.", id: "voiceai_default" }];
+                        }
+
+                        const resVoices = await fetch(`${VOICEAI_API_BASE_URL}/voices`, {
+                            method: "GET",
+                            headers: { Authorization: `Bearer ${apiKey}` }
+                        });
+                        if (!resVoices.ok) {
+                            const body = await resVoices.text().catch(() => "");
+                            throw new Error(`HTTP ${resVoices.status} ${resVoices.statusText}${body ? " - " + body : ""}`);
+                        }
+                        const payload = await resVoices.json();
+                        const voices = Array.isArray(payload) ? payload : [];
+                        const list = [{ name: "Default (built-in)", id: "voiceai_default" }];
+                        const voiceEntries = [];
+                        voices.forEach(v => {
+                            if (v && v.voice_id) {
+                                const extra = [v.voice_visibility, v.status].filter(Boolean).join(", ");
+                                voiceEntries.push({ name: `${v.name || v.voice_id}${extra ? " (" + extra + ")" : ""}`, id: v.voice_id });
+                            }
+                        });
+                        voiceEntries.sort((a, b) => (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase()));
+                        node.voiceAiVoiceList = list.concat(voiceEntries);
+                        return node.voiceAiVoiceList;
+                    } catch (error) {
+                        return [{ name: "Error getting Voice.ai voices: " + error.message + " Check credentials, deploy and restart node-red.", id: "voiceai_default" }];
+                    }
+                };
+                ensureList().then(list => res.json(list));
             }
 
         });
@@ -642,11 +727,8 @@ module.exports = function (RED) {
     }
     RED.nodes.registerType("ttsultimate-config", TTSConfigNode, {
         credentials: {
-            accessKey: { type: "text" },
-            secretKey: { type: "password" },
-            mssubscriptionKey: { type: "text" },
-            mslocation: { type: "text" },
-            elevenlabsKey: { type: "text" }
+            elevenlabsKey: { type: "text" },
+            voiceaiKey: { type: "text" }
         }
     });
 
