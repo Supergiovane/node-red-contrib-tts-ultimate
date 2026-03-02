@@ -171,16 +171,16 @@ This is a major **_upgrade from the previously popular node SonosPollyTTS_** (So
 
 <p>
   <a href="https://www.npmjs.com/package/google-translate-tts" title="Google Translate TTS (free)">
-    <img src="https://cdn.simpleicons.org/googletranslate/4285F4" height="26" alt="Google Translate logo"/>
+    <img src="https://cdn.simpleicons.org/googletranslate/4285F4" height="126" alt="Google Translate logo"/>
   </a>&nbsp;&nbsp;
   <a href="https://cloud.google.com/text-to-speech" title="Google Cloud Text-to-Speech">
-    <img src="https://cdn.simpleicons.org/googlecloud/4285F4" height="26" alt="Google Cloud logo"/>
+    <img src="https://cdn.simpleicons.org/googlecloud/4285F4" height="126" alt="Google Cloud logo"/>
   </a>&nbsp;&nbsp;
   <a href="https://elevenlabs.io" title="ElevenLabs">
-    <img src="https://cdn.simpleicons.org/elevenlabs/000000" height="26" alt="ElevenLabs logo"/>
+    <img src="https://cdn.simpleicons.org/elevenlabs/000000" height="126" alt="ElevenLabs logo"/>
   </a>&nbsp;&nbsp;
   <a href="https://voice.ai/docs/api-reference/text-to-speech/generate-speech" title="Voice.ai">
-    <img src="https://voice.ai/favicon.ico" height="26" alt="Voice.ai logo"/>
+    <img src="https://voice.ai/favicon.ico" height="126" alt="Voice.ai logo"/>
   </a>
 </p>
 
