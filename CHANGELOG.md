@@ -1,7 +1,11 @@
-![Sample Node](img/logo.png) 
+![Sample Node](img/logo.png)
 
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday) 
+[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
+<b>Version 3.0.7</b> March 2026<br/>
+
+- CHORE: fixed some issues with voice.ai.<br/>
+</p>
 
 <p>
 <b>Version 3.0.6</b> March 2026<br/>
@@ -35,10 +39,8 @@
 - NEW: Added option to avoid resuming music if it was playing before TTS messages.<br/>
 </p>
 
------------------------------------------------------------------------
-  
-    
-    
+---
+
 <p>
 <b>Version 2.0.10</b> November 2024<br/>
 - ElevenLabs V2: now you can set the additional parameters for the voice.<br/>
@@ -322,18 +324,15 @@
 
 # CHANGELOG BELOW COMES FROM OLD SONOSPOLLYTTS NODE
 
->
-> ***UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE***
+> **_UPDATE PATH FROM SONOSPOLLYTTS TO TTS-ULTIMATE_**
 >
 > Supergiovane takes care about your brain and your time.<br/>
 > Install TTS-Ultimate. Both SonosPollyTTS and TTS-Ultimate can cohexist.<br/>
 > Then just delete your old SonosPollyTTS nodes and replace it with TTS-Ultimate nodes.<br/>
 > The cache will remain the same. Your own audio files and hailing files won't be touched. You'll find it again in TTS-Ultimate<br/>
-> 
 
 <br/>
 <br/>
-
 
 <p>
 <b>Version 2.0.5</b> December 2020<br/>
