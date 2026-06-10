@@ -17,9 +17,10 @@
 <div id="allGUI">
     <div class="form-row">
         <label for="node-input-voice"><i class="icon-tag"></i> Voice</label>
-        <select id="node-input-voice">
+        <select id="node-input-voice" style="width:60%">
             <option value='Joanna'>Joanna (en-US)</option>
         </select>
+        <a id="refreshVoices" class="red-ui-button" title="Refresh voices list" style="margin-left:5px"><i class="fa fa-refresh"></i></a>
     </div>
 
     <div id = "divGoogleTTSAudioConfig">
@@ -41,24 +42,29 @@
             <label for="node-input-elevenlabsSimilarity_boost"><i class="fa fa-volume-up"></i> Similarity boost</label>
             <input type="text" id="node-input-elevenlabsSimilarity_boost" style="width:60px"> (Default 0.5)
         </div>
-        <div class="form-row">
+        <div class="form-row" id="divElevenLabsStyle">
           <label for="node-input-elevenlabsStyle"><i class="fa fa-volume-up"></i> Style Exaggeration </label>
           <input type="text" id="node-input-elevenlabsStyle" style="width:60px"> (Default 0.0)
         </div>
         <div class="form-row">
+          <label for="node-input-elevenlabsSpeed"><i class="fa fa-tachometer"></i> Speed</label>
+          <input type="text" id="node-input-elevenlabsSpeed" style="width:60px"> (Between 0.7 and 1.2, default 1.0)
+        </div>
+        <div class="form-row" id="divElevenLabsSpeakerBoost">
           <label></label>
           <input type="checkbox" id="node-input-elevenlabsUse_speaker_boost" style="margin-left: 0px; vertical-align: top; width: auto !important;"> <label style="width:auto !important;"> Speaker boost</label>
         </div>
         <div class="form-row">
           <label for="node-input-elevenlabsModel"><i class="fa fa-cubes"></i> Model</label>
-          <select id="node-input-elevenlabsModel" style="width:60%">
-            <option value="">Automatic</option>
+          <select id="node-input-elevenlabsModel" style="width:55%">
+            <option value="">Automatic (recommended)</option>
             <option value="eleven_monolingual_v1">Eleven Monolingual v1</option>
             <option value="eleven_multilingual_v1">Eleven Multilingual v1</option>
             <option value="eleven_multilingual_v2">Eleven Multilingual v2</option>
             <option value="eleven_turbo_v2">Eleven Turbo v2</option>
             <option value="eleven_turbo_v2_5">Eleven Turbo v2.5</option>
           </select>
+          <a id="refreshElevenLabsModels" class="red-ui-button" title="Refresh models list" style="margin-left:5px"><i class="fa fa-refresh"></i></a>
         </div>
         <div class="form-row">
           <label for="node-input-elevenlabsOptimizeLatency"><i class="fa fa-tachometer"></i> Latency preset</label>
@@ -201,6 +207,7 @@
         elevenlabsStability: { value: "0.5", required: false },
         elevenlabsSimilarity_boost: { value: "0.5", required: false },
         elevenlabsStyle: { value: "0.0", required: false },
+        elevenlabsSpeed: { value: "1.0", required: false },
         elevenlabsUse_speaker_boost: { value: true, required: false },
         elevenlabsModel: { value: "", required: false },
         elevenlabsOptimizeLatency: { value: "", required: false },
@@ -230,6 +237,7 @@
 	        var node = this;
 	        var oNodeServer = RED.nodes.node($("#node-input-config").val()); // Store the config-node
 	        if (node.elevenlabsModel !== undefined) $("#node-input-elevenlabsModel").val(node.elevenlabsModel);
+	        if (node.elevenlabsSpeed !== undefined) $("#node-input-elevenlabsSpeed").val(node.elevenlabsSpeed);
 	        if (node.elevenlabsOptimizeLatency !== undefined) $("#node-input-elevenlabsOptimizeLatency").val(node.elevenlabsOptimizeLatency);
 	        if (node.elevenlabsOutputFormat !== undefined) $("#node-input-elevenlabsOutputFormat").val(node.elevenlabsOutputFormat);
 	        if (node.elevenlabsSeed !== undefined) $("#node-input-elevenlabsSeed").val(node.elevenlabsSeed);
@@ -264,6 +272,7 @@
 	          try {
 	            oNodeServer = RED.nodes.node($(this).val());
 	            getVoices();
+	            getElevenLabsModels();
 	            updateTtsOptionsVisibility();
 	          } catch (error) {
 	          }
@@ -363,7 +372,79 @@
 	        }
 	        updateTtsOptionsVisibility();
 	        getVoices();
+
+	        // Refresh voices list on demand
+	        $("#refreshVoices").click(function (e) {
+	          e.preventDefault();
+	          if (oNodeServer === null || oNodeServer === undefined || !oNodeServer.ttsservice) {
+	            RED.notify("Please select a valid TTS service first.", { type: 'warning', timeout: 3000 });
+	            return;
+	          }
+	          getVoices();
+	        });
 	        // #####################################
+
+        // ElevenLabs: read models and their capabilities from the API, then propose them to the user.
+        // Options not supported by the selected model are automatically disabled.
+        // #####################################
+        function applyElevenLabsModelCapabilities() {
+          var $opt = $("#node-input-elevenlabsModel option:selected");
+          var modelVal = $("#node-input-elevenlabsModel").val();
+          // "Automatic" (empty) or models loaded without capability data => keep everything enabled.
+          var styleSupported = (modelVal === "" || modelVal === null) ? true : ($opt.data("style") !== false);
+          var boostSupported = (modelVal === "" || modelVal === null) ? true : ($opt.data("boost") !== false);
+          toggleElevenLabsRow("#divElevenLabsStyle", "#node-input-elevenlabsStyle", styleSupported);
+          toggleElevenLabsRow("#divElevenLabsSpeakerBoost", "#node-input-elevenlabsUse_speaker_boost", boostSupported);
+        }
+        function toggleElevenLabsRow(rowSelector, inputSelector, supported) {
+          if (supported) {
+            $(rowSelector).css("opacity", "1");
+            $(inputSelector).prop("disabled", false);
+          } else {
+            $(rowSelector).css("opacity", "0.4");
+            $(inputSelector).prop("disabled", true);
+          }
+        }
+
+        function getElevenLabsModels() {
+          if (oNodeServer === null || oNodeServer === undefined || !oNodeServer.ttsservice || oNodeServer.ttsservice.indexOf("elevenlabs") === -1) return;
+          $.getJSON("ttsgetmodels" + encodeURIComponent(oNodeServer.id) + "?ttsservice=" + oNodeServer.ttsservice, new Date().getTime(), (data) => {
+            if (!Array.isArray(data)) return;
+            // Backend signalled an error/missing key: keep the static fallback list and warn the user.
+            if (data.length === 1 && data[0].error) {
+              RED.notify(data[0].name, { type: 'warning', timeout: 6000 });
+              return;
+            }
+            if (data.length === 0) return;
+            var $sel = $("#node-input-elevenlabsModel");
+            $sel.find('option').remove().end();
+            $sel.append($("<option></option>").attr("value", "").text("Automatic (recommended)"));
+            data.forEach(m => {
+              var $o = $("<option></option>").attr("value", m.model_id).text(m.name);
+              $o.attr("data-style", m.can_use_style === true);
+              $o.attr("data-boost", m.can_use_speaker_boost === true);
+              if (m.languages && m.languages.length) $o.attr("title", "Languages: " + m.languages.join(", "));
+              $sel.append($o);
+            });
+            $sel.val(node.elevenlabsModel !== undefined ? node.elevenlabsModel : "");
+            if ($sel.val() === null) $sel.val(""); // Saved model no longer offered by the API
+            applyElevenLabsModelCapabilities();
+          });
+        }
+        getElevenLabsModels();
+
+        $("#node-input-elevenlabsModel").change(applyElevenLabsModelCapabilities);
+
+        // Refresh ElevenLabs models list on demand
+        $("#refreshElevenLabsModels").click(function (e) {
+          e.preventDefault();
+          if (oNodeServer === null || oNodeServer === undefined || !oNodeServer.ttsservice || oNodeServer.ttsservice.indexOf("elevenlabs") === -1) {
+            RED.notify("Please select an ElevenLabs TTS service first.", { type: 'warning', timeout: 3000 });
+            return;
+          }
+          getElevenLabsModels();
+        });
+        // #####################################
 
         // Refresh the combo
         // #####################################
@@ -638,7 +719,9 @@
 | Stability | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
 | Similarity | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
 | Style Exaggeration | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.)|
+| Speed | Only avaiable with Elevenlabs v2. Controls the speaking speed. Values between 0.7 (slower) and 1.2 (faster), default 1.0. |
 | Speaker boost | Only avaiable with Elevenlabs. Please refer to Elevenlabs.io description. Values from 0 to 1 (for example 0.2, 0.7, etc.) |
+| Model | The model list is read directly from ElevenLabs (press the refresh icon to reload it), so new models appear automatically. Options not supported by the selected model (such as Style Exaggeration or Speaker boost) are automatically disabled, based on the model capabilities reported by ElevenLabs. Leave on "Automatic" to let the node pick a sensible default. |
 
 <br/>
 

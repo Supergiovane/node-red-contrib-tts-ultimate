@@ -746,6 +746,7 @@ module.exports = function (RED) {
                 const stability = config.elevenlabsStability !== undefined && config.elevenlabsStability !== "" ? Number(config.elevenlabsStability) : undefined;
                 const similarity = config.elevenlabsSimilarity_boost !== undefined && config.elevenlabsSimilarity_boost !== "" ? Number(config.elevenlabsSimilarity_boost) : undefined;
                 const style = config.elevenlabsStyle !== undefined && config.elevenlabsStyle !== "" ? Number(config.elevenlabsStyle) : undefined;
+                const speed = config.elevenlabsSpeed !== undefined && config.elevenlabsSpeed !== "" ? Number(config.elevenlabsSpeed) : undefined;
                 const resolvedModel = config.elevenlabsModel && config.elevenlabsModel !== "" ? config.elevenlabsModel : "eleven_multilingual_v2";
                 const latencyPreset = config.elevenlabsOptimizeLatency && config.elevenlabsOptimizeLatency !== "" ? config.elevenlabsOptimizeLatency : undefined;
                 const outputFormat = config.elevenlabsOutputFormat && config.elevenlabsOutputFormat !== "" ? config.elevenlabsOutputFormat : undefined;
@@ -761,6 +762,7 @@ module.exports = function (RED) {
                 if (stability !== undefined && !Number.isNaN(stability)) params.voice_settings.stability = stability;
                 if (similarity !== undefined && !Number.isNaN(similarity)) params.voice_settings.similarity_boost = similarity;
                 if (style !== undefined && !Number.isNaN(style)) params.voice_settings.style = style;
+                if (speed !== undefined && !Number.isNaN(speed)) params.voice_settings.speed = speed;
                 params.voice_settings.use_speaker_boost = useSpeakerBoost;
                 if (Object.keys(params.voice_settings).length === 0) delete params.voice_settings;
                 if (latencyPreset !== undefined) params.optimize_streaming_latency = latencyPreset;

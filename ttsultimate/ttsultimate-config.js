@@ -505,6 +505,46 @@ module.exports = function (RED) {
 
         });
 
+        // 10/06/2026 Supergiovane, get the available ElevenLabs models with their capabilities.
+        // Used to dynamically populate the Model dropdown and enable/disable model-specific options.
+        RED.httpAdmin.get("/ttsgetmodels" + encodeURIComponent(node.id), RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+            const ttsservice = req.query.ttsservice || node.ttsservice;
+            if (!ttsservice || !ttsservice.includes("elevenlabs")) {
+                return res.json([]);
+            }
+            const apiKey = node.credentials.elevenlabsKey;
+            if (!apiKey || apiKey.trim() === "") {
+                return res.json([{ model_id: "", name: "ElevenLabs API key missing. Please configure, deploy and restart node-red.", error: true }]);
+            }
+            (async () => {
+                try {
+                    const r = await fetch("https://api.elevenlabs.io/v1/models", {
+                        method: "GET",
+                        headers: { "xi-api-key": apiKey }
+                    });
+                    if (!r.ok) {
+                        const body = await r.text().catch(() => "");
+                        throw new Error(`HTTP ${r.status} ${r.statusText}${body ? " - " + body : ""}`);
+                    }
+                    const models = await r.json();
+                    const list = (Array.isArray(models) ? models : [])
+                        .filter(m => m && m.model_id && m.can_do_text_to_speech !== false)
+                        .map(m => ({
+                            model_id: m.model_id,
+                            name: m.name || m.model_id,
+                            can_use_style: m.can_use_style === true,
+                            can_use_speaker_boost: m.can_use_speaker_boost === true,
+                            maximum_text_length_per_request: m.maximum_text_length_per_request,
+                            languages: Array.isArray(m.languages) ? m.languages.map(l => l.name || l.language_id).filter(Boolean) : []
+                        }));
+                    res.json(list);
+                } catch (error) {
+                    RED.log.error('ttsultimate-config ' + node.id + ': Error getting ElevenLabs models: ' + error.message);
+                    res.json([{ model_id: "", name: "Error getting ElevenLabs models: " + error.message + " Check credentials, deploy and restart node-red.", error: true }]);
+                }
+            })();
+        });
+
         // ########################################################
         //#endregion
 
