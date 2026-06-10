@@ -1,4 +1,14 @@
 <script type="text/html" data-template-name="ttsultimate">
+    <style>
+        .ttsSliderValue {
+            display: inline-block;
+            min-width: 34px;
+            margin-left: 8px;
+            text-align: right;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+    </style>
     <div class="form-row">
         <b>TTS Ultimate configuration</b>&nbsp&nbsp&nbsp&nbsp<span style="color:red"><i class="fa fa-question-circle"></i>&nbsp<a target="_blank" href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate"><u>Help online</u></a></span>
         <br/>
@@ -26,29 +36,35 @@
     <div id = "divGoogleTTSAudioConfig">
         <div class="form-row">
             <label for="node-input-speakingrate"><i class="fa fa-volume-up"></i> Rate</label>
-            <input type="text" id="node-input-speakingrate" style="width:60px"> (Between 0.25 and 4.0, default 1)
+            <input type="range" id="node-input-speakingrate" min="0.25" max="4.0" step="0.05" style="width:50%; vertical-align:middle;">
+            <span class="ttsSliderValue" id="val-speakingrate">1</span> <small>(0.25 - 4.0, default 1)</small>
         </div>
         <div class="form-row">
             <label for="node-input-speakingpitch"><i class="fa fa-volume-up"></i> Pitch</label>
-            <input type="text" id="node-input-speakingpitch" style="width:60px"> (Between -20.0 and 20.0,  default 0)
+            <input type="range" id="node-input-speakingpitch" min="-20" max="20" step="0.5" style="width:50%; vertical-align:middle;">
+            <span class="ttsSliderValue" id="val-speakingpitch">0</span> <small>(-20.0 - 20.0, default 0)</small>
         </div>
     </div>
     <div id="divElevenLabsOptions" hidden>
         <div class="form-row">
             <label for="node-input-elevenlabsStability"><i class="fa fa-volume-up"></i> Stability</label>
-            <input type="text" id="node-input-elevenlabsStability" style="width:60px"> (default 0.5)
+            <input type="range" id="node-input-elevenlabsStability" min="0" max="1" step="0.05" style="width:50%; vertical-align:middle;">
+            <span class="ttsSliderValue" id="val-elevenlabsStability">0.5</span> <small>(default 0.5)</small>
         </div>
         <div class="form-row">
             <label for="node-input-elevenlabsSimilarity_boost"><i class="fa fa-volume-up"></i> Similarity boost</label>
-            <input type="text" id="node-input-elevenlabsSimilarity_boost" style="width:60px"> (Default 0.5)
+            <input type="range" id="node-input-elevenlabsSimilarity_boost" min="0" max="1" step="0.05" style="width:50%; vertical-align:middle;">
+            <span class="ttsSliderValue" id="val-elevenlabsSimilarity_boost">0.5</span> <small>(default 0.5)</small>
         </div>
         <div class="form-row" id="divElevenLabsStyle">
           <label for="node-input-elevenlabsStyle"><i class="fa fa-volume-up"></i> Style Exaggeration </label>
-          <input type="text" id="node-input-elevenlabsStyle" style="width:60px"> (Default 0.0)
+          <input type="range" id="node-input-elevenlabsStyle" min="0" max="1" step="0.05" style="width:50%; vertical-align:middle;">
+          <span class="ttsSliderValue" id="val-elevenlabsStyle">0.0</span> <small>(default 0.0)</small>
         </div>
         <div class="form-row">
           <label for="node-input-elevenlabsSpeed"><i class="fa fa-tachometer"></i> Speed</label>
-          <input type="text" id="node-input-elevenlabsSpeed" style="width:60px"> (Between 0.7 and 1.2, default 1.0)
+          <input type="range" id="node-input-elevenlabsSpeed" min="0.7" max="1.2" step="0.05" style="width:50%; vertical-align:middle;">
+          <span class="ttsSliderValue" id="val-elevenlabsSpeed">1.0</span> <small>(0.7 - 1.2, default 1.0)</small>
         </div>
         <div class="form-row" id="divElevenLabsSpeakerBoost">
           <label></label>
@@ -444,6 +460,19 @@
           }
           getElevenLabsModels();
         });
+        // #####################################
+
+        // Voice options sliders: show the current value live next to each slider.
+        // #####################################
+        function setupVoiceOptionSlider(id) {
+          var $input = $("#node-input-" + id);
+          var $out = $("#val-" + id);
+          if ($input.length === 0 || $out.length === 0) return;
+          var update = function () { $out.text($input.val()); };
+          $input.on("input change", update);
+          update();
+        }
+        ["speakingrate", "speakingpitch", "elevenlabsStability", "elevenlabsSimilarity_boost", "elevenlabsStyle", "elevenlabsSpeed"].forEach(setupVoiceOptionSlider);
         // #####################################
 
         // Refresh the combo

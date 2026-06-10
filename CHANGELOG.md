@@ -7,6 +7,7 @@
 - NEW: refresh icon next to the "Voice" field to reload the voices list on demand.<br/>
 - NEW: ElevenLabs models are now read dynamically from the API (with a refresh icon), so new models appear automatically. Model-specific options (Style Exaggeration, Speaker boost) are enabled/disabled based on the capabilities reported by ElevenLabs.<br/>
 - NEW: ElevenLabs "Speed" option (0.7 - 1.2, default 1.0) for the v2 engine.<br/>
+- NEW: voice option fields (ElevenLabs Stability/Similarity/Style/Speed and Google Rate/Pitch) are now sliders showing the current value live.<br/>
 </p>
 
 <p>
