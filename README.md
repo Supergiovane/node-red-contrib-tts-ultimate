@@ -1,16 +1,35 @@
-![Sample Node](img/logo.png)
+<p align="center">
+  <img src="img/logo-v2.svg" alt="TTS Ultimate" width="700">
+</p>
 
-[![NPM version][npm-version-image]][npm-url]
-[![NPM downloads per month][npm-downloads-month-image]][npm-url]
-[![NPM downloads total][npm-downloads-total-image]][npm-url]
-[![MIT License][license-image]][license-url]
-[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
-[![Facebook][facebook-image]][facebook-url]
+<p align="center">
+  <a href="https://npmjs.org/package/node-red-contrib-tts-ultimate"><img src="https://img.shields.io/npm/v/node-red-contrib-tts-ultimate.svg" alt="NPM version"></a>
+  <a href="https://npmjs.org/package/node-red-contrib-tts-ultimate"><img src="https://img.shields.io/npm/dm/node-red-contrib-tts-ultimate.svg" alt="NPM downloads per month"></a>
+  <a href="https://npmjs.org/package/node-red-contrib-tts-ultimate"><img src="https://img.shields.io/npm/dt/node-red-contrib-tts-ultimate.svg" alt="NPM downloads total"></a>
+  <a href="https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://standardjs.com"><img src="https://img.shields.io/badge/code_style-standard-brightgreen.svg" alt="JavaScript Standard Style"></a>
+  <a href="https://www.paypal.me/techtoday"><img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square" alt="Donate via PayPal"></a>
+  <a href="https://www.facebook.com/supergiovaneDev"><img src="https://img.shields.io/badge/Visit%20me-Facebook-blue" alt="Visit me on Facebook"></a>
+</p>
 
-<img src='https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/main.png' width="80%">
+<p align="center">
+  <strong>Text-to-speech for Node-RED with Sonos, Google Cast, DLNA/UPnP and file-only output.</strong>
+</p>
 
-<details><summary> VIEW SAMPLE CODE </summary>
+<p align="center">
+  <a href="#description">Description</a> ·
+  <a href="#supported-tts-engines">TTS engines</a> ·
+  <a href="#supported-players">Players</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#tts-service-node">Configuration</a> ·
+  <a href="#ownfile-node-configuration">OwnFile</a>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/main.png" width="82%" alt="TTS Ultimate Node-RED flow">
+</p>
+
+<details><summary><strong>VIEW SAMPLE FLOW CODE</strong></summary>
 
 > Adjust the nodes according to your setup
 
@@ -161,11 +180,11 @@
 
 ## DESCRIPTION
 
-This node transforms a text into a speech audio that you can hear natively via <b>Sonos</b> speakers, <b>Google Cast</b> devices (Chromecast / Google Nest) and generic <b>DLNA/UPnP</b> renderers (smart TVs, AV receivers, etc.), but you can also simply create an audio file, without using any player at all.<br/>
-You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
-You can also use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
-The node can also create a **_TTS file (without the use of any Sonos device)_**, to be read by third parties nodes.<br/>
-This is a major **_upgrade from the previously popular node SonosPollyTTS_** (SonosPollyTTS is not developed anymore).<br/>
+TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest) and generic **DLNA/UPnP** renderers such as smart TVs and AV receivers.
+
+It can also work without any player: generate an audio file, cache it, and pass it to other nodes, web pages, Bluetooth workflows or third-party services. With the OwnFile node, you can upload and play your own audio messages and keep selected flows working completely offline.
+
+This is a major upgrade from the previously popular **SonosPollyTTS** node, which is no longer developed.
 
 ## SUPPORTED TTS ENGINES
 
@@ -257,24 +276,22 @@ This is a major **_upgrade from the previously popular node SonosPollyTTS_** (So
 
 ## FEATURES
 
-- **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
-- **Google Cast support** (Chromecast / Google Nest): play the TTS directly on your Cast devices, with multi-room playback on several devices at once.
-- **DLNA / UPnP renderer support**: play the TTS on generic UPnP renderers (smart TVs, AV receivers, etc.). It also works with renderers that nest a MediaRenderer sub-device (e.g. Sonos).
-- **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you don't need to use any player.
-- **Google Translate Voices, Google TTS Voices, ElevenLabs voices and Voice.ai voices** are supported.
-- **Automatic grouping / multi-room** is supported on Sonos, Google Cast and DLNA. You can add additional players to play your announcements on all of them at once.
-- **Automatic discovery** of your players: Sonos and DLNA/UPnP renderers via SSDP, Google Cast devices via mDNS. A "Discover" button in the node lists the devices found on your network.
-- **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming **_radio stations_** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
-- **TTS caching**. ElevenLabs and Google paid service charge you for a high rate of text-to-speech requests. TTS-Ultimate caches the TTS files: it downloads each generated audio only once, and then reads it from cache. The cache is resilient (survives reboots and updates).
-- **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
-- **UPLOAD your own audio files**. You can also upload your own audio files with OwnFile node.
+- **Native Sonos support**: play TTS audio directly via Sonos, group speakers, set a hailing sound and choose the volume for each speaker.
+- **Google Cast support**: play announcements on Chromecast / Google Nest devices, including multi-room playback.
+- **DLNA / UPnP renderer support**: play TTS on smart TVs, AV receivers and other UPnP renderers. Renderers with nested MediaRenderer devices are supported too.
+- **File-only output**: create the TTS file without using any player, then pass it to other nodes or services.
+- **Multiple TTS engines**: Google free TTS, Google Cloud TTS, ElevenLabs and Voice.ai voices are supported.
+- **Automatic grouping / multi-room**: add additional players and play one announcement on several devices at once.
+- **Automatic discovery**: find Sonos and DLNA/UPnP renderers via SSDP, and Google Cast devices via mDNS.
+- **Music resume**: resume the previous queue after an announcement where supported. Some radio-station queues may not resume reliably because of Sonos API limitations.
+- **TTS caching**: generated audio is downloaded once and then served from cache. The cache survives reboots and updates.
+- **Offline-ready OwnFile playback**: upload custom audio messages and use them without an internet connection.
 
-## BREAKING CHANGE !
+## BREAKING CHANGE
 
-<p>
-<b>Version 3.0.0</b> April 2025<br/>
-- BREAKING CHANGE: Amazon Polly and Microsoft Azure TTS have been removed due to lack of time to update the old and complex API's. Anyone can add these again by forking the project and do a PR. Thank you!. If you still need those TTS, please stay or revert to 2.0.10.<br/>
-</p>
+> **Version 3.0.0 - April 2025**
+>
+> Amazon Polly and Microsoft Azure TTS have been removed because the old APIs required a larger update. Contributions are welcome via fork and PR. If you still need those TTS engines, stay on or revert to `2.0.10`.
 
 ---
 
@@ -282,26 +299,26 @@ This is a major **_upgrade from the previously popular node SonosPollyTTS_** (So
 
 > **_NOTE IF YOU CANNOT UPLOAD YOUR OWN FILES_**
 >
-> If you're running node-red as "plugin" for homeassistant, redmatic etc...<br/>
-> You may expect not to be able to upload your own files. Please check that the user running node-red, has premission **to write to the filesystem**.<br/>
+> If you're running Node-RED as a plugin for Home Assistant, RedMatic, etc...<br/>
+> You may not be able to upload your own files. Please check that the user running Node-RED has permission **to write to the filesystem**.<br/>
 
 <br/><br/>
 
-# TTS Service node
+## TTS Service Node
 
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/>
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-PORT USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVER). <br/>
+PORTS USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVERY). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
-You can choose between Voice.ai, Elevenlabs.io, Google (without credentials), Google TTS (require credentials and registration to google).<br/>
+You can choose between Voice.ai, ElevenLabs.io, Google (without credentials), and Google TTS (requires credentials and registration with Google).<br/>
 For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 <br/>
 
 - **TTS Service using Google (without credentials)**<br/>
-  This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any google service. The voice list is more limited than other services, but it works without hassles.
+  This is the simplest way. Just select the voice and you're done. You don't need any credential and you don't even need to be registered to any Google service. The voice list is more limited than other services, but it works without hassles.
   Note: long texts are automatically split into 200-character chunks (Google Translate TTS limit) and merged into a single audio output.
   Manual verify: `npm run verify:googletranslate-split -- --voice it-IT --text "..." --out ./out.mp3`
 
@@ -318,18 +335,18 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 <br/>
 
 - **TTS Service using ElevenLabs**<br/>
-  Please use the V2 engine, as the V1 is deprecated and will not longer be supported. The V2 has multilingual voices and is more powerful.  
-   You have two choiches: To register to eventlabs, or not to register. If you don't register to elevenlabs.io, you will either have access on a limited amount of voices, or no access at all.  
-   After registration at elevenlabs.io, you can add any language to your personal list. The personal list will be then show in the node voice's list.<br/>  
+  Please use the V2 engine, as the V1 is deprecated and will no longer be supported. The V2 has multilingual voices and is more powerful.<br/>
+   You have two choices: register to ElevenLabs, or do not register. If you don't register to ElevenLabs.io, you will either have access to a limited amount of voices, or no access at all.<br/>
+   After registration at ElevenLabs.io, you can add any language to your personal list. The personal list will then be shown in the node voice list.<br/>
   <br/>
 
 - **TTS Service using Voice.ai**<br/>
-  Add your Voice.ai API key in the config node, deploy and restart Node-RED. The node will load your available voices and show them in the Voice dropdown.  
+  Add your Voice.ai API key in the config node, deploy and restart Node-RED. The node will load your available voices and show them in the Voice dropdown.<br/>
    Note: SSML is not supported by this engine.
   <br/>
 
-**Node-Red IP**<br/>
-set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
+**Node-RED IP**<br/>
+Set IP of your Node-RED machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
 
 **Host Port**<br/>
 The players (Sonos, Google Cast, DLNA/UPnP renderers) will connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from the players on your network.
@@ -353,9 +370,9 @@ Leave this field blank for the default.<br/>
 <br/>
 <br/>
 
-# TTS-ULTIMATE NODE
+## TTS-Ultimate Node
 
-## INPUT MESSAGES TO THE NODE <br/>
+### INPUT MESSAGES TO THE NODE <br/>
 
 _Examples_
 
@@ -407,7 +424,7 @@ msg.stop = true;
 return msg;
 ```
 
-## CHANGE CONFIGURATION VIA MSG PROPERTY
+### CHANGE CONFIGURATION VIA MSG PROPERTY
 
 You can change the configuration of tts-ultimate, _via msg.setConfig_ property.<br/>
 The property is a JSON object.
@@ -569,7 +586,7 @@ return msg;
 <br/>
 <br/>
 
-# OWNFILE NODE CONFIGURATION
+## OwnFile Node Configuration
 
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/of.png' width="80%">
 
@@ -687,7 +704,7 @@ return msg;
 
 </details>
 
-This node allow you to upload your custom message and play it via ttsultimate without the need of an internet connection. You can use it, for example, with your alarm panel, to annuce a zone breach, a doorbell or so.
+This node allows you to upload your custom message and play it via TTS Ultimate without the need for an internet connection. You can use it, for example, with your alarm panel to announce a zone breach, a doorbell or similar events.
 
 **Name**<br/>
 Node name
@@ -699,13 +716,13 @@ Select a file to be played. You can upload one or multiple files at the same tim
 If set to <b>true</b>, the OwnFile message will cancel the current TTS queue, will stop the current phrase being spoken and the TTS-Ultimate node will play this priority message.<br/>
 Please refer to _msg.priority_ msg input property of TTS-Ultimate for info on how this message will be handled<br/>
 
-## INPUT MESSAGE
+### INPUT MESSAGE
 
 **msg.payload = true**<br/>
 Begin play of the message <br/>
 
 **msg.selectedFile = "Garage door open"** <br/>
-Overrides the selected message and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your own files, in the node config window) and do not include the <b>.mp3</b> extenson.<br/>
+Overrides the selected message and plays the filename you passed in. Please double check the spelling of the filename (must be the same as you can see in the dropdown list of your own files, in the node config window) and do not include the <b>.mp3</b> extension.<br/>
 
 **msg.priority**<br/>
 If set to <b>true</b>, the OwnFile message will cancel the current TTS queue, will stop the current phrase being spoken and the TTS-Ultimate node will play this priority message.<br/>
@@ -714,7 +731,7 @@ Please refer to _msg.priority_ msg input property of TTS-Ultimate for info on ho
 ![Logo](https://raw.githubusercontent.com/Supergiovane/node-red-contrib-tts-ultimate/master/img/madeinitaly.png)
 
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
-[license-url]: https://github.com/Supergiovane/node-red-contrib-tts-ultimate/master/LICENSE
+[license-url]: https://github.com/Supergiovane/node-red-contrib-tts-ultimate/blob/master/LICENSE
 [npm-url]: https://npmjs.org/package/node-red-contrib-tts-ultimate
 [npm-version-image]: https://img.shields.io/npm/v/node-red-contrib-tts-ultimate.svg
 [npm-downloads-month-image]: https://img.shields.io/npm/dm/node-red-contrib-tts-ultimate.svg
