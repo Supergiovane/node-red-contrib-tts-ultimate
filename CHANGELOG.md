@@ -2,6 +2,13 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
+<b>Version 3.1.2</b> June 2026<br/>
+
+- CHORE: removed the external "google-translate-tts" dependency, replaced by a native built-in implementation (same voices and behaviour).<br/>
+- CHORE: removed the redundant "path" dependency (Node.js built-in module is used instead).<br/>
+</p>
+
+<p>
 <b>Version 3.1.1</b> June 2026<br/>
 
 - NEW: voice option fields (ElevenLabs Stability/Similarity/Style/Speed and Google Rate/Pitch) are now sliders showing the current value live.<br/>
