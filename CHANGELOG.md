@@ -2,7 +2,7 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
-<b>Version 3.2.0</b> June 2026<br/>
+<b>Version 3.2.2</b> June 2026<br/>
 
 - NEW: **Google Cast** player (Chromecast / Google Nest). Devices are discovered via mDNS (press "Discover" in the node), with multi-room playback on the main device + additional players.<br/>
 - NEW: **DLNA / UPnP renderer** player (smart TVs, AV receivers, etc.). Devices are discovered via SSDP. A native UPnP client locates the AVTransport/RenderingControl services anywhere in the device tree, so it also works with renderers that nest a MediaRenderer sub-device (e.g. Sonos).<br/>

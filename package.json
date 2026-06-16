@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-tts-ultimate",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Transforms the text in speech and hear it using Sonos, Google Cast (Chromecast / Nest) or DLNA/UPnP players, or generate an audio file to be used with third parties nodes. Works with voices from Google (without credentials as well), Google TTS, ElevenLabs.io TTS, Voice.ai TTS or your own voice. You can also only create a TTS file to be read by third party nodes. Update of the popular SonosPollyTTS node.",
   "main": "index.js",
   "scripts": {
