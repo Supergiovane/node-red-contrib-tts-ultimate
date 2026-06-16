@@ -169,22 +169,87 @@ This is a major **_upgrade from the previously popular node SonosPollyTTS_** (So
 
 ## SUPPORTED TTS ENGINES
 
-<p>
-  <a href="https://www.npmjs.com/package/google-translate-tts" title="Google Translate TTS (free)">
-    <img src="https://cdn.simpleicons.org/googletranslate/4285F4" height="126" alt="Google Translate logo"/>
-  </a>&nbsp;&nbsp;
-  <a href="https://cloud.google.com/text-to-speech" title="Google Cloud Text-to-Speech">
-    <img src="https://cdn.simpleicons.org/googlecloud/4285F4" height="126" alt="Google Cloud logo"/>
-  </a>&nbsp;&nbsp;
-  <a href="https://elevenlabs.io" title="ElevenLabs">
-    <img src="https://cdn.simpleicons.org/elevenlabs/000000" height="126" alt="ElevenLabs logo"/>
-  </a>&nbsp;&nbsp;
-  <a href="https://voice.ai/docs/api-reference/text-to-speech/generate-speech" title="Voice.ai">
-    <img src="https://voice.ai/favicon.ico" height="126" alt="Voice.ai logo"/>
-  </a>
-</p>
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="https://www.npmjs.com/package/google-translate-tts" title="Google Translate TTS (free)">
+        <img src="https://cdn.simpleicons.org/googletranslate/4285F4" height="86" alt="Google Translate logo"/>
+      </a>
+      <br/>
+      <strong>Google free TTS</strong>
+      <br/>
+      <sub>No credentials required</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://cloud.google.com/text-to-speech" title="Google Cloud Text-to-Speech">
+        <img src="https://cdn.simpleicons.org/googlecloud/4285F4" height="86" alt="Google Cloud logo"/>
+      </a>
+      <br/>
+      <strong>Google Cloud TTS</strong>
+      <br/>
+      <sub>Advanced voices and tuning</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://elevenlabs.io" title="ElevenLabs">
+        <img src="https://cdn.simpleicons.org/elevenlabs/000000" height="86" alt="ElevenLabs logo"/>
+      </a>
+      <br/>
+      <strong>ElevenLabs</strong>
+      <br/>
+      <sub>V1 and V2 multilingual voices</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://voice.ai/docs/api-reference/text-to-speech/generate-speech" title="Voice.ai">
+        <img src="https://voice.ai/favicon.ico" height="86" alt="Voice.ai logo"/>
+      </a>
+      <br/>
+      <strong>Voice.ai</strong>
+      <br/>
+      <sub>API key based voices</sub>
+    </td>
+  </tr>
+</table>
 
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
+## SUPPORTED PLAYERS
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="https://www.sonos.com" title="Sonos speakers">
+        <img src="https://cdn.simpleicons.org/sonos/000000" height="86" alt="Sonos logo"/>
+      </a>
+      <br/>
+      <strong>Sonos</strong>
+      <br/>
+      <sub>Native speakers and groups</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://developers.google.com/cast" title="Google Cast devices">
+        <img src="https://cdn.simpleicons.org/googlecast/4285F4" height="86" alt="Google Cast logo"/>
+      </a>
+      <br/>
+      <strong>Google Cast</strong>
+      <br/>
+      <sub>Chromecast and Google Nest</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://www.dlna.org" title="DLNA and UPnP renderers">
+        <img src="https://cdn.simpleicons.org/dlna/0066CC" height="86" alt="DLNA logo"/>
+      </a>
+      <br/>
+      <strong>DLNA / UPnP</strong>
+      <br/>
+      <sub>Smart TVs, AV receivers and renderers</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="img/audio-file.svg" height="86" alt="Audio file icon"/>
+      <br/>
+      <strong>No player</strong>
+      <br/>
+      <sub>Create an audio file only</sub>
+    </td>
+  </tr>
+</table>
 
 ## CHANGELOG
 

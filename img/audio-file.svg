@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Audio file</title>
+  <desc id="desc">A document with an audio waveform, representing output without a player.</desc>
+  <rect width="128" height="128" rx="18" fill="#f3f6fb"/>
+  <path d="M36 18h38l22 22v70H36z" fill="#ffffff" stroke="#1f2937" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M74 18v24h22" fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M48 72v-8m12 22V50m12 42V58m12 26V66" fill="none" stroke="#2563eb" stroke-width="8" stroke-linecap="round"/>
+</svg>
