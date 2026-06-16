@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/logo-v2.svg" alt="TTS Ultimate" width="700">
+  <img src="img/logo-v2.png" alt="TTS Ultimate" width="700">
 </p>
 
 <p align="center">
