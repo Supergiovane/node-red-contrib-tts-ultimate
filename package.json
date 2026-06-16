@@ -39,13 +39,11 @@
   },
   "homepage": "https://github.com/Supergiovane/node-red-contrib-tts-ultimate",
   "dependencies": {
-    "sonos": "1.14.1",
-    "formidable": "1.2.2",
-    "path": ">=0.12.7",
     "@google-cloud/text-to-speech": "4.2.2",
-    "google-translate-tts": ">=0.3.0",
+    "elevenlabs": "0.18.0",
     "elevenlabs-node": "1.1.3",
-    "elevenlabs": "0.18.0"
+    "formidable": "1.2.2",
+    "sonos": "1.14.1"
   },
   "devDependencies": {
     "eslint": ">=4.18.2",

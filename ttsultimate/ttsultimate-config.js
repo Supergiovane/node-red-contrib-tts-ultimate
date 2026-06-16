@@ -11,7 +11,7 @@ module.exports = function (RED) {
 
     // Setting up the engines
     const GoogleTTS = require('@google-cloud/text-to-speech');
-    const GoogleTranslate = require('google-translate-tts'); // TTS without credentials, limited to 200 chars per row.
+    const GoogleTranslate = require('./lib/googletranslate'); // Native TTS without credentials, limited to 200 chars per row.
     const elevenlabsTTS = require("elevenlabs-node"); // 03/08/2023
     const ElevenLabsClient = require("elevenlabs").ElevenLabsClient;
 

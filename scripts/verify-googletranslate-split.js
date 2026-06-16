@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const GoogleTranslate = require("google-translate-tts");
+const GoogleTranslate = require("../ttsultimate/lib/googletranslate");
 
 const GOOGLE_TRANSLATE_MAX_CHARS = 200;
 
