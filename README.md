@@ -161,7 +161,7 @@
 
 ## DESCRIPTION
 
-This node transforms a text into a speech audio that you can hear natively via <b>SONOS</b> speakers, but you can also simply create an audio file, without using SONOS at all.<br/>
+This node transforms a text into a speech audio that you can hear natively via <b>Sonos</b> speakers, <b>Google Cast</b> devices (Chromecast / Google Nest) and generic <b>DLNA/UPnP</b> renderers (smart TVs, AV receivers, etc.), but you can also simply create an audio file, without using any player at all.<br/>
 You can also generate an audio file for bluetooth speakers, web pages, etc.<br/>
 You can also use it with **your own audio file** as well and it can be used **totally offline** even without the use of TTS, without internet connection.<br/>
 The node can also create a **_TTS file (without the use of any Sonos device)_**, to be read by third parties nodes.<br/>
@@ -193,10 +193,12 @@ This is a major **_upgrade from the previously popular node SonosPollyTTS_** (So
 ## FEATURES
 
 - **Native Sonos support**: hear the TTS audio directly via Sonos. You can also group speakers, set an hailing sound, choose the volume of each speaker etc.
-- **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you doesn't need to use Sonos as player.
+- **Google Cast support** (Chromecast / Google Nest): play the TTS directly on your Cast devices, with multi-room playback on several devices at once.
+- **DLNA / UPnP renderer support**: play the TTS on generic UPnP renderers (smart TVs, AV receivers, etc.). It also works with renderers that nest a MediaRenderer sub-device (e.g. Sonos).
+- **Output audio file**: the node can just create the TTS file to be used by other nodes. In this case, you don't need to use any player.
 - **Google Translate Voices, Google TTS Voices, ElevenLabs voices and Voice.ai voices** are supported.
-- **Automatic grouping** is supported. You can group all players you want to play your announcements.
-- **Automatic discovery** of your players.
+- **Automatic grouping / multi-room** is supported on Sonos, Google Cast and DLNA. You can add additional players to play your announcements on all of them at once.
+- **Automatic discovery** of your players: Sonos and DLNA/UPnP renderers via SSDP, Google Cast devices via mDNS. A "Discover" button in the node lists the devices found on your network.
 - **Automatic resume of music** queue (including radio stations, but here, some users reports problem resuming **_radio stations_** and, because of lack of Sonos API documentation, the issue cannot currently be fixed), at exact track, at exact time. **Be aware that this could not work with all music queues**.
 - **TTS caching**. ElevenLabs and Google paid service charge you for a high rate of text-to-speech requests. TTS-Ultimate caches the TTS files: it downloads each generated audio only once, and then reads it from cache. The cache is resilient (survives reboots and updates).
 - **Can work offline**. You can use your own audio files (with OwnFile node) to make the node works offline.
@@ -224,7 +226,7 @@ This is a major **_upgrade from the previously popular node SonosPollyTTS_** (So
 
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/>
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
+PORT USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVER). <br/>
 PLEASE ALLOW MDNS AND UDP AS WELL
 
 **TTS Service**<br/>
@@ -265,7 +267,7 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
 
 **Host Port**<br/>
-Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
+The players (Sonos, Google Cast, DLNA/UPnP renderers) will connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from the players on your network.
 
 Note: if you use multiple `ttsultimate-config` nodes, each one now keeps its own TTS cache folder; the “purge on restart/deploy” option only affects that config node’s cache.
 

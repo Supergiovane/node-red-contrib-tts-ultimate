@@ -77,6 +77,8 @@ module.exports = function (RED) {
     node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
     node.sonosCoordinatorPreviousVolumeSetByApp = 0; // 05/07/2021 stores the main payer volume set by the sonos app
     node.playertype = config.playertype === undefined ? "sonos" : config.playertype; // 20/09/2021 Player type
+    node.playeripaddress = (config.playeripaddress || "").trim(); // 06/2026 Chromecast/Nest IP or DLNA/UPnP renderer description XML URL
+    node.playervolume = config.playervolume === undefined ? "50" : config.playervolume; // 06/2026 Volume (0-100) for Google Cast / DLNA players
     node.speakingpitch = config.speakingpitch === undefined ? "0" : config.speakingpitch; // 21/09/2021 AudioConfig speakingpitch
     node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
     node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
@@ -422,7 +424,8 @@ module.exports = function (RED) {
       }
       // 27/11/2019 Start the connection healty check
       node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
-    } else if (node.playertype === "noplayer") {
+    } else {
+      // 06/2026 noplayer, googlecast and dlna do not use the Sonos connection healthcheck.
       node.msg.connectionerror = false;
     }
 
@@ -530,7 +533,7 @@ module.exports = function (RED) {
       node.server.whoIsUsingTheServer = node.id; // Signal to other ttsultimate node, that i'm using the Sonos device
       try {
 
-        if (node.playertype !== "noplayer") {
+        if (node.playertype === "sonos") {
           // Get the current music queue, if one
           var oCurTrack = null;
           try {
@@ -909,6 +912,49 @@ module.exports = function (RED) {
                 node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
               }
 
+            } else if (node.playertype === "googlecast" || node.playertype === "dlna") {
+
+              // 06/2026 Google Cast (Chromecast/Nest) and generic DLNA/UPnP renderers.
+              // Both just need the public HTTP URL of the file (same conversion as Sonos).
+              if (!node.sFileToBePlayed.toLowerCase().startsWith("http://") && !node.sFileToBePlayed.toLowerCase().startsWith("https://")) {
+                node.sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(node.sFileToBePlayed);
+              }
+
+              // Volume (0-100): a per-message volume overrides the configured one
+              let volTemp = node.currentMSGbeingSpoken.hasOwnProperty("volume") ? Number(node.currentMSGbeingSpoken.volume) : Number(node.playervolume);
+              if (isNaN(volTemp)) volTemp = 50;
+              if (volTemp < 0) volTemp = 0;
+              if (volTemp > 100) volTemp = 100;
+
+              node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + formatAudioSourceTag(audioSource) + msg });
+              try {
+                // Play on the main player + all additional players (reusing the Sonos additional
+                // players list), in parallel for multi-room playback. Works for Cast and DLNA.
+                const playFn = node.playertype === "googlecast" ? playGoogleCastSync : playDLNASync;
+                const targets = [{ host: node.playeripaddress, vol: volTemp }];
+                for (let ci = 0; ci < node.rules.length; ci++) {
+                  const r = node.rules[ci];
+                  if (r && r.host) {
+                    let v = volTemp + Number(r.hostVolumeAdjust || 0);
+                    if (isNaN(v)) v = volTemp;
+                    if (v < 0) v = 0;
+                    if (v > 100) v = 100;
+                    targets.push({ host: r.host, vol: v });
+                  }
+                }
+                const results = await Promise.allSettled(targets.map((t) => playFn(t.host, node.sFileToBePlayed, t.vol)));
+                const failures = results.filter((rr) => rr.status === "rejected");
+                if (failures.length === results.length) {
+                  throw new Error("all " + node.playertype + " targets failed: " + failures.map((f) => f.reason && f.reason.message).join("; "));
+                } else if (failures.length > 0) {
+                  RED.log.warn("ttsultimate: Some " + node.playertype + " targets failed: " + failures.map((f) => f.reason && f.reason.message).join("; "));
+                }
+                node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'End playing ' + msg });
+              } catch (error) {
+                RED.log.error("ttsultimate: Error playing on " + node.playertype + " for " + node.sFileToBePlayed + " " + error.message);
+                node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
+              }
+
             } else if (node.playertype === "noplayer") {
               // Output only the filename
               if (noPlayerFileArray === undefined || noPlayerFileArray === null) var noPlayerFileArray = [];
@@ -977,17 +1023,15 @@ module.exports = function (RED) {
             node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
           }, 500)
 
-        } else if (node.playertype === "noplayer") {
-          // End task if no player is selected.
-          // Output the array of files
+        } else {
+          // End task for noplayer, googlecast and dlna.
+          // For "noplayer" also output the array of generated files (undefined for the other types).
           // Signal end playing
-          //let t = setTimeout(() => {
           node.msg.completed = true;
           node.currentMSGbeingSpoken = {};
           node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed, filesArray: noPlayerFileArray }, null]);
           node.bBusyPlayingQueue = false
           node.server.whoIsUsingTheServer = ""; // Signal to other ttsultimate node, that i'm not using the Sonos device anymore
-          //}, 1000)
         }
 
       } catch (error) {
@@ -1055,9 +1099,11 @@ module.exports = function (RED) {
       // 27/01/2021 Stop whatever in play.
       if (msg.hasOwnProperty("stop") && msg.stop === true) {
         node.flushQueue();
-        try {
-          STOPSync();
-        } catch (error) {
+        if (node.playertype === "sonos") {
+          try {
+            STOPSync().catch(() => { });
+          } catch (error) {
+          }
         }
         node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
         return;
@@ -1133,7 +1179,7 @@ module.exports = function (RED) {
           // There is already a priority message being spoken, do nothing
           node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'There is already a priority message being spoken...queuing' });
         } else {
-          if (node.playertype !== 'noplayer') {
+          if (node.playertype === 'sonos') {
             node.SonosClient.stop().then(result => {
               node.bTimeOutPlay = true;
               node.currentMSGbeingSpoken = msg; // Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
@@ -1374,6 +1420,102 @@ module.exports = function (RED) {
       } catch (error) {
         throw (error);
       }
+    }
+
+    // 06/2026 Google Cast (Chromecast / Google Nest) playback.
+    // Resolves when playback finishes (IDLE after PLAYING) or rejects on error/timeout.
+    function playGoogleCastSync(host, url, volume0to100) {
+      return new Promise((resolve, reject) => {
+        if (!host) { reject(new Error("Google Cast: no device IP address configured")); return; }
+        let CastClient, DefaultMediaReceiver;
+        try {
+          CastClient = require("castv2-client").Client;
+          DefaultMediaReceiver = require("castv2-client").DefaultMediaReceiver;
+        } catch (error) {
+          reject(new Error("castv2-client module not available: " + error.message));
+          return;
+        }
+        const client = new CastClient();
+        let settled = false;
+        const cleanup = () => { try { client.close(); } catch (e) { } };
+        const clearTimers = () => { clearTimeout(timeout); clearTimeout(startTimer); };
+        const fail = (err) => { if (settled) return; settled = true; clearTimers(); cleanup(); reject(err); };
+        const done = () => { if (settled) return; settled = true; clearTimers(); cleanup(); resolve(); };
+        const timeout = setTimeout(() => { fail(new Error("Google Cast: playback timeout")); }, 60000 * 10); // 10 minutes, like Sonos
+        // Fail fast if playback never starts (e.g. wrong IP on an unreachable/black-holed host).
+        const startTimer = setTimeout(() => { fail(new Error("Google Cast: device did not start playing within 45s (check IP/network)")); }, 45000);
+
+        client.on("error", (err) => fail(err));
+        client.connect(host, () => {
+          // Volume is 0..1 on Cast
+          try { client.setVolume({ level: Math.max(0, Math.min(1, volume0to100 / 100)) }, () => { }); } catch (e) { }
+          client.launch(DefaultMediaReceiver, (err, player) => {
+            if (err) { fail(err); return; }
+            let started = false;
+            player.on("status", (status) => {
+              if (!status) return;
+              if (status.playerState === "PLAYING") { started = true; clearTimeout(startTimer); }
+              // IDLE after playback started means the track has finished.
+              if (started && status.playerState === "IDLE") done();
+            });
+            const media = { contentId: url, contentType: "audio/mpeg", streamType: "BUFFERED" };
+            player.load(media, { autoplay: true }, (err2) => {
+              if (err2) fail(err2);
+            });
+          });
+        });
+      });
+    }
+
+    // 06/2026 Generic DLNA / UPnP media renderer playback.
+    // descriptionUrl is the renderer device description XML URL (e.g. http://192.168.1.50:1400/xml/device_description.xml).
+    // Uses a native client that finds the AVTransport/RenderingControl services anywhere in the
+    // device tree (so it also works with renderers that nest a MediaRenderer sub-device, e.g. Sonos).
+    // Resolves when playback finishes (STOPPED after PLAYING) or rejects on error/timeout.
+    function playDLNASync(descriptionUrl, url, volume0to100) {
+      return new Promise((resolve, reject) => {
+        if (!descriptionUrl) { reject(new Error("DLNA: no renderer description URL configured")); return; }
+        let dlnaPlayer;
+        try {
+          dlnaPlayer = require("./lib/dlna-player");
+        } catch (error) {
+          reject(new Error("dlna-player module not available: " + error.message));
+          return;
+        }
+        let settled = false;
+        const clearTimers = () => { clearTimeout(timeout); clearTimeout(startTimer); };
+        const fail = (err) => { if (settled) return; settled = true; clearTimers(); reject(err); };
+        const done = () => { if (settled) return; settled = true; clearTimers(); resolve(); };
+        const timeout = setTimeout(() => { fail(new Error("DLNA: playback timeout")); }, 60000 * 10); // 10 minutes, like Sonos
+        // Fail fast if playback never starts (e.g. wrong/unreachable renderer URL).
+        const startTimer = setTimeout(() => { fail(new Error("DLNA: renderer did not start playing within 45s (check description URL/network)")); }, 45000);
+
+        const player = dlnaPlayer.createPlayer(descriptionUrl);
+
+        (async () => {
+          try {
+            // Best-effort volume first (ignored by renderers without RenderingControl).
+            try { await player.setVolume(volume0to100); } catch (e) { }
+            await player.setAVTransportURI(url, "audio/mpeg");
+            await player.play();
+          } catch (error) {
+            fail(error);
+            return;
+          }
+          // Poll the transport state (UPnP eventing is not implemented by all renderers).
+          let started = false;
+          const poll = async () => {
+            if (settled) return;
+            let state = "";
+            try { state = await player.getTransportState(); } catch (e) { /* transient, keep polling */ }
+            if (settled) return;
+            if (state === "PLAYING" || state === "TRANSITIONING") { started = true; clearTimeout(startTimer); }
+            if (started && (state === "STOPPED" || state === "NO_MEDIA_PRESENT" || state === "PAUSED_PLAYBACK")) { done(); return; }
+            setTimeout(poll, 1000);
+          };
+          setTimeout(poll, 1000);
+        })();
+      });
     }
 
     // 04/01/2021 hashing filename to avoid issues with long filenames.

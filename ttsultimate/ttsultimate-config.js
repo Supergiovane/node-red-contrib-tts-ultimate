@@ -20,6 +20,8 @@ module.exports = function (RED) {
     var formidable = require('formidable');
     const oOS = require('os');
     const sonos = require('sonos');
+    const dlnaDiscovery = require('./lib/dlna-discovery'); // 06/2026 SSDP discovery of DLNA/UPnP renderers
+    const castDiscovery = require('./lib/googlecast-discovery'); // 06/2026 mDNS discovery of Google Cast devices
 
     const VOICEAI_API_BASE_URL = "https://dev.voice.ai/api/v1/tts";
 
@@ -323,6 +325,38 @@ module.exports = function (RED) {
                     res.json("ERRORDISCOVERY");
                 })
             } catch (error) { }
+        });
+
+
+        // 06/2026 Discover DLNA/UPnP MediaRenderers on the network (for the "dlna" player type)
+        RED.httpAdmin.get("/ttsultimateDiscoverDLNA", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+            dlnaDiscovery.discoverRenderers({ timeoutMs: 4000 }).then((devices) => {
+                // Same shape as sonosgetAllGroups: { name, host }. For DLNA the "host" is the description URL.
+                const list = devices.map((d) => ({
+                    name: d.name || "Renderer",
+                    host: d.location
+                }));
+                res.json(list);
+            }).catch((error) => {
+                RED.log.warn('ttsultimate-config ' + node.id + ': Error discovering DLNA renderers ' + error.message);
+                res.json("ERRORDISCOVERY");
+            });
+        });
+
+
+        // 06/2026 Discover Google Cast devices (Chromecast / Nest) on the network (for the "googlecast" player type)
+        RED.httpAdmin.get("/ttsultimateDiscoverCast", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+            castDiscovery.discoverCastDevices({ timeoutMs: 4000 }).then((devices) => {
+                // Same shape as sonosgetAllGroups: { name, host }
+                const list = devices.map((d) => ({
+                    name: d.name,
+                    host: d.host
+                }));
+                res.json(list);
+            }).catch((error) => {
+                RED.log.warn('ttsultimate-config ' + node.id + ': Error discovering Google Cast devices ' + error.message);
+                res.json("ERRORDISCOVERY");
+            });
         });
 
 
@@ -680,45 +714,81 @@ module.exports = function (RED) {
                 var url_parts = url.parse(req.url, true);
                 var query = url_parts.query;
 
-                res.setHeader('Content-Disposition', 'attachment; filename=tts.mp3')
                 if (!query || query.f === undefined || query.f === null) {
-                    res.write("File not specified");
-                    res.end();
+                    res.statusCode = 400;
+                    res.end("File not specified");
                     return;
                 }
 
                 const requestedPath = query.f.toString();
-                if (fs.existsSync(requestedPath)) {
-                    // Security check: allow only mp3 files under the configured storage folder.
-                    const resolvedRequested = path.resolve(requestedPath);
-                    const resolvedAllowedRoot = path.resolve(node.TTSRootFolderPath);
-                    const isInsideRoot =
-                        resolvedRequested === resolvedAllowedRoot || resolvedRequested.startsWith(resolvedAllowedRoot + path.sep);
-
-                    if (path.extname(resolvedRequested) === ".mp3" && isInsideRoot) {
-                        var readStream = fs.createReadStream(resolvedRequested);
-                        readStream.on("error", function (error) {
-                            RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + resolvedRequested + ' : ' + error);
-                            res.end();
-                            return;
-                        });
-                        readStream.pipe(res);
-                    } else {
-                        res.write("NOT ALLOWED");
-                        res.end();
-                    }
-
-                    // http://localhost:1980/tts?f=/etc/passwd                 
-
-                } else {
+                if (!fs.existsSync(requestedPath)) {
                     RED.log.error("ttsultimate-config " + node.id + ": Playsonos RED.httpAdmin file not found: " + query.f);
-                    res.write("File not found");
-                    res.end();
+                    res.statusCode = 404;
+                    res.end("File not found");
+                    return;
                 }
+
+                // Security check: allow only mp3 files under the configured storage folder.
+                // http://localhost:1980/tts?f=/etc/passwd
+                const resolvedRequested = path.resolve(requestedPath);
+                const resolvedAllowedRoot = path.resolve(node.TTSRootFolderPath);
+                const isInsideRoot =
+                    resolvedRequested === resolvedAllowedRoot || resolvedRequested.startsWith(resolvedAllowedRoot + path.sep);
+                if (path.extname(resolvedRequested) !== ".mp3" || !isInsideRoot) {
+                    res.statusCode = 403;
+                    res.end("NOT ALLOWED");
+                    return;
+                }
+
+                // Serve as a proper streaming media response. Strict DLNA renderers (e.g. some TVs)
+                // require Content-Type, Content-Length, byte-range support and DLNA headers to start playing.
+                const total = fs.statSync(resolvedRequested).size;
+                res.setHeader('Content-Type', 'audio/mpeg');
+                res.setHeader('Content-Disposition', 'inline; filename="tts.mp3"');
+                res.setHeader('Accept-Ranges', 'bytes');
+                res.setHeader('transferMode.dlna.org', 'Streaming');
+                res.setHeader('contentFeatures.dlna.org', 'DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000');
+
+                // HEAD: headers only (many DLNA renderers probe with HEAD before playing).
+                if (req.method === 'HEAD') {
+                    res.setHeader('Content-Length', total);
+                    res.statusCode = 200;
+                    res.end();
+                    return;
+                }
+
+                let readStream;
+                const range = req.headers.range;
+                if (range) {
+                    const m = /bytes=(\d*)-(\d*)/.exec(range);
+                    let start = m && m[1] ? parseInt(m[1], 10) : 0;
+                    let end = m && m[2] ? parseInt(m[2], 10) : total - 1;
+                    if (isNaN(start)) start = 0;
+                    if (isNaN(end) || end >= total) end = total - 1;
+                    if (start > end || start >= total) {
+                        res.statusCode = 416;
+                        res.setHeader('Content-Range', 'bytes */' + total);
+                        res.end();
+                        return;
+                    }
+                    res.statusCode = 206;
+                    res.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + total);
+                    res.setHeader('Content-Length', (end - start) + 1);
+                    readStream = fs.createReadStream(resolvedRequested, { start: start, end: end });
+                } else {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Length', total);
+                    readStream = fs.createReadStream(resolvedRequested);
+                }
+                readStream.on("error", function (error) {
+                    RED.log.error("ttsultimate-config " + node.id + ": Playsonos error opening stream : " + resolvedRequested + ' : ' + error);
+                    try { res.end(); } catch (e) { }
+                });
+                readStream.pipe(res);
 
             } catch (error) {
                 RED.log.error("ttsultimate-config " + node.id + ": Playsonos RED.httpAdmin error: " + error);
-                res.end();
+                try { res.end(); } catch (e) { }
             }
 
         }

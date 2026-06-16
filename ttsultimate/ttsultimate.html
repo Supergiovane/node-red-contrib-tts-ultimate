@@ -129,9 +129,30 @@
         <label for="node-input-playertype"><i class="fa fa-play"></i> Player</label>
         <select id="node-input-playertype">
             <option value="sonos">Sonos</option>
+            <option value="googlecast">Google Cast (Chromecast / Nest)</option>
+            <option value="dlna">DLNA / UPnP renderer</option>
             <option value="noplayer">No player, only output file name.</option>
         </select>
-    </div>    
+    </div>
+
+    <div id="divCastDlna">
+        <div class="form-row">
+            <label for="node-input-playervolume"><i class="fa fa-volume-up"></i> Volume</label>
+            <input type="text" id="node-input-playervolume" style="width:150px" placeholder="0-100">
+        </div>
+        <div class="form-row" id="playerDiscoverRow">
+            <label for="playerDiscoverList"><i class="fa fa-search"></i> Discover</label>
+            <select id="playerDiscoverList" style="width:250px"><option value="">-- press Discover --</option></select>
+            <a id="playerDiscoverBtn" class="red-ui-button" style="width:auto;"><i class="fa fa-refresh"></i> Discover</a>
+        </div>
+        <div class="form-row">
+            <label for="node-input-playeripaddress"><i class="fa fa-globe"></i> <span id="playeraddresslabel">Device</span></label>
+            <input type="text" id="node-input-playeripaddress" style="width:250px">
+        </div>
+        <div class="form-row">
+            <p id="playeraddresshint" style="margin-left:105px;color:#888;"></p>
+        </div>
+    </div>
 
     <div id="divSonos">
         <div class="form-row">
@@ -150,7 +171,9 @@
             <label for="node-input-sonosipaddress"><i class="fa fa-globe"></i> Main Sonos Player</label>
             <label style="width:200px;" id="node-input-sonosipaddress">Discovering.... wait...</label>
         </div>
-    
+    </div>
+
+    <div id="divAdditionalPlayers">
         <dt><i class="fa fa-code-fork"></i>&nbsp; Additional players</dt>
         <div class="form-row node-input-rule-container-row">
             <ol id="node-input-rule-container"></ol>
@@ -194,6 +217,17 @@
         sonosvolume:
         {
           value: "20",
+          required: false,
+          type: "text"
+        },
+        playeripaddress:
+        {
+          value: "",
+          required: false
+        },
+        playervolume:
+        {
+          value: "50",
           required: false,
           type: "text"
         },
@@ -302,18 +336,91 @@
           node.playertype = "sonos";
           $("#node-input-playertype").val("sonos");
         }
-        if (node.playertype === "sonos") {
-          $("#divSonos").show();
-        } else {
-          $("#divSonos").hide();
+        var playerDiscovered = false; // discover only once per shown section, unless refreshed manually
+
+        // Discovery endpoint used by the per-row "Additional players" list (Sonos / Cast / DLNA).
+        function currentPlayerDiscoveryUrl() {
+          var pt = $("#node-input-playertype").val();
+          if (pt === "googlecast") return 'ttsultimateDiscoverCast';
+          if (pt === "dlna") return 'ttsultimateDiscoverDLNA';
+          return 'sonosgetAllGroups';
         }
 
-        $("#node-input-playertype").change(function () {
-          if ($("#node-input-playertype").val() === "sonos") {
-            $("#divSonos").show();
-          } else {
-            $("#divSonos").hide();
+        // Discovery for the MAIN player address field (Google Cast IP or DLNA description URL).
+        // All endpoints share the { name, host } shape, so a single code path works.
+        function runPlayerDiscovery() {
+          var pt = $("#node-input-playertype").val();
+          var noun = pt === "googlecast" ? "Cast devices" : "renderers";
+          $("#playerDiscoverList").html('<option value="">Discovering... please wait ~4s</option>');
+          $.getJSON(currentPlayerDiscoveryUrl(), function (data) {
+            $("#playerDiscoverList").empty();
+            if (typeof data === "string" || !data || data.length === 0) {
+              $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("No " + noun + " found - type manually below"));
+              return;
+            }
+            $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("-- select a discovered device --"));
+            data.forEach(function (dev) {
+              $("#playerDiscoverList").append($("<option></option>").attr("value", dev.host).text(dev.name + " (" + dev.host + ")"));
+            });
+          }).fail(function () {
+            $("#playerDiscoverList").html('<option value="">Discovery failed - type manually below</option>');
+          });
+        }
+
+        // Picking a discovered device fills the main address field.
+        $("#playerDiscoverList").change(function () {
+          var v = $(this).val();
+          if (v) $("#node-input-playeripaddress").val(v);
+        });
+        $("#playerDiscoverBtn").click(function (e) {
+          e.preventDefault();
+          runPlayerDiscovery();
+        });
+
+        // Re-render the additional players rows so each row re-discovers using the
+        // current player type (Sonos groups vs Cast devices), preserving entered hosts.
+        function rebuildAdditionalPlayers() {
+          try {
+            var items = $("#node-input-rule-container").editableList('items');
+            var saved = [];
+            items.each(function () {
+              var r = $(this);
+              saved.push({ host: r.find(".rowRulePlayerHost").val(), hostVolumeAdjust: r.find(".rowRulePlayerHostAdjustVolume").val() });
+            });
+            $("#node-input-rule-container").editableList('empty');
+            saved.forEach(function (rule, idx) {
+              $("#node-input-rule-container").editableList('addItem', { r: rule, i: idx });
+            });
+          } catch (e) { }
+        }
+
+        function refreshPlayerSections() {
+          var pt = $("#node-input-playertype").val();
+          $("#divSonos").toggle(pt === "sonos");
+          $("#divCastDlna").toggle(pt === "googlecast" || pt === "dlna");
+          $("#playerDiscoverRow").toggle(pt === "googlecast" || pt === "dlna");
+          // Additional players are supported for grouped Sonos and multi-room Google Cast / DLNA.
+          $("#divAdditionalPlayers").toggle(pt === "sonos" || pt === "googlecast" || pt === "dlna");
+          if (pt === "googlecast") {
+            $("#playeraddresslabel").text("Main Chromecast / Nest IP");
+            $("#playeraddresshint").text("IP address of the main Google Cast device, e.g. 192.168.1.50");
+          } else if (pt === "dlna") {
+            $("#playeraddresslabel").text("Renderer description URL");
+            $("#playeraddresshint").text("UPnP device description XML URL, e.g. http://192.168.1.50:1400/desc.xml");
           }
+          // Auto-discover the first time a discoverable section is shown.
+          if ((pt === "googlecast" || pt === "dlna") && !playerDiscovered) {
+            playerDiscovered = true;
+            runPlayerDiscovery();
+          }
+        }
+        refreshPlayerSections();
+
+        $("#node-input-playertype").change(function () {
+          playerDiscovered = false; // force re-discovery for the newly selected type
+          $("#playerDiscoverList").html('<option value="">-- press Discover --</option>');
+          rebuildAdditionalPlayers();
+          refreshPlayerSections();
         });
         // ###########################
 
@@ -614,7 +721,7 @@
           let oAdjustVolume = $('<select/>', { class: "rowRulePlayerHostAdjustVolume", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
           for (let index = -100; index < 100; index += 5) {
             let sTesto = "";
-            if (index === 0) sTesto = "Same volume as Main Sonos Player";
+            if (index === 0) sTesto = "Same volume as Main Player";
             if (index < 0) sTesto = "Decrease volume by " + Math.abs(index);
             if (index > 0) sTesto = "Increase volume by " + index;
             oAdjustVolume.append($("<option></option>")
@@ -648,8 +755,8 @@
               resizeRule(container);
             });
 
-            $.getJSON('sonosgetAllGroups', (data) => {
-              if (typeof data === "string" && data == "ERRORDISCOVERY") { // 10/04/2020 if error in discovery, fallback to manual IP input
+            $.getJSON(currentPlayerDiscoveryUrl(), (data) => {
+              if ((typeof data === "string" && data == "ERRORDISCOVERY") || !data || data.length === 0) { // 10/04/2020 if error/empty discovery, fallback to manual IP input
                 // Transform the dropdown to a simple input
                 oPlayer.remove();
                 oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
@@ -719,7 +826,7 @@
 </script>
 
 <script type="text/markdown" data-help-name="ttsultimate">
-<p>This node transforms a text into a speech audio that you can hear natively via SONOS speakers, or save it to a file.</p>
+<p>This node transforms a text into a speech audio that you can hear natively via Sonos speakers, Google Cast devices (Chromecast / Google Nest), generic DLNA/UPnP renderers, or save it to a file.</p>
 
 **General**
 |Property|Description|
@@ -728,12 +835,14 @@
 | Voice | Select your preferred voice. The list depends on the selected TTS engine (Google / ElevenLabs / Voice.ai). Google service without authentication has a limited set of voices. |
 | Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
 | Upload hail | It allows you to upload your own hailing file. |
-| Player | Select the player. If you select not to use a player, the node will output a msg with an array of files, ready to be played by third party nodes. In case you select No player, only output file name, you'll get a message with an additional property filesArray, containing an array of all mp3 files ready to be played with third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
+| Player | Select the player: **Sonos**, **Google Cast** (Chromecast / Google Nest), **DLNA / UPnP renderer**, or **No player**. If you select No player, only output file name, the node will output a msg with an additional property filesArray, containing an array of all mp3 files ready to be played by third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
 | Volume | Set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume = "40"; to the node). |
-| Unmute | Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing msg.unmute = true; to the node). |
-| Resume | If music was playing prior to TTS messages, the node will try to resume it, but can fail in some cases. Enabla this option to avoid resuming music after TTS message. |
+| Unmute | (Sonos only) Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing msg.unmute = true; to the node). |
+| Resume | (Sonos only) If music was playing prior to TTS messages, the node will try to resume it, but can fail in some cases. Enabla this option to avoid resuming music after TTS message. |
 | Main Sonos Player | Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server). It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator. |
-| Additional Players | Here you can add all additional players that will be grouped toghether to the Main Sonos Player coordinator group. You can add a player using the "ADD" button, below the list. For each additional player, you can adjust their volume, based on the Main Sonos Player volume -+100. |
+| Main Chromecast / Nest IP | (Google Cast) IP address of the main Google Cast device (e.g. 192.168.1.50). Press **Discover** to auto-detect the Cast devices on your network and pick one from the list. |
+| Renderer description URL | (DLNA) The full UPnP device description XML URL of the renderer (e.g. http://192.168.1.50:49153/nmrDescription.xml), **not** just the IP. Press **Discover** to auto-detect the DLNA renderers on your network and pick one from the list. |
+| Additional Players | (Sonos / Google Cast / DLNA) Add additional players so your announcement is played on all of them at once. For Sonos they are grouped to the Main Player coordinator; for Google Cast and DLNA the TTS is played on every device in parallel. Use the "ADD" button below the list; for each additional player you can adjust its volume relative to the main volume (-100/+100). |
 
 **Google TTS Engines specific options**
 |Property|Description|
@@ -753,6 +862,17 @@
 | Model | The model list is read directly from ElevenLabs (press the refresh icon to reload it), so new models appear automatically. Options not supported by the selected model (such as Style Exaggeration or Speaker boost) are automatically disabled, based on the model capabilities reported by ElevenLabs. Leave on "Automatic" to let the node pick a sensible default. |
 
 <br/>
+
+**Players**
+
+| Player | Notes |
+|--|--|
+| Sonos | Native control: grouping, volume, mute/unmute and music resume after the announcement. |
+| Google Cast | Chromecast and Google Nest devices, discovered via mDNS. Set the main device IP and, optionally, additional devices for synchronized multi-room playback. |
+| DLNA / UPnP renderer | Generic UPnP MediaRenderers (smart TVs, AV receivers, etc.), discovered via SSDP. Works with renderers that nest a MediaRenderer sub-device too (e.g. Sonos). Requires the full device description XML URL. |
+| No player | Only generates the mp3 file(s) and outputs their paths in filesArray, to be played by third party nodes. |
+
+For Google Cast and DLNA the device fetches the generated mp3 over HTTP from Node-RED, so the Node-RED host/port (default 1980) must be reachable from the player and on the same subnet (mDNS/SSDP discovery does not cross subnets/VLANs).
 
 ### Inputs
 

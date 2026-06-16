@@ -2,6 +2,16 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
+<b>Version 3.2.0</b> June 2026<br/>
+
+- NEW: **Google Cast** player (Chromecast / Google Nest). Devices are discovered via mDNS (press "Discover" in the node), with multi-room playback on the main device + additional players.<br/>
+- NEW: **DLNA / UPnP renderer** player (smart TVs, AV receivers, etc.). Devices are discovered via SSDP. A native UPnP client locates the AVTransport/RenderingControl services anywhere in the device tree, so it also works with renderers that nest a MediaRenderer sub-device (e.g. Sonos).<br/>
+- NEW: the "Additional players" list now works for Google Cast and DLNA too (not only Sonos), to play the announcement on several devices at once.<br/>
+- FIX: the built-in HTTP file server now serves the TTS audio with proper streaming headers (Content-Type, Content-Length, byte-range support and DLNA headers), so strict DLNA renderers (some TVs) start playing correctly.<br/>
+- CHORE: removed the "upnp-mediarenderer-client" dependency (replaced by a native UPnP client); added "castv2-client" and "multicast-dns".<br/>
+</p>
+
+<p>
 <b>Version 3.1.2</b> June 2026<br/>
 
 - CHORE: removed the external "google-translate-tts" dependency, replaced by a native built-in implementation (same voices and behaviour).<br/>

@@ -218,8 +218,8 @@
 # TTS Service node
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-PORT USED BY THE NODE ARE 1980 (DEFAULT) AND 1400 (FOR SONOS DISCOVER). <br/>
-PLEASE ALLOW MDNS AND UDP AS WELL
+PORT USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVER). <br/>
+PLEASE ALLOW MDNS AND UDP AS WELL (USED TO DISCOVER SONOS, GOOGLE CAST AND DLNA/UPNP DEVICES)
 
 	**TTS Service**<br/>
 	You can choose between Google (without credentials), Google TTS (require credentials and registration to google), ElevenLabs or Voice.ai TTS engines.<br/>
@@ -262,7 +262,7 @@ PLEASE ALLOW MDNS AND UDP AS WELL
 set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
 
 **Host Port**<br/>
-Sonos will connect to this port in order to play TTS. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer.
+The players (Sonos, Google Cast, DLNA/UPnP renderers) will connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from the players on your network.
 
 **TTS Cache**
 <br/>
