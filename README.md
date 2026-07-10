@@ -1,6 +1,15 @@
 <p align="center">
-  <img src="img/logo-v2.png" alt="TTS Ultimate" width="700">
+  <img src="img/logo-supervibe.png" alt="TTS Ultimate - Max Supervibe" width="380">
 </p>
+
+## Text-to-speech for Node-RED with Sonos, Google Cast, DLNA/UPnP and file-only output.
+
+TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest) and generic **DLNA/UPnP** renderers such as smart TVs and AV receivers.
+It can also work **without player**: generate an audio file, cache it, and pass it to other nodes, web pages, Bluetooth workflows or third-party services. With the OwnFile node, you can upload and play your own audio messages and keep selected flows working completely offline.
+
+<br/>
+<br/>
+<br/>
 
 <p align="center">
   <a href="https://npmjs.org/package/node-red-contrib-tts-ultimate"><img src="https://img.shields.io/npm/v/node-red-contrib-tts-ultimate.svg" alt="NPM version"></a>
@@ -13,7 +22,7 @@
 </p>
 
 <p align="center">
-  <strong>Text-to-speech for Node-RED with Sonos, Google Cast, DLNA/UPnP and file-only output.</strong>
+  <img src="img/readmemain.png" alt="TTS Ultimate for Node-RED — Max Supervibe" width="70%">
 </p>
 
 <p align="center">
@@ -178,14 +187,6 @@
 
 </details>
 
-## DESCRIPTION
-
-TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest) and generic **DLNA/UPnP** renderers such as smart TVs and AV receivers.
-
-It can also work without any player: generate an audio file, cache it, and pass it to other nodes, web pages, Bluetooth workflows or third-party services. With the OwnFile node, you can upload and play your own audio messages and keep selected flows working completely offline.
-
-This is a major upgrade from the previously popular **SonosPollyTTS** node, which is no longer developed.
-
 ## SUPPORTED TTS ENGINES
 
 <table>
@@ -336,13 +337,13 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 
 - **TTS Service using ElevenLabs**<br/>
   Please use the V2 engine, as the V1 is deprecated and will no longer be supported. The V2 has multilingual voices and is more powerful.<br/>
-   You have two choices: register to ElevenLabs, or do not register. If you don't register to ElevenLabs.io, you will either have access to a limited amount of voices, or no access at all.<br/>
-   After registration at ElevenLabs.io, you can add any language to your personal list. The personal list will then be shown in the node voice list.<br/>
+  You have two choices: register to ElevenLabs, or do not register. If you don't register to ElevenLabs.io, you will either have access to a limited amount of voices, or no access at all.<br/>
+  After registration at ElevenLabs.io, you can add any language to your personal list. The personal list will then be shown in the node voice list.<br/>
   <br/>
 
 - **TTS Service using Voice.ai**<br/>
   Add your Voice.ai API key in the config node, deploy and restart Node-RED. The node will load your available voices and show them in the Voice dropdown.<br/>
-   Note: SSML is not supported by this engine.
+  Note: SSML is not supported by this engine.
   <br/>
 
 **Node-RED IP**<br/>
