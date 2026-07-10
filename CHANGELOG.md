@@ -2,6 +2,11 @@
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
+<p>
+<b>Version 3.2.3</b> July 2026<br/>
+- DOCS: new Max Supervibe README banner and app-icon logo.<br/>
+</p>
+
 <b>Version 3.2.2</b> June 2026<br/>
 
 - NEW: **Google Cast** player (Chromecast / Google Nest). Devices are discovered via mDNS (press "Discover" in the node), with multi-room playback on the main device + additional players.<br/>
