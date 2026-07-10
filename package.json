@@ -13,17 +13,27 @@
   },
   "keywords": [
     "node-red",
+    "node-red-contrib",
     "google",
     "voice",
     "tts",
+    "text-to-speech",
     "sonos",
+    "chromecast",
+    "google-cast",
+    "nest",
+    "dlna",
+    "upnp",
     "IOT",
     "speech",
+    "audio",
     "ttsultimate",
     "sonospollytts",
     "neural",
     "elevenlabs",
-    "voiceai"
+    "voiceai",
+    "smarthome",
+    "home-automation"
   ],
   "node-red": {
     "nodes": {
