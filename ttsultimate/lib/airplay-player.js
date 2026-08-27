@@ -8,8 +8,10 @@ const DEFAULT_CANCEL_RETRY_INTERVAL_MS = 50;
 const DEFAULT_CANCEL_RETRY_TIMEOUT_MS = 5000;
 const DEFAULT_CONNECT_TIMEOUT_MS = 45000;
 const DEFAULT_PLAYBACK_TIMEOUT_MS = 10 * 60 * 1000;
+const DEFAULT_RAOP_CACHE_TTL_MS = 60 * 1000;
 const DEFAULT_REMOTE_AUDIO_MAX_BYTES = 10 * 1024 * 1024;
 const DEFAULT_SOURCE_TIMEOUT_MS = 45000;
+const DEFAULT_STALE_TARGET_TIMEOUT_MS = 5000;
 const DEFAULT_VOLUME_TIMEOUT_MS = 10000;
 const DEFAULT_VOLUME_READY_TIMEOUT_MS = 1500;
 const DEFAULT_VOLUME_RETRY_INTERVAL_MS = 100;
@@ -320,10 +322,12 @@ function createAirPlayPlayer(options) {
     const connectTimeoutMs = opts.connectTimeoutMs === undefined ? DEFAULT_CONNECT_TIMEOUT_MS : opts.connectTimeoutMs;
     const sourceTimeoutMs = opts.sourceTimeoutMs === undefined ? DEFAULT_SOURCE_TIMEOUT_MS : opts.sourceTimeoutMs;
     const playbackTimeoutMs = opts.playbackTimeoutMs === undefined ? DEFAULT_PLAYBACK_TIMEOUT_MS : opts.playbackTimeoutMs;
+    const raopCacheTtlMs = opts.raopCacheTtlMs === undefined ? DEFAULT_RAOP_CACHE_TTL_MS : opts.raopCacheTtlMs;
     const remoteAudioMaxBytes = opts.remoteAudioMaxBytes === undefined ? DEFAULT_REMOTE_AUDIO_MAX_BYTES : opts.remoteAudioMaxBytes;
     const volumeTimeoutMs = opts.volumeTimeoutMs === undefined ? DEFAULT_VOLUME_TIMEOUT_MS : opts.volumeTimeoutMs;
     const volumeReadyTimeoutMs = opts.volumeReadyTimeoutMs === undefined ? DEFAULT_VOLUME_READY_TIMEOUT_MS : opts.volumeReadyTimeoutMs;
     const volumeRetryIntervalMs = opts.volumeRetryIntervalMs === undefined ? DEFAULT_VOLUME_RETRY_INTERVAL_MS : opts.volumeRetryIntervalMs;
+    const staleTargetTimeoutMs = opts.staleTargetTimeoutMs === undefined ? DEFAULT_STALE_TARGET_TIMEOUT_MS : opts.staleTargetTimeoutMs;
     const raopTargets = new Map();
 
     function warn(message) {
@@ -338,16 +342,9 @@ function createAirPlayPlayer(options) {
         return String(value || '').trim().toLowerCase().replace(/\.$/, '');
     }
 
-    function raopResultMatchesTarget(result, target) {
-        const normalizedTarget = normalizeTarget(target);
-        if (!normalizedTarget || !result) return false;
-        const service = result.service || {};
-        if (!/^_raop\._tcp(?:\.local)?$/i.test(String(service.type || '')) ||
-            !Number.isInteger(Number(service.port)) || Number(service.port) <= 0) {
-            return false;
-        }
-
-        const candidates = [
+    function raopResultTargets(result) {
+        if (!result) return [];
+        return [
             result.address,
             result.id,
             result.fqdn,
@@ -355,32 +352,187 @@ function createAirPlayPlayer(options) {
             result.name,
             result.txt && result.txt.name
         ].map(normalizeTarget).filter(Boolean);
+    }
+
+    function raopStrongIdentities(result) {
+        if (!result) return [];
+        return Array.from(new Set([result.id, result.fqdn]
+            .map(normalizeTarget)
+            .filter(Boolean)));
+    }
+
+    function raopHardwareIdentity(value) {
+        const normalized = normalizeTarget(value);
+        if (normalized.startsWith('raop-device:')) {
+            return normalizeHardwareAddress(normalized.slice('raop-device:'.length));
+        }
+        const separatorIndex = normalized.indexOf('@');
+        if (separatorIndex <= 0) return '';
+        const hardwareId = normalized.slice(0, separatorIndex).replace(/[^a-f0-9]/g, '');
+        return /^[a-f0-9]{12}$/.test(hardwareId) ? hardwareId : '';
+    }
+
+    function raopResultHardwareIdentities(result) {
+        return Array.from(new Set(raopStrongIdentities(result)
+            .map(raopHardwareIdentity)
+            .filter(Boolean)));
+    }
+
+    function normalizeHardwareAddress(value) {
+        const hardwareId = String(value || '').trim().toLowerCase().replace(/[^a-f0-9]/g, '');
+        return /^[a-f0-9]{12}$/.test(hardwareId) ? hardwareId : '';
+    }
+
+    function raopClientMatchesDiscoveryIdentity(client, discoveryResult) {
+        const expected = raopResultHardwareIdentities(discoveryResult);
+        if (expected.length === 0) return false;
+
+        const info = client && client.info || {};
+        const actual = [
+            info.deviceID,
+            info.deviceId,
+            info.deviceid,
+            info.macAddress,
+            info.macaddress
+        ].map(normalizeHardwareAddress).filter(Boolean);
+        return actual.some((identity) => expected.includes(identity));
+    }
+
+    function isUsableRaopResult(result) {
+        const service = result && result.service || {};
+        return /^_raop\._tcp(?:\.local)?$/i.test(String(service.type || '')) &&
+            Number.isInteger(Number(service.port)) && Number(service.port) > 0;
+    }
+
+    function raopResultMatchesTarget(result, target) {
+        const normalizedTarget = normalizeTarget(target);
+        if (!normalizedTarget || !isUsableRaopResult(result)) return false;
+
+        const targetHardwareId = raopHardwareIdentity(normalizedTarget);
+        if (targetHardwareId && raopResultHardwareIdentities(result).includes(targetHardwareId)) return true;
+
+        const candidates = raopResultTargets(result);
         return candidates.some((candidate) => candidate === normalizedTarget ||
             candidate.replace(/\.local$/, '') === normalizedTarget.replace(/\.local$/, '') ||
             candidate.split('@').pop().replace(/\.local$/, '') === normalizedTarget.replace(/\.local$/, ''));
     }
 
-    async function resolveRaopTarget(common, target) {
-        const cacheKey = normalizeTarget(target);
-        if (raopTargets.has(cacheKey)) return raopTargets.get(cacheKey);
+    function matchPreviousRaopResult(results, previous) {
+        const previousStrongIdentities = raopStrongIdentities(previous);
+        const previousHardwareIdentities = raopResultHardwareIdentities(previous);
 
-        if (typeof opts.resolveRaopTarget === 'function') {
-            const resolved = await opts.resolveRaopTarget(target);
-            if (!resolved) throw new Error('AirPlay: RAOP service not found for ' + target);
-            raopTargets.set(cacheKey, resolved);
-            return resolved;
+        const exactMatch = results.find((result) =>
+            raopStrongIdentities(result).some((identity) => previousStrongIdentities.includes(identity))
+        );
+        if (exactMatch) return exactMatch;
+
+        if (previousHardwareIdentities.length > 0) {
+            return results.find((result) =>
+                raopResultHardwareIdentities(result).some((identity) =>
+                    previousHardwareIdentities.includes(identity)
+                )
+            ) || null;
         }
 
-        // This player keeps a successful result for its own lifetime. When that
-        // cache is empty (or was invalidated after a failure), force a fresh mDNS
-        // lookup instead of reusing apple-common's short-lived stale cache.
-        const results = await common.Discovery.raop().find(false);
-        const resolved = (Array.isArray(results) ? results : [])
-            .find((result) => raopResultMatchesTarget(result, target));
+        return null;
+    }
+
+    function getCachedRaopTarget(cacheKey) {
+        const cached = raopTargets.get(cacheKey);
+        if (!cached) return null;
+        if (cached.expiresAt <= Date.now()) {
+            raopTargets.delete(cacheKey);
+            return null;
+        }
+        return cached.result;
+    }
+
+    function cacheRaopTarget(cacheKey, result) {
+        if (!(raopCacheTtlMs > 0)) return;
+        raopTargets.set(cacheKey, {
+            expiresAt: Date.now() + raopCacheTtlMs,
+            result
+        });
+    }
+
+    async function resolveRaopTarget(common, target, resolveOptions) {
+        const resolveOpts = resolveOptions || {};
+        const cacheKey = normalizeTarget(target);
+        const cached = !resolveOpts.refresh && getCachedRaopTarget(cacheKey);
+        if (cached) return { fromCache: true, result: cached };
+
+        if (typeof opts.resolveRaopTarget === 'function') {
+            const resolved = await opts.resolveRaopTarget(target, {
+                previous: resolveOpts.previous || null,
+                refresh: Boolean(resolveOpts.refresh)
+            });
+            if (!resolved) throw new Error('AirPlay: RAOP service not found for ' + target);
+            cacheRaopTarget(cacheKey, resolved);
+            return { fromCache: false, result: resolved };
+        }
+
+        // Keep successful descriptors briefly so consecutive files in one
+        // announcement do not each pay for a multicast scan. Expired or failed
+        // entries force a fresh lookup instead of trusting an old DHCP lease.
+        const discovered = await common.Discovery.raop().find(false);
+        const results = (Array.isArray(discovered) ? discovered : []).filter(isUsableRaopResult);
+        const resolved = resolveOpts.previous ?
+            matchPreviousRaopResult(results, resolveOpts.previous) :
+            results.find((result) => raopResultMatchesTarget(result, target));
         if (!resolved) throw new Error('AirPlay: RAOP service not found for ' + target);
 
-        raopTargets.set(cacheKey, resolved);
-        return resolved;
+        cacheRaopTarget(cacheKey, resolved);
+        return { fromCache: false, result: resolved };
+    }
+
+    function applyRaopTarget(session, resolution) {
+        const discoveryResult = resolution.result;
+        session.raopDiscoveryResult = discoveryResult;
+        session.raopTargetFromCache = Boolean(resolution.fromCache);
+        session.address = String(discoveryResult && discoveryResult.address || session.target).trim();
+        return discoveryResult;
+    }
+
+    async function ensureRaopTarget(session, modules) {
+        if (session.raopDiscoveryResult) return session.raopDiscoveryResult;
+        const resolution = await resolveRaopTarget(modules.common, session.target);
+        return applyRaopTarget(session, resolution);
+    }
+
+    async function refreshRaopTarget(session, modules, previous) {
+        raopTargets.delete(normalizeTarget(session.target));
+        const resolution = await resolveRaopTarget(modules.common, session.target, {
+            previous,
+            refresh: true
+        });
+        return applyRaopTarget(session, resolution);
+    }
+
+    async function createRaopClient(session, modules, discoveryResult, timingServer, timeoutMs) {
+        let abandoned = false;
+        let createPromise;
+        try {
+            createPromise = Promise.resolve(modules.raop.RaopClient.create(discoveryResult, timingServer));
+        } catch (error) {
+            createPromise = Promise.reject(error);
+        }
+        createPromise.then((lateClient) => {
+            if (!abandoned || !lateClient) return;
+            try {
+                Promise.resolve(lateClient.close()).catch(() => { });
+            } catch (error) { }
+        }, () => { });
+
+        try {
+            return await awaitOperation(session, createPromise, {
+                timeoutMs,
+                timeoutMessage: 'AirPlay: stale RAOP endpoint timed out for ' + session.target,
+                stopOnTimeout: false
+            });
+        } catch (error) {
+            abandoned = true;
+            throw error;
+        }
     }
 
     async function prepareRaopStream(session, modules) {
@@ -390,14 +542,47 @@ function createAirPlayPlayer(options) {
         try {
             await timingServer.listen();
             ensureActive(session);
-            const discoveryResult = await resolveRaopTarget(modules.common, session.target);
-            ensureActive(session);
-            client = await modules.raop.RaopClient.create(discoveryResult, timingServer);
-            // create() is not abortable. If stop/timeout won while the RTSP
-            // handshake was pending, close this late client in the catch below.
-            ensureActive(session);
-            session.raopClient = client;
-            session.transport = 'raop';
+            let discoveryResult = await ensureRaopTarget(session, modules);
+
+            // A HomePod can keep the same mDNS identity while DHCP changes its
+            // address. Try the cached descriptor first, then do exactly one fresh
+            // lookup matched by exact RAOP identity or hardware prefix before
+            // failing this announcement.
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    ensureActive(session);
+                    const cachedAttemptTimeoutMs = attempt === 0 && session.raopTargetFromCache ?
+                        staleTargetTimeoutMs : 0;
+                    client = await createRaopClient(
+                        session,
+                        modules,
+                        discoveryResult,
+                        timingServer,
+                        cachedAttemptTimeoutMs
+                    );
+                    // create() is not abortable. If stop/timeout won while the RTSP
+                    // handshake was pending, close this late client in the catch below.
+                    ensureActive(session);
+                    if (attempt === 0 && session.raopTargetFromCache &&
+                        !raopClientMatchesDiscoveryIdentity(client, discoveryResult)) {
+                        const identityError = new Error(
+                            'AirPlay: cached RAOP identity could not be verified for ' + session.target
+                        );
+                        identityError.code = 'AIRPLAY_STALE_TARGET';
+                        throw identityError;
+                    }
+                    session.raopClient = client;
+                    session.transport = 'raop';
+                    return;
+                } catch (error) {
+                    if (client) {
+                        try { await client.close(); } catch (closeError) { }
+                        client = null;
+                    }
+                    if (attempt > 0 || session.stopped) throw error;
+                    discoveryResult = await refreshRaopTarget(session, modules, discoveryResult);
+                }
+            }
         } catch (error) {
             raopTargets.delete(normalizeTarget(session.target));
             if (client) {
@@ -406,6 +591,60 @@ function createAirPlayPlayer(options) {
             timingServer.close();
             session.timingServer = null;
             throw error;
+        }
+    }
+
+    async function discardPreparedRaop(session) {
+        if (session.raopClient) {
+            try { await session.raopClient.close(); } catch (error) { }
+            session.raopClient = null;
+        }
+        if (session.timingServer) {
+            try { session.timingServer.close(); } catch (error) { }
+            session.timingServer = null;
+        }
+        session.raopClosed = false;
+        session.transport = 'sdk';
+    }
+
+    async function connectControlDevice(session, modules, usesRaop) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const address = session.address || session.target;
+            const connectingDevice = new modules.sdk.HomePod({ address });
+            session.device = connectingDevice;
+            session.deviceDisconnected = false;
+
+            const connectPromise = Promise.resolve(connectingDevice.connect());
+            // connect() is not abortable. If stop/timeout wins the race, its first
+            // disconnect may run before the SDK finishes connecting; disconnect again
+            // on a late success so feedback timers/sockets cannot escape tracking.
+            connectPromise.then(() => {
+                if (!session.stopped && !session.released && session.device === connectingDevice) return;
+                try { connectingDevice.disconnect(); } catch (error) { }
+            }, () => { });
+
+            try {
+                const staleCachedAttempt = usesRaop && attempt === 0 &&
+                    session.raopTargetFromCache && staleTargetTimeoutMs > 0;
+                await awaitOperation(session, connectPromise, {
+                    timeoutMs: staleCachedAttempt ? staleTargetTimeoutMs : connectTimeoutMs,
+                    timeoutMessage: 'AirPlay: connection timed out for ' + session.target,
+                    stopOnTimeout: !staleCachedAttempt
+                });
+                return;
+            } catch (error) {
+                try { connectingDevice.disconnect(); } catch (disconnectError) { }
+                if (session.device === connectingDevice) session.device = null;
+                if (!usesRaop || attempt > 0 || session.stopped) throw error;
+
+                const previous = session.raopDiscoveryResult;
+                await discardPreparedRaop(session);
+                await awaitOperation(session, refreshRaopTarget(session, modules, previous), {
+                    timeoutMs: connectTimeoutMs,
+                    timeoutMessage: 'AirPlay: RAOP rediscovery timed out for ' + session.target
+                });
+                ensureActive(session);
+            }
         }
     }
 
@@ -858,6 +1097,7 @@ function createAirPlayPlayer(options) {
 
         let resolveOuter;
         const session = {
+            address: null,
             backgroundStopPromise: null,
             cancelHandlers: new Set(),
             cleanupChain: Promise.resolve(),
@@ -871,6 +1111,8 @@ function createAirPlayPlayer(options) {
             sourceStopped: false,
             raopClient: null,
             raopClosed: false,
+            raopDiscoveryResult: null,
+            raopTargetFromCache: false,
             scope: playOpts.scope,
             role: playOpts.role || 'single',
             stopError: null,
@@ -917,26 +1159,36 @@ function createAirPlayPlayer(options) {
                 ensureActive(session);
             }
 
+            // Treat the configured value as a stable mDNS selector. Resolve it to
+            // the current address before the optional MRP control connection; the
+            // synthetic service-name .local value is not guaranteed to be an OS-
+            // resolvable hostname, especially inside containers.
+            if (usesRaop) {
+                await awaitOperation(session, ensureRaopTarget(session, modules), {
+                    timeoutMs: connectTimeoutMs,
+                    timeoutMessage: 'AirPlay: RAOP discovery timed out for ' + configuredTarget
+                });
+                ensureActive(session);
+
+                // A grouped cached endpoint must be identity-checked before MRP
+                // connects to its address. Otherwise a reassigned lease could make
+                // the control plane describe a different HomePod before RAOP gets
+                // a chance to invalidate the stale descriptor.
+                if (playOpts.streamBarrier && session.raopTargetFromCache) {
+                    await awaitOperation(session, prepareRaopStream(session, modules), {
+                        timeoutMs: connectTimeoutMs,
+                        timeoutMessage: 'AirPlay: RAOP connection timed out for ' + configuredTarget
+                    });
+                    ensureActive(session);
+                }
+            }
+
             // A single RAOP endpoint needs no transient AirPlay/MRP control session:
             // RAOP owns timing and session volume. Keep MRP only for multi-player
             // runs, where its output UID prevents two stereo-pair members from both
             // receiving a stream when an old/manual configuration contains them.
             if (!usesRaop || playOpts.streamBarrier) {
-                session.device = new modules.sdk.HomePod({ address: configuredTarget });
-
-                const connectingDevice = session.device;
-                const connectPromise = Promise.resolve(connectingDevice.connect());
-                // connect() is not abortable. If stop/timeout wins the race, its first
-                // disconnect may run before the SDK finishes connecting; disconnect again
-                // on a late success so feedback timers/sockets cannot escape tracking.
-                connectPromise.then(() => {
-                    if (!session.stopped && !session.released) return;
-                    try { connectingDevice.disconnect(); } catch (error) { }
-                }, () => { });
-                await awaitOperation(session, connectPromise, {
-                    timeoutMs: connectTimeoutMs,
-                    timeoutMessage: 'AirPlay: connection timed out for ' + configuredTarget
-                });
+                await connectControlDevice(session, modules, usesRaop);
                 ensureActive(session);
             }
 
@@ -954,7 +1206,7 @@ function createAirPlayPlayer(options) {
                         const outputDeviceUID = resolveOutputDeviceUID(session);
                         return outputDeviceUID ?
                             'output:' + outputDeviceUID :
-                            'host:' + session.target;
+                            'host:' + (session.address || session.target);
                     })
                 );
                 ensureActive(session);
@@ -982,7 +1234,7 @@ function createAirPlayPlayer(options) {
             // different PCM format from the decoded frames and can report completion
             // even when a HomePod stays silent. RAOP is the package's HomePod audio
             // path: it negotiates L16, runs an NTP timing server and sets RTSP volume.
-            if (usesRaop) {
+            if (usesRaop && !session.raopClient) {
                 await awaitOperation(session, prepareRaopStream(session, modules), {
                     timeoutMs: connectTimeoutMs,
                     timeoutMessage: 'AirPlay: RAOP connection timed out for ' + configuredTarget
@@ -1173,8 +1425,10 @@ module.exports = {
     DEFAULT_CANCEL_RETRY_TIMEOUT_MS,
     DEFAULT_CONNECT_TIMEOUT_MS,
     DEFAULT_PLAYBACK_TIMEOUT_MS,
+    DEFAULT_RAOP_CACHE_TTL_MS,
     DEFAULT_REMOTE_AUDIO_MAX_BYTES,
     DEFAULT_SOURCE_TIMEOUT_MS,
+    DEFAULT_STALE_TARGET_TIMEOUT_MS,
     DEFAULT_VOLUME_TIMEOUT_MS,
     DEFAULT_VOLUME_RETRY_INTERVAL_MS,
     clampVolume,

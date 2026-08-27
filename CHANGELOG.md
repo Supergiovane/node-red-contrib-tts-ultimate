@@ -3,6 +3,12 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 <p>
+<b>Version 3.3.1</b> August 2026<br/>
+
+- FIX: HomePod selections now persist a stable RAOP/mDNS selector instead of a DHCP address. Playback resolves the current endpoint, verifies cached receiver identity when available and retries once after a stale connection, so the same TTS survives a HomePod reboot and IP change.<br/>
+- FIX: HomePod discovery now filters RAOP records leaked into AirPlay mDNS responses, merges duplicate advertisements by stable device identity and shows one consistently named entry per HomePod instead of additional `AABBCCDDEEFF@Name` rows.<br/>
+
+<p>
 <b>Version 3.3.0</b> August 2026<br/>
 
 - NEW: experimental **AirPlay 2** player with one master HomePod and optional additional HomePods; an Apple stereo pair remains a single AirPlay endpoint.<br/>

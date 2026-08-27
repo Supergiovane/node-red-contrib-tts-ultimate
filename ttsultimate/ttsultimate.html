@@ -354,6 +354,54 @@
           return pt === "sonos" || pt === "googlecast" || pt === "dlna" || pt === "airplay";
         }
 
+        function discoveredPlayerAliases(device) {
+          var dev = device || {};
+          return [dev.host]
+            .concat(Array.isArray(dev.memberHosts) ? dev.memberHosts : [])
+            .map(function (value) { return String(value || "").trim().toLowerCase(); })
+            .filter(function (value, index, values) { return value && values.indexOf(value) === index; });
+        }
+
+        function discoveredPlayerHardwareId(value) {
+          var normalized = String(value || "").trim().toLowerCase().replace(/\.$/, "");
+          if (normalized.indexOf("raop-device:") === 0) {
+            normalized = normalized.slice("raop-device:".length);
+          } else {
+            var separatorIndex = normalized.indexOf("@");
+            if (separatorIndex <= 0) return "";
+            normalized = normalized.slice(0, separatorIndex);
+          }
+          normalized = normalized.replace(/[^a-f0-9]/g, "");
+          return /^[a-f0-9]{12}$/.test(normalized) ? normalized : "";
+        }
+
+        function canonicalDiscoveredHost(savedHost, device) {
+          var configuredHost = String(savedHost || "").trim();
+          if (!configuredHost) return null;
+          var aliases = discoveredPlayerAliases(device);
+          var exactMatch = aliases.indexOf(configuredHost.toLowerCase()) !== -1;
+          var savedHardwareId = discoveredPlayerHardwareId(configuredHost);
+          var hardwareMatch = savedHardwareId && aliases.some(function (alias) {
+            return discoveredPlayerHardwareId(alias) === savedHardwareId;
+          });
+          if (!exactMatch && !hardwareMatch) return null;
+          return String(device && device.host || configuredHost).trim();
+        }
+
+        function legacyAirPlayAddressMatch(savedHost, device, playerType) {
+          if (playerType !== "airplay") return null;
+          var configuredHost = String(savedHost || "").trim();
+          var currentAddress = String(device && device.address || "").trim();
+          if (!configuredHost || configuredHost.toLowerCase() !== currentAddress.toLowerCase()) return null;
+          return configuredHost;
+        }
+
+        function compareDiscoveredPlayers(a, b) {
+          var firstName = String(a && (a.name || a.host) || "");
+          var secondName = String(b && (b.name || b.host) || "");
+          return firstName.localeCompare(secondName, undefined, { numeric: true, sensitivity: "base" });
+        }
+
         // Discovery for the MAIN player address field (Cast, DLNA or AirPlay).
         // All endpoints share the { name, host } shape, so a single code path works.
         function runPlayerDiscovery() {
@@ -380,14 +428,24 @@
             }
             $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("-- select a discovered device --"));
             var savedHostFound = false;
-            data.forEach(function (dev) {
-              var memberHosts = Array.isArray(dev.members) ? dev.members.map(String) : [String(dev.host || "")];
-              if (memberHosts.indexOf(savedHost) !== -1) {
+            data.sort(compareDiscoveredPlayers).forEach(function (dev) {
+              var canonicalHost = canonicalDiscoveredHost(savedHost, dev);
+              var optionHost = String(dev.host || "").trim();
+              var legacyAddress = legacyAirPlayAddressMatch(savedHost, dev, pt);
+              if (canonicalHost !== null) {
                 savedHostFound = true;
-                savedHost = String(dev.host || savedHost);
+                savedHost = canonicalHost;
                 $("#node-input-playeripaddress").val(savedHost);
+              } else if (legacyAddress !== null) {
+                // Show the current HomePod only once, but keep the old IP until
+                // the user explicitly reselects this option.
+                savedHostFound = true;
+                optionHost = legacyAddress;
               }
-              $("#playerDiscoverList").append($("<option></option>").attr("value", dev.host).text(dev.name + " (" + dev.host + ")"));
+              var visibleAddress = String(dev.address || dev.host || "");
+              var option = $("<option></option>").attr("value", optionHost).text(dev.name + " (" + visibleAddress + ")");
+              if (legacyAddress !== null) option.attr("data-canonical-host", dev.host);
+              $("#playerDiscoverList").append(option);
             });
             if (savedHost && !savedHostFound) {
               $("#playerDiscoverList").append($("<option></option>")
@@ -411,7 +469,8 @@
 
         // Picking a discovered device fills the main address field.
         $("#playerDiscoverList").change(function () {
-          var v = $(this).val();
+          var selectedOption = $(this).find("option:selected");
+          var v = selectedOption.attr("data-canonical-host") || selectedOption.val();
           if (v) $("#node-input-playeripaddress").val(v);
         });
         $("#playerDiscoverBtn").click(function (e) {
@@ -451,7 +510,7 @@
             $("#playeraddresshint").text("UPnP device description XML URL, e.g. http://192.168.1.50:1400/desc.xml");
           } else if (pt === "airplay") {
             $("#playeraddresslabel").text("Master HomePod");
-            $("#playeraddresshint").text("Select the master HomePod. It determines playback events and the overall success/error; additional HomePods are best-effort. A stereo pair appears as one device.");
+            $("#playeraddresshint").text("Select the master HomePod. Its stable mDNS identity follows DHCP address changes automatically. A stereo pair appears as one device.");
           }
           // Auto-discover the first time a discoverable section is shown.
           if ((pt === "googlecast" || pt === "dlna" || pt === "airplay") && !playerDiscovered) {
@@ -832,18 +891,27 @@
                 oPlayer.append($("<option></option>")
                   .attr("value", "")
                   .text("-- select a discovered device --"));
-                data.sort(function (a, b) {
-                  return String(a.name || a.host || "").localeCompare(String(b.name || b.host || ""));
-                }).forEach(oGroup => {
-                  var memberHosts = Array.isArray(oGroup.members) ? oGroup.members.map(String) : [String(oGroup.host || "")];
-                  if (memberHosts.indexOf(savedHost) !== -1) {
+                data.sort(compareDiscoveredPlayers).forEach(oGroup => {
+                  var canonicalHost = canonicalDiscoveredHost(savedHost, oGroup);
+                  var optionHost = String(oGroup.host || "").trim();
+                  var legacyAddress = legacyAirPlayAddressMatch(
+                    savedHost,
+                    oGroup,
+                    $("#node-input-playertype").val()
+                  );
+                  if (canonicalHost !== null) {
                     savedHostFound = true;
-                    savedHost = String(oGroup.host || savedHost);
+                    savedHost = canonicalHost;
+                  } else if (legacyAddress !== null) {
+                    savedHostFound = true;
+                    optionHost = legacyAddress;
                   }
-                  oPlayer.append($("<option></option>")
-                    .attr("value", oGroup.host)
-                    .text(oGroup.name + " (" + oGroup.host + ")")
-                  )
+                  var visibleAddress = String(oGroup.address || oGroup.host || "");
+                  var option = $("<option></option>")
+                    .attr("value", optionHost)
+                    .text(oGroup.name + " (" + visibleAddress + ")");
+                  if (legacyAddress !== null) option.attr("data-canonical-host", oGroup.host);
+                  oPlayer.append(option);
                 });
                 // Keep an offline/manual target selectable even when other devices
                 // were discovered, otherwise opening the editor would erase it.
@@ -855,6 +923,14 @@
                 }
               }
               oPlayer.val(savedHost || "");
+              oPlayer.on("change", function () {
+                var selectedOption = $(this).find("option:selected");
+                var canonicalHost = selectedOption.attr("data-canonical-host");
+                if (!canonicalHost) return;
+                selectedOption.attr("value", canonicalHost);
+                $(this).val(canonicalHost);
+                savedHost = canonicalHost;
+              });
             }).fail(() => {
               // HTTP-level discovery failures must preserve the configured row too.
               oPlayer.attr("placeholder", "Discovery failed - type manually");
@@ -933,7 +1009,7 @@
 | Main Sonos Player | Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server). It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator. |
 | Main Chromecast / Nest IP | (Google Cast) IP address of the main Google Cast device (e.g. 192.168.1.50). Press **Discover** to auto-detect the Cast devices on your network and pick one from the list. |
 | Renderer description URL | (DLNA) The full UPnP device description XML URL of the renderer (e.g. http://192.168.1.50:49153/nmrDescription.xml), **not** just the IP. Press **Discover** to auto-detect the DLNA renderers on your network and pick one from the list. |
-| Master HomePod | (AirPlay 2, experimental) Press **Discover** and select the master HomePod, or enter its IP address/hostname. The master determines playback lifecycle/events and the overall success or error. A DHCP reservation is recommended. A HomePod stereo pair is advertised as one device and must be selected only once. |
+| Master HomePod | (AirPlay 2, experimental) Press **Discover** and select the master HomePod. TTS Ultimate stores a stable RAOP/mDNS selector and resolves the current address at playback time, so DHCP address changes are handled automatically. Manual IP addresses/hostnames remain supported; in flows saved with a legacy numeric HomePod IP, reselect the HomePod in **Discover** and save once. The master determines playback lifecycle/events and the overall success or error. A HomePod stereo pair is advertised as one device and must be selected only once. |
 | Additional Players | (Sonos / Google Cast / DLNA / AirPlay 2) Add additional players so your announcement is played on all of them. For Sonos they are grouped to the Main Player coordinator; for Google Cast and DLNA the TTS is played on every device in parallel. AirPlay additional HomePods receive independent parallel streams on a best-effort basis: they do not emit the lifecycle events used by the node, and their errors do not replace the master outcome. AirPlay playback is not sample-accurately synchronized. Use the "ADD" button below the list; for each additional player you can adjust its volume relative to the main volume (-100/+100). |
 
 **Google TTS Engines specific options**
@@ -962,7 +1038,7 @@
 | Sonos | Native control: grouping, volume, mute/unmute and music resume after the announcement. |
 | Google Cast | Chromecast and Google Nest devices, discovered via mDNS. Set the main device IP and, optionally, additional devices for synchronized multi-room playback. |
 | DLNA / UPnP renderer | Generic UPnP MediaRenderers (smart TVs, AV receivers, etc.), discovered via SSDP. Works with renderers that nest a MediaRenderer sub-device too (e.g. Sonos). Requires the full device description XML URL. |
-| AirPlay 2 (experimental) | HomePod playback over RAOP with mDNS discovery, receiver timing and per-session volume. Select one master HomePod and, optionally, additional HomePods. The master controls lifecycle/events and the overall result; a master failure is emitted on the error output. Additional devices are best-effort independent streams, not a sample-accurately synchronized AirPlay group. A stereo pair exposed by Apple is one endpoint. Previous media is not resumed. |
+| AirPlay 2 (experimental) | HomePod playback over RAOP with mDNS discovery, automatic address refresh after DHCP changes, receiver timing and per-session volume. Select one master HomePod and, optionally, additional HomePods. The master controls lifecycle/events and the overall result; a master failure is emitted on the error output. Additional devices are best-effort independent streams, not a sample-accurately synchronized AirPlay group. A stereo pair exposed by Apple is one endpoint. Previous media is not resumed. |
 | No player | Only generates the mp3 file(s) and outputs their paths in filesArray, to be played by third party nodes. |
 
 For Google Cast and DLNA the device fetches the generated mp3 over HTTP from Node-RED, so the Node-RED host/port (default 1980) must be reachable from the player and on the same subnet (mDNS/SSDP discovery does not cross subnets/VLANs).

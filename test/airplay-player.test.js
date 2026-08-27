@@ -224,8 +224,14 @@ function createHarness(options) {
                     if (opts.raopCreateError) throw opts.raopCreateError;
 
                     raopClientSequence += 1;
+                    const serviceIdentity = String(discoveryResult.id || discoveryResult.fqdn || '');
+                    const hardwarePrefix = serviceIdentity.split('@')[0].replace(/[^a-fA-F0-9]/g, '');
                     const client = {
                         id: 'raop-client-' + raopClientSequence,
+                        info: opts.raopInfoForResult ?
+                            opts.raopInfoForResult(discoveryResult) :
+                            (/^[a-fA-F0-9]{12}$/.test(hardwarePrefix) ?
+                                { macAddress: hardwarePrefix } : {}),
                         async stream(source, streamOptions) {
                             calls.push(['RaopClient.stream', client.id, source.id, streamOptions]);
                             try {
@@ -395,10 +401,41 @@ test('RAOP discovers the requested address, streams with percent volume, and own
     assert.equal(harness.player.activeCount, 0);
 });
 
+test('RAOP resolves an AirPlay hardware selector to the matching receiver', async () => {
+    const unrelated = {
+        address: '192.168.1.49',
+        id: '112233445566@other-homepod.local',
+        fqdn: '112233445566@other-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const selected = {
+        address: '192.168.1.50',
+        id: 'AABBCCDDEEFF@selected-homepod.local',
+        fqdn: 'AABBCCDDEEFF@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const harness = createHarness({
+        useRaop: true,
+        raopResults: [unrelated, selected]
+    });
+
+    await harness.player.play(
+        'raop-device:aabbccddeeff',
+        '/srv/tts-storage/cache/Announcement.MP3',
+        35
+    );
+
+    assert.strictEqual(
+        harness.calls.find((call) => call[0] === 'RaopClient.create')[1],
+        selected
+    );
+});
+
 test('RAOP discovery is cached per normalized target address', async () => {
     const selectedResult = {
         address: '192.168.1.50',
-        fqdn: 'selected-homepod.local',
+        id: 'AABBCCDDEEFF@selected-homepod.local',
+        fqdn: 'AABBCCDDEEFF@selected-homepod.local',
         service: { type: '_raop._tcp', port: 7000 }
     };
     const harness = createHarness({
@@ -428,6 +465,406 @@ test('RAOP discovery is cached per normalized target address', async () => {
     assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.listen').length, 2);
     assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 2);
     assert.equal(harness.player.activeCount, 0);
+});
+
+test('a stale RAOP cache is rediscovered and retried in the same playback after DHCP changes', async () => {
+    const beforeRestart = {
+        address: '192.168.1.50',
+        id: 'AABBCCDDEEFF@selected-homepod.local',
+        fqdn: 'AABBCCDDEEFF@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const afterRestart = Object.assign({}, beforeRestart, { address: '192.168.1.87' });
+    const createAddresses = [];
+    const streamAddresses = [];
+    let currentResult = beforeRestart;
+    let addressChanged = false;
+
+    const harness = createHarness({
+        useRaop: true,
+        raopDiscovery: async () => [currentResult],
+        raopCreate: async (discoveryResult) => {
+            createAddresses.push(discoveryResult.address);
+            if (addressChanged && discoveryResult.address === beforeRestart.address) {
+                throw new Error('connect ECONNREFUSED ' + beforeRestart.address);
+            }
+            return {
+                async stream() {
+                    streamAddresses.push(discoveryResult.address);
+                },
+                stop() { },
+                async close() { }
+            };
+        }
+    });
+
+    await harness.player.play(
+        'selected-homepod.local',
+        '/srv/tts-storage/cache/before-restart.mp3',
+        35
+    );
+
+    addressChanged = true;
+    currentResult = afterRestart;
+    const outcome = await harness.player.play(
+        'selected-homepod.local',
+        '/srv/tts-storage/cache/after-restart.mp3',
+        35
+    );
+
+    assert.deepEqual(outcome, { status: 'completed', target: 'selected-homepod.local' });
+    assert.deepEqual(createAddresses, [
+        '192.168.1.50',
+        '192.168.1.50',
+        '192.168.1.87'
+    ]);
+    assert.deepEqual(streamAddresses, ['192.168.1.50', '192.168.1.87']);
+    assert.equal(
+        harness.calls.filter((call) => call[0] === 'Discovery.raop.find').length,
+        2,
+        'the healthy cache is reused and only the failed playback forces one fresh scan'
+    );
+    assert.equal(harness.player.activeCount, 0);
+});
+
+test('a cached address reassigned to another HomePod is rejected by receiver identity', async () => {
+    const configuredIdentity = 'AABBCCDDEEFF@selected-homepod.local';
+    const beforeRestart = {
+        address: '192.168.1.50',
+        id: configuredIdentity,
+        fqdn: configuredIdentity,
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const unrelatedAtOldAddress = {
+        address: '192.168.1.50',
+        id: '112233445566@other-homepod.local',
+        fqdn: '112233445566@other-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const movedHomePod = Object.assign({}, beforeRestart, { address: '192.168.1.87' });
+    let moved = false;
+    let wrongClientCloseCalls = 0;
+    let wrongClientStreamCalls = 0;
+    const createAddresses = [];
+    const streamedAddresses = [];
+    const harness = createHarness({
+        useRaop: true,
+        raopDiscovery: async () => moved ? [unrelatedAtOldAddress, movedHomePod] : [beforeRestart],
+        raopCreate: async (discoveryResult) => {
+            createAddresses.push(discoveryResult.address);
+            if (moved && discoveryResult.address === beforeRestart.address) {
+                return {
+                    info: { macAddress: '11:22:33:44:55:66' },
+                    async stream() { wrongClientStreamCalls += 1; },
+                    stop() { },
+                    async close() { wrongClientCloseCalls += 1; }
+                };
+            }
+            return {
+                info: { macAddress: 'AA:BB:CC:DD:EE:FF' },
+                async stream() { streamedAddresses.push(discoveryResult.address); },
+                stop() { },
+                async close() { }
+            };
+        }
+    });
+
+    await harness.player.play(
+        configuredIdentity,
+        '/srv/tts-storage/cache/before-restart.mp3',
+        50
+    );
+    moved = true;
+    await harness.player.play(
+        configuredIdentity,
+        '/srv/tts-storage/cache/after-restart.mp3',
+        50
+    );
+
+    assert.deepEqual(createAddresses, ['192.168.1.50', '192.168.1.50', '192.168.1.87']);
+    assert.deepEqual(streamedAddresses, ['192.168.1.50', '192.168.1.87']);
+    assert.equal(wrongClientStreamCalls, 0, 'the reassigned lease must never receive audio');
+    assert.equal(wrongClientCloseCalls, 1, 'the identity-mismatched client must be closed');
+    assert.equal(
+        harness.calls.filter((call) => call[0] === 'Discovery.raop.find').length,
+        2
+    );
+});
+
+test('a black-holed cached RAOP endpoint times out without cancelling rediscovery', async () => {
+    const beforeRestart = {
+        address: '192.168.1.50',
+        id: 'AABBCCDDEEFF@selected-homepod.local',
+        fqdn: 'AABBCCDDEEFF@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const afterRestart = Object.assign({}, beforeRestart, { address: '192.168.1.87' });
+    const staleCreate = deferred();
+    let currentResult = beforeRestart;
+    let moved = false;
+    let lateCloseCalls = 0;
+    const streamed = [];
+    const harness = createHarness({
+        useRaop: true,
+        raopDiscovery: async () => [currentResult],
+        raopCreate: async (discoveryResult) => {
+            if (moved && discoveryResult.address === beforeRestart.address) {
+                return staleCreate.promise;
+            }
+            return {
+                async stream() { streamed.push(discoveryResult.address); },
+                stop() { },
+                async close() { }
+            };
+        },
+        playerOptions: {
+            connectTimeoutMs: 100,
+            staleTargetTimeoutMs: 5
+        }
+    });
+
+    await harness.player.play(
+        'selected-homepod.local',
+        '/srv/tts-storage/cache/before-restart.mp3',
+        50
+    );
+    moved = true;
+    currentResult = afterRestart;
+    await harness.player.play(
+        'selected-homepod.local',
+        '/srv/tts-storage/cache/after-restart.mp3',
+        50
+    );
+
+    assert.deepEqual(streamed, ['192.168.1.50', '192.168.1.87']);
+    assert.equal(harness.player.activeCount, 0);
+
+    staleCreate.resolve({
+        stop() { },
+        async close() { lateCloseCalls += 1; }
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(lateCloseCalls, 1, 'a client returned after the stale timeout must be closed');
+});
+
+test('a cached legacy IP target uses its prior RAOP identity after the lease changes', async () => {
+    const beforeRestart = {
+        address: '192.168.1.50',
+        id: 'AABBCCDDEEFF@selected-homepod.local',
+        fqdn: 'AABBCCDDEEFF@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const unrelatedAtOldAddress = {
+        address: '192.168.1.50',
+        // Same human suffix as the old descriptor: only the hardware prefix can
+        // safely distinguish this new lease owner from the moved HomePod.
+        id: '112233445566@selected-homepod.local',
+        fqdn: '112233445566@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const movedHomePod = Object.assign({}, beforeRestart, {
+        address: '192.168.1.87',
+        id: 'AABBCCDDEEFF@renamed-homepod.local',
+        fqdn: 'AABBCCDDEEFF@renamed-homepod.local'
+    });
+    let moved = false;
+    const streamed = [];
+    const harness = createHarness({
+        useRaop: true,
+        raopDiscovery: async () => moved ? [unrelatedAtOldAddress, movedHomePod] : [beforeRestart],
+        raopCreate: async (discoveryResult) => {
+            if (moved && discoveryResult.address === beforeRestart.address) {
+                throw new Error('stale lease');
+            }
+            return {
+                async stream() { streamed.push(discoveryResult.id); },
+                stop() { },
+                async close() { }
+            };
+        }
+    });
+
+    await harness.player.play(
+        '192.168.1.50',
+        '/srv/tts-storage/cache/before-restart.mp3',
+        50
+    );
+    moved = true;
+    await harness.player.play(
+        '192.168.1.50',
+        '/srv/tts-storage/cache/after-restart.mp3',
+        50
+    );
+
+    assert.deepEqual(streamed, [beforeRestart.id, movedHomePod.id]);
+    assert.equal(streamed.includes(unrelatedAtOldAddress.id), false);
+});
+
+test('an expired cache resolves the persisted RAOP hardware identity instead of a reassigned IP', async () => {
+    const configuredIdentity = 'AABBCCDDEEFF@selected-homepod.local';
+    const beforeRestart = {
+        address: '192.168.1.50',
+        id: configuredIdentity,
+        fqdn: configuredIdentity,
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const unrelatedAtOldAddress = {
+        address: '192.168.1.50',
+        id: '112233445566@selected-homepod.local',
+        fqdn: '112233445566@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const movedHomePod = {
+        address: '192.168.1.87',
+        id: 'AABBCCDDEEFF@renamed-homepod.local',
+        fqdn: 'AABBCCDDEEFF@renamed-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    let moved = false;
+    const createdFor = [];
+    const harness = createHarness({
+        useRaop: true,
+        raopDiscovery: async () => moved ? [unrelatedAtOldAddress, movedHomePod] : [beforeRestart],
+        raopCreate: async (discoveryResult) => {
+            createdFor.push(discoveryResult.id);
+            return {
+                async stream() { },
+                stop() { },
+                async close() { }
+            };
+        },
+        playerOptions: { raopCacheTtlMs: 1 }
+    });
+
+    await harness.player.play(
+        configuredIdentity,
+        '/srv/tts-storage/cache/before-restart.mp3',
+        50
+    );
+    moved = true;
+    await new Promise((resolve) => setTimeout(resolve, 3));
+    await harness.player.play(
+        configuredIdentity,
+        '/srv/tts-storage/cache/after-restart.mp3',
+        50
+    );
+
+    assert.deepEqual(createdFor, [beforeRestart.id, movedHomePod.id]);
+    assert.equal(createdFor.includes(unrelatedAtOldAddress.id), false);
+});
+
+test('RAOP groups resolve stable selectors before creating HomePod control sessions', async () => {
+    const masterResult = {
+        address: '192.168.1.87',
+        id: 'AABBCCDDEEFF@living-room.local',
+        fqdn: 'AABBCCDDEEFF@living-room.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const additionalResult = {
+        address: '192.168.1.88',
+        id: '112233445566@kitchen.local',
+        fqdn: '112233445566@kitchen.local',
+        service: { type: '_raop._tcp.local', port: 7000 }
+    };
+    const harness = createHarness({
+        useRaop: true,
+        uniqueSources: true,
+        raopResults: [masterResult, additionalResult]
+    });
+
+    const result = await harness.player.playGroup(
+        { host: 'living-room.local', volume: 45 },
+        [{ host: 'kitchen.local', volume: 30 }],
+        '/srv/tts-storage/cache/group.mp3'
+    );
+
+    assert.deepEqual(
+        harness.deviceCalls.filter((call) => call[0] === 'HomePod'),
+        [
+            ['HomePod', '192.168.1.87'],
+            ['HomePod', '192.168.1.88']
+        ]
+    );
+    assert.deepEqual(
+        harness.calls.filter((call) => call[0] === 'RaopClient.create')
+            .map((call) => call[1].address)
+            .sort(),
+        ['192.168.1.87', '192.168.1.88']
+    );
+    assert.deepEqual(result.additionalResults.map((item) => item.status), ['fulfilled']);
+    assert.equal(harness.player.activeCount, 0);
+});
+
+test('a group refreshes a black-holed cached address before retrying its control session', async () => {
+    const masterBeforeRestart = {
+        address: '192.168.1.50',
+        id: 'AABBCCDDEEFF@living-room.local',
+        fqdn: 'AABBCCDDEEFF@living-room.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const masterAfterRestart = Object.assign({}, masterBeforeRestart, { address: '192.168.1.87' });
+    const additional = {
+        address: '192.168.1.60',
+        id: '112233445566@kitchen.local',
+        fqdn: '112233445566@kitchen.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const staleConnect = deferred();
+    let moved = false;
+    const harness = createHarness({
+        useRaop: true,
+        uniqueSources: true,
+        raopDiscovery: async () => [moved ? masterAfterRestart : masterBeforeRestart, additional],
+        connect: async (device) => {
+            if (moved && device.options.address === masterBeforeRestart.address) {
+                return staleConnect.promise;
+            }
+        },
+        playerOptions: {
+            connectTimeoutMs: 100,
+            staleTargetTimeoutMs: 5
+        }
+    });
+
+    const master = { host: 'living-room.local', volume: 45 };
+    const companions = [{ host: 'kitchen.local', volume: 30 }];
+    await harness.player.playGroup(master, companions, '/srv/tts-storage/cache/before-restart.mp3');
+    moved = true;
+    await harness.player.playGroup(master, companions, '/srv/tts-storage/cache/after-restart.mp3');
+
+    const controlAddresses = harness.deviceCalls
+        .filter((call) => call[0] === 'HomePod')
+        .map((call) => call[1]);
+    assert.equal(controlAddresses.filter((address) => address === '192.168.1.50').length, 2);
+    assert.equal(controlAddresses.filter((address) => address === '192.168.1.87').length, 1);
+    assert.equal(controlAddresses.filter((address) => address === '192.168.1.60').length, 2);
+    assert.equal(
+        harness.calls.filter((call) => call[0] === 'Discovery.raop.find').length,
+        3,
+        'only the stale master should force an additional fresh lookup'
+    );
+    assert.deepEqual(
+        harness.calls.filter((call) => call[0] === 'RaopClient.create')
+            .map((call) => call[1].address)
+            .sort(),
+        ['192.168.1.50', '192.168.1.50', '192.168.1.60', '192.168.1.60', '192.168.1.87'],
+        'the second master stream must use the refreshed descriptor too'
+    );
+    assert.equal(harness.player.activeCount, 0);
+
+    const disconnectsBeforeLateSuccess = harness.deviceCalls.filter((call) =>
+        call[0] === 'disconnect' && call[1] === masterBeforeRestart.address
+    ).length;
+    staleConnect.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(
+        harness.deviceCalls.filter((call) =>
+            call[0] === 'disconnect' && call[1] === masterBeforeRestart.address
+        ).length,
+        disconnectsBeforeLateSuccess + 1,
+        'a stale MRP connection that succeeds after its timeout must be disconnected again'
+    );
 });
 
 test('stop settles a RAOP stream before closing its client and timing server', async () => {

@@ -4,7 +4,7 @@
 
 ## Text-to-speech for Node-RED with Sonos, Google Cast, DLNA/UPnP, AirPlay 2/HomePod and file-only output.
 
-TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest), generic **DLNA/UPnP** renderers such as smart TVs and AV receivers, and experimentally on **AirPlay 2 HomePods**.
+TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest), generic **DLNA/UPnP** renderers such as smart TVs and AV receivers, and on **AirPlay 2 HomePods**.
 It can also work **without player**: generate an audio file, cache it, and pass it to other nodes, web pages, Bluetooth workflows or third-party services. With the OwnFile node, you can upload and play your own audio messages and keep selected flows working completely offline.
 
 <br/>
@@ -236,7 +236,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
   <tr>
     <td align="center" width="20%">
       <a href="https://www.sonos.com" title="Sonos speakers">
-        <img src="https://cdn.simpleicons.org/sonos/000000" height="86" alt="Sonos logo"/>
+        <img src="img/players/sonos-speaker.webp" height="110" alt="Sonos smart speaker"/>
       </a>
       <br/>
       <strong>Sonos</strong>
@@ -245,7 +245,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
     </td>
     <td align="center" width="20%">
       <a href="https://developers.google.com/cast" title="Google Cast devices">
-        <img src="https://cdn.simpleicons.org/googlecast/4285F4" height="86" alt="Google Cast logo"/>
+        <img src="img/players/google-cast-devices.webp" height="110" alt="Google Nest speaker and Chromecast device with Google Cast"/>
       </a>
       <br/>
       <strong>Google Cast</strong>
@@ -254,7 +254,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
     </td>
     <td align="center" width="20%">
       <a href="https://www.dlna.org" title="DLNA and UPnP renderers">
-        <img src="https://cdn.simpleicons.org/dlna/0066CC" height="86" alt="DLNA logo"/>
+        <img src="img/players/dlna-upnp-renderers.webp" height="110" alt="Smart TV and AV receiver supporting DLNA and UPnP"/>
       </a>
       <br/>
       <strong>DLNA / UPnP</strong>
@@ -263,15 +263,15 @@ It can also work **without player**: generate an audio file, cache it, and pass 
     </td>
     <td align="center" width="20%">
       <a href="https://www.apple.com/airplay/" title="Apple AirPlay">
-        <img src="https://cdn.simpleicons.org/apple/000000" height="86" alt="Apple logo"/>
+        <img src="img/players/airplay-homepod.webp" height="110" alt="Apple HomePod AirPlay 2 playback"/>
       </a>
       <br/>
       <strong>AirPlay 2</strong>
       <br/>
-      <sub>HomePod (experimental)</sub>
+      <sub>HomePod </sub>
     </td>
     <td align="center" width="20%">
-      <img src="img/audio-file.svg" height="86" alt="Audio file icon"/>
+      <img src="img/audio-file.svg" height="110" alt="Audio file output"/>
       <br/>
       <strong>No player</strong>
       <br/>
@@ -289,7 +289,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
 - **Native Sonos support**: play TTS audio directly via Sonos, group speakers, set a hailing sound and choose the volume for each speaker.
 - **Google Cast support**: play announcements on Chromecast / Google Nest devices, including multi-room playback.
 - **DLNA / UPnP renderer support**: play TTS on smart TVs, AV receivers and other UPnP renderers. Renderers with nested MediaRenderer devices are supported too.
-- **Experimental AirPlay 2 support**: select a master HomePod and optional additional HomePods; a stereo pair advertised by Apple remains one AirPlay endpoint.
+- **AirPlay 2 support**: select a master HomePod and optional additional HomePods; a stereo pair advertised by Apple remains one AirPlay endpoint.
 - **File-only output**: create the TTS file without using any player, then pass it to other nodes or services.
 - **Multiple TTS engines**: Google free TTS, Google Cloud TTS, ElevenLabs and Voice.ai voices are supported.
 - **Additional-player playback**: add players for Sonos, Google Cast, DLNA or AirPlay and play one announcement on several devices at once.
@@ -381,15 +381,15 @@ Leave this field blank for the default.<br/>
 <br/>
 <br/>
 
-### AirPlay 2 / HomePod (experimental)
+### AirPlay 2 / HomePod
 
-Select **AirPlay 2 (HomePod, experimental)** in the TTS-Ultimate node, press **Discover**, and choose the **Master HomePod** advertised on your network. You can also enter its IP address or hostname manually. Use **Additional players** to add other discovered HomePods and, if needed, adjust their volume relative to the master. The matching RAOP service is resolved by mDNS on first playback and cached for subsequent announcements; a DHCP reservation is still recommended. If two HomePods are configured by Apple as a stereo pair, they are advertised as one AirPlay endpoint and should be selected only once, either as the master or as an additional player.
+Select **AirPlay 2 (HomePod)** in the TTS-Ultimate node, press **Discover**, and choose the **Master HomePod** advertised on your network. The discovery list merges duplicate mDNS advertisements and shows each HomePod once with its friendly name and current IP address. It stores a stable RAOP/mDNS selector rather than the current IP address and includes the receiver's hardware identity whenever mDNS exposes it. Playback resolves the current endpoint and automatically refreshes a stale connection after a HomePod restart or DHCP lease change. You can still enter an IP address or hostname manually. In a flow created by an older version with only a numeric HomePod IP, reselect the HomePod in **Discover** and save once so its stable selector is persisted. Use **Additional players** to add other discovered HomePods and, if needed, adjust their volume relative to the master. If two HomePods are configured by Apple as a stereo pair, they are advertised as one AirPlay endpoint and should be selected only once, either as the master or as an additional player.
 
 The master HomePod is authoritative: its playback lifecycle emits the events used by the node, and its result determines the overall success or error. A master playback failure is emitted on the node's error output; an additional HomePod is best-effort and its failure is only reported as a warning. TTS Ultimate starts an independent stream to each selected endpoint in parallel. This is not a native AirPlay multi-room group and playback is not sample-accurately synchronized, so start times and audio may differ slightly between HomePods. Music or other media that was playing before the announcement is not resumed.
 
 Normal generated/cached TTS files are read directly from the configured storage folder and streamed through RAOP with receiver timing and session volume. An HTTP/HTTPS payload is downloaded by Node-RED with a 45-second timeout and a 10 MB limit, and must contain an MP3 file.
 
-Node-RED and all selected HomePods must be on the same local network, with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this experimental version. When Node-RED runs in Docker, host networking is commonly required for discovery and audio transport.
+Node-RED and all selected HomePods must be on the same local network, with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this version. When Node-RED runs in Docker, host networking is commonly required for discovery and audio transport.
 
 <br/>
 

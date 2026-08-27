@@ -363,7 +363,7 @@ module.exports = function (RED) {
 
         // 08/2026 Discover HomePod devices via AirPlay 2 mDNS.
         RED.httpAdmin.get("/ttsultimateDiscoverAirPlay", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
-            airplayDiscovery.discoverAirPlayDevices().then((devices) => {
+            airplayDiscovery.discoverAirPlayDevices({ useCache: false }).then((devices) => {
                 res.json(devices);
             }).catch((error) => {
                 RED.log.warn('ttsultimate-config ' + node.id + ': Error discovering AirPlay devices ' + error.message);

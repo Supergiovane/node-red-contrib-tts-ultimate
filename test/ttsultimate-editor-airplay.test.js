@@ -14,6 +14,65 @@ test('AirPlay editor restores saved master/additional selections visibly', () =>
     assert.ok(editorScript, 'the Node-RED editor script must exist');
     assert.doesNotThrow(() => new Function(editorScript[1]));
 
+    const helpersStart = editorScript[1].indexOf('function discoveredPlayerAliases');
+    const helpersEnd = editorScript[1].indexOf('// Discovery for the MAIN player address field');
+    assert.ok(helpersStart >= 0 && helpersEnd > helpersStart, 'discovery selection helpers must exist');
+    const helpers = new Function(
+        editorScript[1].slice(helpersStart, helpersEnd) +
+        '; return { canonicalDiscoveredHost, compareDiscoveredPlayers, discoveredPlayerAliases, discoveredPlayerHardwareId, legacyAirPlayAddressMatch };'
+    )();
+    const discoveredStereoPair = {
+        address: '192.168.1.87',
+        host: 'raop-device:aabbccddeeff',
+        memberHosts: [
+            'raop-device:aabbccddeeff',
+            'raop-device:112233445566'
+        ],
+        members: ['192.168.1.87', '192.168.1.88']
+    };
+
+    assert.deepEqual(helpers.discoveredPlayerAliases(discoveredStereoPair), [
+        'raop-device:aabbccddeeff',
+        'raop-device:112233445566'
+    ]);
+    assert.equal(
+        helpers.canonicalDiscoveredHost('AABBCCDDEEFF@LIVING-ROOM.LOCAL', discoveredStereoPair),
+        discoveredStereoPair.host,
+        'a stable selector match must be case-insensitive'
+    );
+    assert.equal(
+        helpers.canonicalDiscoveredHost('112233445566@living-room.local', discoveredStereoPair),
+        discoveredStereoPair.host,
+        'a stereo member selector must canonicalize to the group leader'
+    );
+    assert.equal(
+        helpers.discoveredPlayerHardwareId('AA:BB:CC:DD:EE:FF@Living-Room.local'),
+        'aabbccddeeff',
+        'old RAOP service identities must normalize to their hardware id'
+    );
+    assert.deepEqual(
+        [{ name: 'HomePod 10' }, { name: 'homepod 2' }]
+            .sort(helpers.compareDiscoveredPlayers)
+            .map((device) => device.name),
+        ['homepod 2', 'HomePod 10'],
+        'master and additional lists must use the same case-insensitive numeric order'
+    );
+    assert.equal(
+        helpers.canonicalDiscoveredHost('192.168.1.87', discoveredStereoPair),
+        null,
+        'a legacy IP must not be silently migrated to whichever device owns that lease now'
+    );
+    assert.equal(
+        helpers.legacyAirPlayAddressMatch('192.168.1.87', discoveredStereoPair, 'airplay'),
+        '192.168.1.87',
+        'a matching legacy IP must share the discovered row without being migrated automatically'
+    );
+    assert.equal(
+        helpers.legacyAirPlayAddressMatch('192.168.1.87', discoveredStereoPair, 'dlna'),
+        null,
+        'legacy address reconciliation is specific to AirPlay'
+    );
+
     assert.match(
         html,
         /var savedHost = String\(\$\("#node-input-playeripaddress"\)\.val\(\) \|\| node\.playeripaddress \|\| ""\)\.trim\(\)/,
@@ -41,8 +100,18 @@ test('AirPlay editor restores saved master/additional selections visibly', () =>
     );
     assert.match(
         html,
-        /Array\.isArray\(dev\.members\)/,
-        'a saved stereo-pair member must migrate to its canonical discovery option'
+        /Array\.isArray\(dev\.memberHosts\)/,
+        'a saved stereo-pair identity must migrate to its canonical discovery option'
+    );
+    assert.match(
+        html,
+        /option\.attr\("data-canonical-host", dev\.host\)/,
+        'explicitly reselecting a legacy master must persist the stable selector'
+    );
+    assert.match(
+        html,
+        /option\.attr\("data-canonical-host", oGroup\.host\)/,
+        'explicitly reselecting a legacy additional player must persist the stable selector'
     );
     assert.match(
         html,
