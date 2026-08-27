@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-tts-ultimate",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "Transforms text into speech for Sonos, Google Cast, DLNA/UPnP and experimental AirPlay 2/HomePod playback, or generates audio files for third-party nodes. Supports Google, Google Cloud TTS, ElevenLabs, Voice.ai and custom audio files. Update of the popular SonosPollyTTS node.",
   "main": "index.js",
   "scripts": {
