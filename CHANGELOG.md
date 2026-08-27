@@ -3,6 +3,21 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 <p>
+<b>Version 3.3.0</b> August 2026<br/>
+
+- NEW: experimental **AirPlay 2** player with one master HomePod and optional additional HomePods; an Apple stereo pair remains a single AirPlay endpoint.<br/>
+- NEW: HomePod discovery via mDNS from the TTS-Ultimate editor.<br/>
+- NEW: the AirPlay **Additional players** list starts an independent stream to each selected HomePod in parallel. The master emits the lifecycle events and determines the overall success/error; additional devices are best-effort and report failures as warnings.<br/>
+- FIX: reopening the editor now restores the saved master in **Discover** and keeps every saved additional HomePod visibly selected, including temporarily offline devices; empty placeholder rows are no longer saved.<br/>
+- FIX: HomePod audio now uses the SDK's dedicated RAOP path with 16-bit PCM negotiation, NTP timing and RTSP session volume. This replaces the silent high-level AirPlay realtime sender and eliminates its `No output device active` volume failure.<br/>
+- FIX: AirPlay serializes the audio decoder's process-wide cold start and prepares every group source before streaming, so the first or a very short announcement also reaches additional HomePods.<br/>
+- FIX: grouped AirPlay playback waits for every surviving HomePod to finish RAOP/timing preparation before the first audio frame, preventing a short master clip from cancelling a slower additional player.<br/>
+- FIX: HomePod stereo-pair members are collapsed to one discovery option and runtime playback deduplicates addresses that resolve to the same AirPlay output cluster.<br/>
+- LIMITATION: independently streamed HomePods are not a native, sample-accurately synchronized AirPlay multi-room group, and previously playing media is not resumed.<br/>
+- NOTE: Node-RED and all selected HomePods must be on the same local network. Speaker and TV access in the Apple Home app must allow anyone on the same network, without an AirPlay password.<br/>
+</p>
+
+<p>
 <b>Version 3.2.3</b> July 2026<br/>
 - DOCS: new Max Supervibe README banner and app-icon logo.<br/>
 </p>

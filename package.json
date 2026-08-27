@@ -1,10 +1,10 @@
 {
   "name": "node-red-contrib-tts-ultimate",
-  "version": "3.2.3",
-  "description": "Transforms the text in speech and hear it using Sonos, Google Cast (Chromecast / Nest) or DLNA/UPnP players, or generate an audio file to be used with third parties nodes. Works with voices from Google (without credentials as well), Google TTS, ElevenLabs.io TTS, Voice.ai TTS or your own voice. You can also only create a TTS file to be read by third party nodes. Update of the popular SonosPollyTTS node.",
+  "version": "3.3.0",
+  "description": "Transforms text into speech for Sonos, Google Cast, DLNA/UPnP and experimental AirPlay 2/HomePod playback, or generates audio files for third-party nodes. Supports Google, Google Cloud TTS, ElevenLabs, Voice.ai and custom audio files. Update of the popular SonosPollyTTS node.",
   "main": "index.js",
   "scripts": {
-    "test": "test",
+    "test": "node --test",
     "verify:googletranslate-split": "node scripts/verify-googletranslate-split.js"
   },
   "repository": {
@@ -24,6 +24,9 @@
     "nest",
     "dlna",
     "upnp",
+    "airplay",
+    "airplay2",
+    "homepod",
     "IOT",
     "speech",
     "audio",
@@ -42,13 +45,21 @@
       "ownfile": "ttsultimate/ownfileultimate.js"
     }
   },
-  "author": "Supergiovane",
+  "author": {
+    "name": "Massimo Saccani",
+    "email": "maxsupergiovane@icloud.com",
+    "url": "https://youtube.com/@maxsupervibe"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Supergiovane/node-red-contrib-tts-ultimate"
   },
   "homepage": "https://github.com/Supergiovane/node-red-contrib-tts-ultimate",
   "dependencies": {
+    "@basmilius/apple-audio-source": "0.13.4",
+    "@basmilius/apple-common": "0.13.4",
+    "@basmilius/apple-raop": "0.13.4",
+    "@basmilius/apple-sdk": "0.13.4",
     "@google-cloud/text-to-speech": "4.2.2",
     "castv2-client": "^1.2.0",
     "elevenlabs": "0.18.0",

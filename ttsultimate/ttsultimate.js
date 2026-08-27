@@ -6,7 +6,9 @@ module.exports = function (RED) {
   var fs = require('fs');
   var path = require('path');
   const sonos = require('sonos');
+  const { createAirPlayPlayer } = require('./lib/airplay-player');
   const crypto = require("crypto");
+  const PLAYER_STOP_TIMEOUT_MS = 10000;
   const VOICEAI_API_BASE_URL = "https://dev.voice.ai/api/v1/tts";
 
   function slug(_text) {
@@ -74,11 +76,21 @@ module.exports = function (RED) {
     node.oTimerCacheFlowMSG = null; // 05/12/2020
     node.tempMSGStorage = []; // 04/12/2020 Temporary stores the flow messages
     node.bBusyPlayingQueue = false; // 04/12/2020 is busy during playing of the queue
+    node.activeQueuePromise = null;
+    node.itemGeneration = 0; // Cancels a phrase being prepared when a priority item supersedes it.
+    node.queueGeneration = 0; // Invalidates an async queue after stop/flush without touching a newer queue.
+    node.stopInProgress = false;
     node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
     node.sonosCoordinatorPreviousVolumeSetByApp = 0; // 05/07/2021 stores the main payer volume set by the sonos app
     node.playertype = config.playertype === undefined ? "sonos" : config.playertype; // 20/09/2021 Player type
-    node.playeripaddress = (config.playeripaddress || "").trim(); // 06/2026 Chromecast/Nest IP or DLNA/UPnP renderer description XML URL
-    node.playervolume = config.playervolume === undefined ? "50" : config.playervolume; // 06/2026 Volume (0-100) for Google Cast / DLNA players
+    node.playeripaddress = (config.playeripaddress || "").trim(); // Cast IP, DLNA description URL, or AirPlay hostname/IP
+    node.playervolume = config.playervolume === undefined ? "50" : config.playervolume; // Volume (0-100) for network players
+    node.airPlayPlayer = node.playertype === "airplay" ? createAirPlayPlayer({
+      allowedLocalRoot: node.userDir,
+      logger: {
+        warn: (message) => RED.log.warn("ttsultimate: " + message)
+      }
+    }) : null;
     node.speakingpitch = config.speakingpitch === undefined ? "0" : config.speakingpitch; // 21/09/2021 AudioConfig speakingpitch
     node.speakingrate = config.speakingrate === undefined ? "1" : config.speakingrate; // 21/09/2021 AudioConfig speakingrate
     node.unmuteIfMuted = config.unmuteIfMuted === undefined ? false : config.unmuteIfMuted; // 21/10/2021 Unmute if previiously muted.
@@ -368,6 +380,20 @@ module.exports = function (RED) {
       });
     }
 
+    async function withTimeout(promise, timeoutMs, message) {
+      let timeout;
+      try {
+        return await Promise.race([
+          Promise.resolve(promise),
+          new Promise((resolve, reject) => {
+            timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+          })
+        ]);
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
+    }
+
     //#endregion
 
 
@@ -425,21 +451,27 @@ module.exports = function (RED) {
       // 27/11/2019 Start the connection healty check
       node.oTimerSonosConnectionCheck = setTimeout(function () { node.CheckSonosConnection(); }, 5000);
     } else {
-      // 06/2026 noplayer, googlecast and dlna do not use the Sonos connection healthcheck.
+      // No-player, Google Cast, DLNA and AirPlay do not use the Sonos connection healthcheck.
       node.msg.connectionerror = false;
     }
 
     node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'Initialized.' });
 
     // 22/09/2020 Flush Queue and set to stopped
-    node.flushQueue = () => {
+    node.flushQueue = (options) => {
+      const flushOptions = options || {};
+      node.queueGeneration += 1;
       // 10/04/2018 Remove the TTS message from the queue
       node.tempMSGStorage = [];
       // Exit whatever cycle
       node.bTimeOutPlay = true;
-      node.bBusyPlayingQueue = false;
       node.currentMSGbeingSpoken = {};
-      if (node.server.whoIsUsingTheServer === node.id) node.server.whoIsUsingTheServer = "";
+      if (!flushOptions.preservePlaybackLock) {
+        node.stopInProgress = false;
+        node.bBusyPlayingQueue = false;
+        if (node.server.whoIsUsingTheServer === node.id) node.server.whoIsUsingTheServer = "";
+      }
+      return node.queueGeneration;
     }
 
     // 30/12/2020 Supergiovane resume queue for radio, queue music, TV in , line in etc.
@@ -529,6 +561,8 @@ module.exports = function (RED) {
 
     // Handle the queue
     async function HandleQueue() {
+      const handleGeneration = node.queueGeneration;
+      const isCurrentQueue = () => handleGeneration === node.queueGeneration;
       node.bBusyPlayingQueue = true;
       node.server.whoIsUsingTheServer = node.id; // Signal to other ttsultimate node, that i'm using the Sonos device
       try {
@@ -567,11 +601,13 @@ module.exports = function (RED) {
           node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
         }
 
-        while (node.tempMSGStorage.length > 0) {
-          node.currentMSGbeingSpoken = node.tempMSGStorage.shift()//node.tempMSGStorage[0];// Advise the whole node of the currently spoken MSG
-          const msg = node.currentMSGbeingSpoken.payload.toString(); // Get the text to be spoken
+        while (node.tempMSGStorage.length > 0 && isCurrentQueue()) {
+          const itemGeneration = node.itemGeneration;
+          const currentMessage = node.tempMSGStorage.shift();
+          node.currentMSGbeingSpoken = currentMessage; // Advise the whole node of the currently spoken MSG
+          const msg = currentMessage.payload.toString(); // Get the text to be spoken
           //node.tempMSGStorage.splice(0, 1); // Remove the first item in the array
-          node.sFileToBePlayed = "";
+          let fileToBePlayed = "";
           let audioSource = "unknown"; // internet|cache|local|http|unknown
           const resolveCachePath = (cacheFilename) => {
             const primaryPath = path.join(node.ttsCacheFolder, cacheFilename);
@@ -600,15 +636,15 @@ module.exports = function (RED) {
           if (msg.toLowerCase().startsWith("http://") || msg.toLowerCase().startsWith("https://")) {
             RED.log.info('ttsultimate: HTTP filename: ' + msg);
             audioSource = "http";
-            node.sFileToBePlayed = msg;
+            fileToBePlayed = msg;
           } else if (msg.indexOf("OwnFile_") !== -1) {
             RED.log.info('ttsultimate: OwnFile .MP3, skip tts, filename: ' + msg);
             audioSource = "local";
-            node.sFileToBePlayed = path.join(node.userDir, "ttspermanentfiles", msg);
+            fileToBePlayed = path.join(node.userDir, "ttspermanentfiles", msg);
           } else if (msg.indexOf("Hailing_") !== -1) {
             RED.log.info('ttsultimate: Hailing .MP3, skip tts, filename: ' + msg);
             audioSource = "local";
-            node.sFileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
+            fileToBePlayed = path.join(node.userDir, "hailingpermanentfiles", msg);
           } else {
             try {
               // No file in cache. Download from tts service
@@ -630,7 +666,7 @@ module.exports = function (RED) {
                 // Download or read from cache
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -651,7 +687,7 @@ module.exports = function (RED) {
                 // Download or read from cache
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -671,7 +707,7 @@ module.exports = function (RED) {
                 // Download or read from cache
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -693,7 +729,7 @@ module.exports = function (RED) {
 
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -711,7 +747,7 @@ module.exports = function (RED) {
                 // Download or read from cache
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -736,7 +772,7 @@ module.exports = function (RED) {
                 // Download or read from cache
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -774,7 +810,7 @@ module.exports = function (RED) {
                 // Download or read from cache
                 const cacheFilename = getFilename(msg, params);
                 const { isCached, resolvedPath } = resolveCachePath(cacheFilename);
-                node.sFileToBePlayed = resolvedPath;
+                fileToBePlayed = resolvedPath;
                 audioSource = isCached ? "cache" : "internet";
                 if (!isCached) {
                   node.setNodeStatus({ fill: 'blue', shape: 'ring', text: 'Download using ' + node.server.ttsservice });
@@ -784,27 +820,43 @@ module.exports = function (RED) {
                 }
               }
 
+              // A priority item may arrive while the TTS request is in flight.
+              // Discard that result before it can write/play the superseded phrase.
+              if (!isCurrentQueue()) break;
+              if (itemGeneration !== node.itemGeneration) continue;
+
               // Save the downloaded file into the cache
               if (data !== undefined) {
                 try {
-                  //console.log("Salvelox " + node.sFileToBePlayed)
-                  fs.writeFileSync(node.sFileToBePlayed, data);
+                  //console.log("Salvelox " + fileToBePlayed)
+                  fs.writeFileSync(fileToBePlayed, data);
                 } catch (error) {
-                  RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
-                  node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + node.sFileToBePlayed + " " + error.message });
+                  if (isCurrentQueue()) {
+                    RED.log.error("ttsultimate: node id: " + node.id + " Unable to save the file " + error.message);
+                    node.setNodeStatus({ fill: "red", shape: "ring", text: "Unable to save the file " + fileToBePlayed + " " + error.message });
+                  }
                   throw (error);
                 }
               }
 
             } catch (error) {
-              RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
-              node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
-              node.sFileToBePlayed = "";
+              if (isCurrentQueue()) {
+                RED.log.error("ttsultimate: node id: " + node.id + " Error Downloading TTS: " + error.message + ". THE TTS SERVICE MAY BE DOWN.");
+                node.setNodeStatus({ fill: 'red', shape: 'ring', text: 'Error Downloading TTS:' + error.message });
+              }
+              fileToBePlayed = "";
             }
           }
 
+          // A stop can arrive while the TTS engine is still generating the file.
+          // Do not let that stale async work start a player afterwards.
+          if (!isCurrentQueue()) break;
+          // A priority message cancels a phrase that was still being prepared, while
+          // preserving the current queue runner for the priority items that follow.
+          if (itemGeneration !== node.itemGeneration) continue;
+
           // Ready to play
-          if (node.sFileToBePlayed !== "") {
+          if (fileToBePlayed !== "") {
 
             //#region Now i am ready to play the file
             if (node.playertype === "sonos") {
@@ -813,15 +865,15 @@ module.exports = function (RED) {
               node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + formatAudioSourceTag(audioSource) + msg });
 
               // Play directly files starting with http://
-              if (!node.sFileToBePlayed.toLowerCase().startsWith("http://") && !node.sFileToBePlayed.toLowerCase().startsWith("https://")) {
-                node.sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(node.sFileToBePlayed);
+              if (!fileToBePlayed.toLowerCase().startsWith("http://") && !fileToBePlayed.toLowerCase().startsWith("https://")) {
+                fileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(fileToBePlayed);
               }
 
               // Set Volume
               try {
                 let volTemp = 0;
-                if (node.currentMSGbeingSpoken.hasOwnProperty("volume")) {
-                  volTemp = Number(node.currentMSGbeingSpoken.volume);
+                if (currentMessage.hasOwnProperty("volume")) {
+                  volTemp = Number(currentMessage.volume);
                 } else {
                   volTemp = Number(node.sSonosVolume);
                 }
@@ -847,11 +899,11 @@ module.exports = function (RED) {
                 };
 
               } catch (error) {
-                RED.log.error("ttsultimate: Unable to set the volume for " + node.sFileToBePlayed);
+                RED.log.error("ttsultimate: Unable to set the volume for " + fileToBePlayed);
               }
               try {
 
-                await setAVTransportURISync(node.sFileToBePlayed);
+                await setAVTransportURISync(fileToBePlayed);
 
                 // Wait for start playing
                 var state = "";
@@ -908,63 +960,109 @@ module.exports = function (RED) {
 
               } catch (error) {
                 if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay); // Clear the player timeout
-                RED.log.error("ttsultimate: Error HandleQueue for " + node.sFileToBePlayed + " " + error.message);
+                RED.log.error("ttsultimate: Error HandleQueue for " + fileToBePlayed + " " + error.message);
                 node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
               }
 
-            } else if (node.playertype === "googlecast" || node.playertype === "dlna") {
+            } else if (node.playertype === "googlecast" || node.playertype === "dlna" || node.playertype === "airplay") {
 
-              // 06/2026 Google Cast (Chromecast/Nest) and generic DLNA/UPnP renderers.
-              // Both just need the public HTTP URL of the file (same conversion as Sonos).
-              if (!node.sFileToBePlayed.toLowerCase().startsWith("http://") && !node.sFileToBePlayed.toLowerCase().startsWith("https://")) {
-                node.sFileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(node.sFileToBePlayed);
+              // Cast and DLNA fetch the MP3 over HTTP. AirPlay instead decodes the local/remote
+              // source inside Node-RED and sends timed PCM frames through RAOP.
+              const isAirPlay = node.playertype === "airplay";
+              let playbackSource = fileToBePlayed;
+              if (!isAirPlay && !fileToBePlayed.toLowerCase().startsWith("http://") && !fileToBePlayed.toLowerCase().startsWith("https://")) {
+                fileToBePlayed = node.sNoderedURL + "/tts/tts.mp3?f=" + encodeURIComponent(fileToBePlayed);
+                playbackSource = fileToBePlayed;
               }
 
               // Volume (0-100): a per-message volume overrides the configured one
-              let volTemp = node.currentMSGbeingSpoken.hasOwnProperty("volume") ? Number(node.currentMSGbeingSpoken.volume) : Number(node.playervolume);
+              let volTemp = currentMessage.hasOwnProperty("volume") ? Number(currentMessage.volume) : Number(node.playervolume);
               if (isNaN(volTemp)) volTemp = 50;
               if (volTemp < 0) volTemp = 0;
               if (volTemp > 100) volTemp = 100;
 
               node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'Play ' + formatAudioSourceTag(audioSource) + msg });
               try {
-                // Play on the main player + all additional players (reusing the Sonos additional
-                // players list), in parallel for multi-room playback. Works for Cast and DLNA.
-                const playFn = node.playertype === "googlecast" ? playGoogleCastSync : playDLNASync;
-                const targets = [{ host: node.playeripaddress, vol: volTemp }];
-                for (let ci = 0; ci < node.rules.length; ci++) {
-                  const r = node.rules[ci];
-                  if (r && r.host) {
-                    let v = volTemp + Number(r.hostVolumeAdjust || 0);
-                    if (isNaN(v)) v = volTemp;
-                    if (v < 0) v = 0;
-                    if (v > 100) v = 100;
-                    targets.push({ host: r.host, vol: v });
+                let playbackCompletedNaturally = true;
+                let playFn;
+                if (isAirPlay) {
+                  if (!node.airPlayPlayer) throw new Error("AirPlay player is not initialized");
+                } else {
+                  playFn = node.playertype === "googlecast" ? playGoogleCastSync : playDLNASync;
+                }
+
+                const masterTarget = { host: String(node.playeripaddress || "").trim(), volume: volTemp };
+                const additionalTargets = [];
+                const seenHosts = new Set();
+                if (masterTarget.host) seenHosts.add(masterTarget.host.toLowerCase());
+                const configuredRules = Array.isArray(node.rules) ? node.rules : [];
+                for (let ci = 0; ci < configuredRules.length; ci++) {
+                  const r = configuredRules[ci];
+                  const host = String(r && r.host || "").trim();
+                  const hostKey = host.toLowerCase();
+                  if (!host || seenHosts.has(hostKey)) continue;
+                  seenHosts.add(hostKey);
+
+                  let v = volTemp + Number(r.hostVolumeAdjust || 0);
+                  if (isNaN(v)) v = volTemp;
+                  if (v < 0) v = 0;
+                  if (v > 100) v = 100;
+                  additionalTargets.push({ host: host, volume: v });
+                }
+
+                if (isAirPlay) {
+                  // Independent streams start in parallel. Only the master promise controls
+                  // the queue lifecycle; companion failures are reported as warnings.
+                  const groupResult = await node.airPlayPlayer.playGroup(masterTarget, additionalTargets, playbackSource);
+                  playbackCompletedNaturally = !groupResult.masterResult || groupResult.masterResult.status !== "stopped";
+                  const failures = groupResult.additionalResults.filter((result) => result.status === "rejected");
+                  if (failures.length > 0) {
+                    RED.log.warn("ttsultimate: Some additional AirPlay targets failed: " + failures.map((failure) => {
+                      const reason = failure.reason && failure.reason.message ? failure.reason.message : String(failure.reason || "unknown error");
+                      return failure.target.host + ": " + reason;
+                    }).join("; "));
+                  }
+                } else {
+                  const targets = [masterTarget].concat(additionalTargets);
+                  const results = await Promise.allSettled(targets.map((target) => playFn(target.host, playbackSource, target.volume)));
+                  const failures = results.filter((result) => result.status === "rejected");
+                  if (failures.length === results.length) {
+                    throw new Error("all " + node.playertype + " targets failed: " + failures.map((failure) => failure.reason && failure.reason.message).join("; "));
+                  } else if (failures.length > 0) {
+                    RED.log.warn("ttsultimate: Some " + node.playertype + " targets failed: " + failures.map((failure) => failure.reason && failure.reason.message).join("; "));
                   }
                 }
-                const results = await Promise.allSettled(targets.map((t) => playFn(t.host, node.sFileToBePlayed, t.vol)));
-                const failures = results.filter((rr) => rr.status === "rejected");
-                if (failures.length === results.length) {
-                  throw new Error("all " + node.playertype + " targets failed: " + failures.map((f) => f.reason && f.reason.message).join("; "));
-                } else if (failures.length > 0) {
-                  RED.log.warn("ttsultimate: Some " + node.playertype + " targets failed: " + failures.map((f) => f.reason && f.reason.message).join("; "));
+                if (playbackCompletedNaturally && isCurrentQueue()) {
+                  node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'End playing ' + msg });
                 }
-                node.setNodeStatus({ fill: 'green', shape: 'ring', text: 'End playing ' + msg });
               } catch (error) {
-                RED.log.error("ttsultimate: Error playing on " + node.playertype + " for " + node.sFileToBePlayed + " " + error.message);
-                node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
+                if (isCurrentQueue()) {
+                  RED.log.error("ttsultimate: Error playing on " + node.playertype + " for " + fileToBePlayed + " " + error.message);
+                  node.setNodeStatus({ fill: 'red', shape: 'dot', text: 'Error ' + msg + " " + error.message });
+                  if (isAirPlay) {
+                    node.send([null, {
+                      error: error.message,
+                      passThroughMessage: RED.util.cloneMessage(currentMessage),
+                      payload: true
+                    }]);
+                  }
+                }
               }
 
             } else if (node.playertype === "noplayer") {
               // Output only the filename
               if (noPlayerFileArray === undefined || noPlayerFileArray === null) var noPlayerFileArray = [];
-              noPlayerFileArray.push({ file: node.sFileToBePlayed });
+              noPlayerFileArray.push({ file: fileToBePlayed });
             }
           }
           //#endregion
 
 
         }; // End Loop
+
+        // A stop/flush owns releasing the lock after its asynchronous player cleanup.
+        // A stale queue must never reset the state of a newer queue.
+        if (!isCurrentQueue()) return;
 
         // End task
         if (node.playertype === "sonos") {
@@ -977,8 +1075,10 @@ module.exports = function (RED) {
             // Don't care.
             node.setNodeStatus({ fill: "red", shape: "ring", text: "Error ungrouping speakers: " + error.message });
           }
+          if (!isCurrentQueue()) return;
 
           await delay(2000);
+          if (!isCurrentQueue()) return;
 
           // Resume music
           if (!node.doNotResumeMusic) {
@@ -986,6 +1086,7 @@ module.exports = function (RED) {
               if (oCurTrack !== null && (!oCurTrack.hasOwnProperty("title") || oCurTrack.title.indexOf(".mp3") === -1)) {
                 node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
                 await resumeMusicQueue(oCurTrack);
+                if (!isCurrentQueue()) return;
                 node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });
               } else {
                 // 28/08/2021 There was no queue playing. Delete the TTS from the queue
@@ -999,11 +1100,13 @@ module.exports = function (RED) {
           // 19/04/2022 Resume music queue of additional players
           if (!node.doNotResumeMusic) {
             for (let index = 0; index < node.oAdditionalSonosPlayers.length; index++) {
+              if (!isCurrentQueue()) return;
               let addPlayer = node.oAdditionalSonosPlayers[index].oPlayer;
               let trackAddPlayer = addPlayer.additionalPlayerCurrentTrack;
               if (trackAddPlayer !== null) {
                 try {
                   await resumeMusicQueue(trackAddPlayer, addPlayer);
+                  if (!isCurrentQueue()) return;
                   node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue additional player " + addPlayer.host || "" });
                 } catch (error) {
                   // Dont care
@@ -1016,6 +1119,7 @@ module.exports = function (RED) {
           }
           // Signal end playing
           let t = setTimeout(() => {
+            if (!isCurrentQueue()) return;
             node.msg.completed = true;
             node.currentMSGbeingSpoken = {};
             node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
@@ -1024,7 +1128,7 @@ module.exports = function (RED) {
           }, 500)
 
         } else {
-          // End task for noplayer, googlecast and dlna.
+          // End task for noplayer, googlecast, dlna and airplay.
           // For "noplayer" also output the array of generated files (undefined for the other types).
           // Signal end playing
           node.msg.completed = true;
@@ -1035,6 +1139,7 @@ module.exports = function (RED) {
         }
 
       } catch (error) {
+        if (!isCurrentQueue()) return;
         // Should'nt be there
         RED.log.error("ttsultimate: BIG Error HandleQueue MAIN " + error.message);
         node.setNodeStatus({ fill: "grey", shape: "ring", text: "Error Handlequeue " + error.message });
@@ -1056,33 +1161,53 @@ module.exports = function (RED) {
       // *********************************
       if (msg.hasOwnProperty("setConfig")) {
         if (msg.setConfig.hasOwnProperty("setMainPlayerIP")) {
-          node.sSonosIPAddress = msg.setConfig.setMainPlayerIP;
-          RED.log.info("ttsultimate: new main player set by msg: " + node.sSonosIPAddress);
-          node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Main Player changed to " + node.sSonosIPAddress });
-          // RE-Create sonos client & groups 
-          node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
-          node.SonosClient.getName().then(info => {
-            node.sonosCoordinatorGroupName = info;
-            RED.log.info("ttsultimate: new zone coordinator set by msg: " + JSON.stringify(info));
-          }).catch(err => {
-          });
+          if (node.playertype === "sonos") {
+            node.sSonosIPAddress = msg.setConfig.setMainPlayerIP;
+            RED.log.info("ttsultimate: new main player set by msg: " + node.sSonosIPAddress);
+            node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Main Player changed to " + node.sSonosIPAddress });
+            // RE-Create sonos client & groups
+            node.SonosClient = new sonos.Sonos(node.sSonosIPAddress);
+            node.SonosClient.getName().then(info => {
+              node.sonosCoordinatorGroupName = info;
+              RED.log.info("ttsultimate: new zone coordinator set by msg: " + JSON.stringify(info));
+            }).catch(err => {
+            });
+          } else {
+            node.playeripaddress = String(msg.setConfig.setMainPlayerIP || "").trim();
+            RED.log.info("ttsultimate: new main network player set by msg: " + node.playeripaddress);
+            node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Main Player changed to " + node.playeripaddress });
+          }
         };
         if (msg.setConfig.hasOwnProperty("setPlayerGroupArray")) {
           node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Group players changed" });
-          // Fill the node.oAdditionalSonosPlayers with all sonos IPs in the setPlayerGroupArray
+          // Sonos keeps instantiated clients; other network players keep the same
+          // host/volume-adjust rules used by the editor.
           node.oAdditionalSonosPlayers = [];
-          for (let index = 0; index < msg.setConfig.setPlayerGroupArray.length; index++) {
-            const sRow = msg.setConfig.setPlayerGroupArray[index];
+          if (node.playertype !== "sonos") node.rules = [];
+          const groupRows = Array.isArray(msg.setConfig.setPlayerGroupArray) ? msg.setConfig.setPlayerGroupArray : [];
+          for (let index = 0; index < groupRows.length; index++) {
+            const sRow = groupRows[index];
             let host = "";
             let hostVolumeAdjust = 0;
-            if (sRow.includes("#")) {
-              host = sRow.split("#")[0];
-              hostVolumeAdjust = sRow.split("#")[1];
+            if (sRow && typeof sRow === "object") {
+              host = String(sRow.host || "").trim();
+              hostVolumeAdjust = Number(sRow.hostVolumeAdjust || 0);
             } else {
-              host = sRow;
+              const serializedRow = String(sRow || "");
+              if (serializedRow.includes("#")) {
+                host = serializedRow.split("#")[0].trim();
+                hostVolumeAdjust = Number(serializedRow.split("#")[1]);
+              } else {
+                host = serializedRow.trim();
+              }
             }
-            //node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(element.host), hostVolumeAdjust: element.hostVolumeAdjust });
-            node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(host), hostVolumeAdjust: Number(hostVolumeAdjust) });
+            if (!host) continue;
+            if (!Number.isFinite(Number(hostVolumeAdjust))) hostVolumeAdjust = 0;
+            if (node.playertype === "sonos") {
+              node.oAdditionalSonosPlayers.push({ oPlayer: new sonos.Sonos(host), hostVolumeAdjust: Number(hostVolumeAdjust) });
+            } else {
+              node.rules.push({ host: host, hostVolumeAdjust: Number(hostVolumeAdjust) });
+            }
             RED.log.info("ttsultimate: new group player set by msg: " + host + " adjusted volume: " + Number(hostVolumeAdjust));
           }
         };
@@ -1098,12 +1223,62 @@ module.exports = function (RED) {
 
       // 27/01/2021 Stop whatever in play.
       if (msg.hasOwnProperty("stop") && msg.stop === true) {
-        node.flushQueue();
+        const staleQueuePromise = node.activeQueuePromise;
+        const signalStopped = Boolean(staleQueuePromise) || node.bBusyPlayingQueue;
+        const stoppedPassThroughMessage = RED.util.cloneMessage(node.passThroughMessage);
+        const hasAsyncStop = node.playertype === "sonos" || (node.playertype === "airplay" && Boolean(node.airPlayPlayer));
+        const waitForCleanup = hasAsyncStop || Boolean(staleQueuePromise);
+        node.stopInProgress = waitForCleanup;
+        const stopGeneration = node.flushQueue({ preservePlaybackLock: waitForCleanup });
+        let stopPromise = Promise.resolve();
         if (node.playertype === "sonos") {
           try {
-            STOPSync().catch(() => { });
+            stopPromise = withTimeout(
+              STOPSync(),
+              PLAYER_STOP_TIMEOUT_MS,
+              "Sonos stop timed out after " + PLAYER_STOP_TIMEOUT_MS + "ms"
+            );
           } catch (error) {
+            stopPromise = Promise.reject(error);
           }
+        } else if (node.playertype === "airplay" && node.airPlayPlayer) {
+          stopPromise = node.airPlayPlayer.stop();
+        }
+        if (waitForCleanup) {
+          const cleanupPromises = [];
+          if (hasAsyncStop) cleanupPromises.push(Promise.resolve(stopPromise).catch((error) => {
+            RED.log.warn("ttsultimate: Unable to stop " + node.playertype + " player " + error.message);
+          }));
+          if (staleQueuePromise) cleanupPromises.push(withTimeout(
+            staleQueuePromise,
+            PLAYER_STOP_TIMEOUT_MS,
+            "Queue teardown timed out after " + PLAYER_STOP_TIMEOUT_MS + "ms"
+          ).catch((error) => {
+            RED.log.warn("ttsultimate: " + error.message);
+          }));
+          let cleanupBarrier = Promise.allSettled(cleanupPromises);
+          if (node.playertype === "sonos") {
+            // A stale Sonos queue may already be inside its music-resume sequence.
+            // Stop once more after that sequence settles so it cannot win the race.
+            cleanupBarrier = cleanupBarrier.then(() => withTimeout(
+              STOPSync(),
+              PLAYER_STOP_TIMEOUT_MS,
+              "Final Sonos stop timed out after " + PLAYER_STOP_TIMEOUT_MS + "ms"
+            )).catch((error) => {
+              RED.log.warn("ttsultimate: Unable to finalize Sonos stop " + error.message);
+            });
+          }
+          cleanupBarrier.finally(() => {
+            if (node.queueGeneration !== stopGeneration) return;
+            if (signalStopped) {
+              node.msg.completed = true;
+              node.send([{ passThroughMessage: stoppedPassThroughMessage, payload: node.msg.completed }, null]);
+            }
+            node.stopInProgress = false;
+            node.bBusyPlayingQueue = false;
+            node.currentMSGbeingSpoken = {};
+            if (node.server.whoIsUsingTheServer === node.id) node.server.whoIsUsingTheServer = "";
+          });
         }
         node.setNodeStatus({ fill: 'red', shape: 'ring', text: "Forced stop." });
         return;
@@ -1179,6 +1354,7 @@ module.exports = function (RED) {
           // There is already a priority message being spoken, do nothing
           node.setNodeStatus({ fill: 'grey', shape: 'ring', text: 'There is already a priority message being spoken...queuing' });
         } else {
+          node.itemGeneration += 1;
           if (node.playertype === 'sonos') {
             node.SonosClient.stop().then(result => {
               node.bTimeOutPlay = true;
@@ -1188,6 +1364,13 @@ module.exports = function (RED) {
               node.bTimeOutPlay = true;
               node.currentMSGbeingSpoken = msg;// Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
             })
+          } else if (node.playertype === 'airplay' && node.airPlayPlayer) {
+            node.airPlayPlayer.stop().catch((error) => {
+              RED.log.warn("ttsultimate: Unable to stop AirPlay priority message " + error.message);
+            }).finally(() => {
+              node.bTimeOutPlay = true;
+            });
+            node.currentMSGbeingSpoken = msg;
           } else {
             node.currentMSGbeingSpoken = msg; // Set immediately, otherwise if comes new flow messages, currentMSGbeingSpoken is too old.
           }
@@ -1215,8 +1398,15 @@ module.exports = function (RED) {
       node.oTimerCacheFlowMSG = setTimeout(() => {
         // Checks if someone else is using the server node
         if (node.server.whoIsUsingTheServer === "" || node.server.whoIsUsingTheServer === node.id) {
-          if (!node.bBusyPlayingQueue && node.tempMSGStorage.length > 0) {
-            HandleQueue();
+          if (!node.stopInProgress && !node.bBusyPlayingQueue && node.tempMSGStorage.length > 0) {
+            const queuePromise = HandleQueue();
+            node.activeQueuePromise = queuePromise;
+            queuePromise.then(() => {
+              if (node.activeQueuePromise === queuePromise) node.activeQueuePromise = null;
+            }, (error) => {
+              if (node.activeQueuePromise === queuePromise) node.activeQueuePromise = null;
+              RED.log.error("ttsultimate: Unhandled queue error " + error.message);
+            });
           } else {
             if (node.tempMSGStorage.length > 0) node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Busy with " + node.tempMSGStorage.length + " items in queue. Retry..." });
           }
@@ -1230,12 +1420,19 @@ module.exports = function (RED) {
 
     node.on('close', function (done) {
       clearTimeout(node.oTimerSonosConnectionCheck);
+      clearTimeout(node.oTimerCacheFlowMSG);
       if (node.timerbTimeOutPlay !== null) clearTimeout(node.timerbTimeOutPlay);
       node.msg.completed = true;
       node.send([{ passThroughMessage: node.passThroughMessage, payload: node.msg.completed }, null]);
       node.setNodeStatus({ fill: "green", shape: "ring", text: "Shutdown" });
       node.flushQueue();
-      done();
+      if (node.airPlayPlayer) {
+        node.airPlayPlayer.close().catch((error) => {
+          RED.log.warn("ttsultimate: Unable to close AirPlay player " + error.message);
+        }).finally(done);
+      } else {
+        done();
+      }
 
     });
 

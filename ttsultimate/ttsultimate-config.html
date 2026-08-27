@@ -218,8 +218,8 @@
 # TTS Service node
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
-PORT USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVER). <br/>
-PLEASE ALLOW MDNS AND UDP AS WELL (USED TO DISCOVER SONOS, GOOGLE CAST AND DLNA/UPNP DEVICES)
+PORTS USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVERY). <br/>
+PLEASE ALLOW MDNS AND LOCAL TCP/UDP TRAFFIC AS WELL (USED FOR GOOGLE CAST, DLNA/UPNP AND EXPERIMENTAL AIRPLAY/HOMEPOD SUPPORT)
 
 	**TTS Service**<br/>
 	You can choose between Google (without credentials), Google TTS (require credentials and registration to google), ElevenLabs or Voice.ai TTS engines.<br/>
@@ -262,7 +262,8 @@ PLEASE ALLOW MDNS AND UDP AS WELL (USED TO DISCOVER SONOS, GOOGLE CAST AND DLNA/
 set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
 
 **Host Port**<br/>
-The players (Sonos, Google Cast, DLNA/UPnP renderers) will connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from the players on your network.
+Sonos, Google Cast and DLNA/UPnP renderers connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from those players on your network. AirPlay audio is streamed from Node-RED using separate local network connections instead of being fetched by the HomePod from this HTTP port.<br/>
+Experimental AirPlay 2 support requires Node-RED and all selected HomePods to be on the same local network with mDNS and local TCP/UDP traffic available. Docker installations commonly require host networking. In the Apple Home app, allow speaker and TV access for anyone on the same network and disable the AirPlay password.
 
 **TTS Cache**
 <br/>
@@ -276,7 +277,7 @@ Don't delete the files cached. Useful if you wish to keep the tts files, even in
 **Cache root folder**
 <br/>
 Set your preferred output folder for the files downloaded by the TTS Engine.<br/>
-This is useful if you wish to save the TTS cached files in a folder accessible, for example, by a third party web servers to serve an AirPlay2 speaker.<br/>
+This is useful if you wish to save the TTS cached files in a folder accessible to a third-party web server or media player.<br/>
 Leave this field blank for the default.<br/>
 <br/> 
 <br/>

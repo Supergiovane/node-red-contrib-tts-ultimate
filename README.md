@@ -2,9 +2,9 @@
   <img src="img/logo-supervibe.png" alt="TTS Ultimate - Max Supervibe" width="380">
 </p>
 
-## Text-to-speech for Node-RED with Sonos, Google Cast, DLNA/UPnP and file-only output.
+## Text-to-speech for Node-RED with Sonos, Google Cast, DLNA/UPnP, AirPlay 2/HomePod and file-only output.
 
-TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest) and generic **DLNA/UPnP** renderers such as smart TVs and AV receivers.
+TTS Ultimate transforms text into speech audio from Node-RED. It can play announcements directly on **Sonos** speakers, **Google Cast** devices (Chromecast / Google Nest), generic **DLNA/UPnP** renderers such as smart TVs and AV receivers, and experimentally on **AirPlay 2 HomePods**.
 It can also work **without player**: generate an audio file, cache it, and pass it to other nodes, web pages, Bluetooth workflows or third-party services. With the OwnFile node, you can upload and play your own audio messages and keep selected flows working completely offline.
 
 <br/>
@@ -234,7 +234,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
 
 <table>
   <tr>
-    <td align="center" width="25%">
+    <td align="center" width="20%">
       <a href="https://www.sonos.com" title="Sonos speakers">
         <img src="https://cdn.simpleicons.org/sonos/000000" height="86" alt="Sonos logo"/>
       </a>
@@ -243,7 +243,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
       <br/>
       <sub>Native speakers and groups</sub>
     </td>
-    <td align="center" width="25%">
+    <td align="center" width="20%">
       <a href="https://developers.google.com/cast" title="Google Cast devices">
         <img src="https://cdn.simpleicons.org/googlecast/4285F4" height="86" alt="Google Cast logo"/>
       </a>
@@ -252,7 +252,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
       <br/>
       <sub>Chromecast and Google Nest</sub>
     </td>
-    <td align="center" width="25%">
+    <td align="center" width="20%">
       <a href="https://www.dlna.org" title="DLNA and UPnP renderers">
         <img src="https://cdn.simpleicons.org/dlna/0066CC" height="86" alt="DLNA logo"/>
       </a>
@@ -261,7 +261,16 @@ It can also work **without player**: generate an audio file, cache it, and pass 
       <br/>
       <sub>Smart TVs, AV receivers and renderers</sub>
     </td>
-    <td align="center" width="25%">
+    <td align="center" width="20%">
+      <a href="https://www.apple.com/airplay/" title="Apple AirPlay">
+        <img src="https://cdn.simpleicons.org/apple/000000" height="86" alt="Apple logo"/>
+      </a>
+      <br/>
+      <strong>AirPlay 2</strong>
+      <br/>
+      <sub>HomePod (experimental)</sub>
+    </td>
+    <td align="center" width="20%">
       <img src="img/audio-file.svg" height="86" alt="Audio file icon"/>
       <br/>
       <strong>No player</strong>
@@ -280,11 +289,12 @@ It can also work **without player**: generate an audio file, cache it, and pass 
 - **Native Sonos support**: play TTS audio directly via Sonos, group speakers, set a hailing sound and choose the volume for each speaker.
 - **Google Cast support**: play announcements on Chromecast / Google Nest devices, including multi-room playback.
 - **DLNA / UPnP renderer support**: play TTS on smart TVs, AV receivers and other UPnP renderers. Renderers with nested MediaRenderer devices are supported too.
+- **Experimental AirPlay 2 support**: select a master HomePod and optional additional HomePods; a stereo pair advertised by Apple remains one AirPlay endpoint.
 - **File-only output**: create the TTS file without using any player, then pass it to other nodes or services.
 - **Multiple TTS engines**: Google free TTS, Google Cloud TTS, ElevenLabs and Voice.ai voices are supported.
-- **Automatic grouping / multi-room**: add additional players and play one announcement on several devices at once.
-- **Automatic discovery**: find Sonos and DLNA/UPnP renderers via SSDP, and Google Cast devices via mDNS.
-- **Music resume**: resume the previous queue after an announcement where supported. Some radio-station queues may not resume reliably because of Sonos API limitations.
+- **Additional-player playback**: add players for Sonos, Google Cast, DLNA or AirPlay and play one announcement on several devices at once.
+- **Automatic discovery**: find Sonos and DLNA/UPnP renderers via SSDP, and Google Cast devices and HomePods via mDNS.
+- **Music resume**: resume the previous queue after a Sonos announcement where supported. Some radio-station queues may not resume reliably because of Sonos API limitations. AirPlay does not resume previous media.
 - **TTS caching**: generated audio is downloaded once and then served from cache. The cache survives reboots and updates.
 - **Offline-ready OwnFile playback**: upload custom audio messages and use them without an internet connection.
 
@@ -310,7 +320,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/>
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
 PORTS USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVERY). <br/>
-PLEASE ALLOW MDNS AND UDP AS WELL
+PLEASE ALLOW MDNS AND LOCAL TCP/UDP TRAFFIC AS WELL. AIRPLAY DISCOVERY AND AUDIO TRANSPORT MAY REQUIRE DOCKER HOST NETWORKING.
 
 **TTS Service**<br/>
 You can choose between Voice.ai, ElevenLabs.io, Google (without credentials), and Google TTS (requires credentials and registration with Google).<br/>
@@ -350,7 +360,7 @@ For Google TTS Engine, you can choose pitch and speed rate of the voice.
 Set IP of your Node-RED machine. Write **AUTODISCOVER** to allow the node to auto discover your IP.
 
 **Host Port**<br/>
-The players (Sonos, Google Cast, DLNA/UPnP renderers) will connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from the players on your network.
+Sonos, Google Cast and DLNA/UPnP renderers connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from those players on your network. AirPlay audio is streamed from Node-RED using its own local network connections instead of being fetched by the HomePod from this HTTP port.
 
 Note: if you use multiple `ttsultimate-config` nodes, each one now keeps its own TTS cache folder; the “purge on restart/deploy” option only affects that config node’s cache.
 
@@ -366,9 +376,21 @@ Don't delete the files cached. Useful if you wish to keep the tts files, even in
 **Cache root folder**
 <br/>
 Set your preferred output folder for the files downloaded by the TTS Engine.<br/>
-This is useful if you wish to save the TTS cached files in a folder accessible, for example, by a third party web servers to serve an AirPlay2 speaker.<br/>
+This is useful if you wish to save the TTS cached files in a folder accessible to a third-party web server or media player.<br/>
 Leave this field blank for the default.<br/>
 <br/>
+<br/>
+
+### AirPlay 2 / HomePod (experimental)
+
+Select **AirPlay 2 (HomePod, experimental)** in the TTS-Ultimate node, press **Discover**, and choose the **Master HomePod** advertised on your network. You can also enter its IP address or hostname manually. Use **Additional players** to add other discovered HomePods and, if needed, adjust their volume relative to the master. The matching RAOP service is resolved by mDNS on first playback and cached for subsequent announcements; a DHCP reservation is still recommended. If two HomePods are configured by Apple as a stereo pair, they are advertised as one AirPlay endpoint and should be selected only once, either as the master or as an additional player.
+
+The master HomePod is authoritative: its playback lifecycle emits the events used by the node, and its result determines the overall success or error. A master playback failure is emitted on the node's error output; an additional HomePod is best-effort and its failure is only reported as a warning. TTS Ultimate starts an independent stream to each selected endpoint in parallel. This is not a native AirPlay multi-room group and playback is not sample-accurately synchronized, so start times and audio may differ slightly between HomePods. Music or other media that was playing before the announcement is not resumed.
+
+Normal generated/cached TTS files are read directly from the configured storage folder and streamed through RAOP with receiver timing and session volume. An HTTP/HTTPS payload is downloaded by Node-RED with a 45-second timeout and a 10 MB limit, and must contain an MP3 file.
+
+Node-RED and all selected HomePods must be on the same local network, with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this experimental version. When Node-RED runs in Docker, host networking is commonly required for discovery and audio transport.
+
 <br/>
 
 ## TTS-Ultimate Node
@@ -433,7 +455,7 @@ The property is a JSON object.
 <img src='https://github.com/Supergiovane/node-red-contrib-tts-ultimate/raw/master/img/setConfig.png' width="80%">
 
 ```js
-// Set main player IP
+// Set the main player IP/host (the master HomePod when Player is AirPlay)
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config = {
   setMainPlayerIP: "192.168.1.109",
@@ -443,15 +465,15 @@ return msg;
 ```
 
 ```js
-// Set player IP and additional players with their optional adapted volume, relative to the main sonos player volume.
-// You can specify the aditional player's volume adaptation
+// Set the main/master player and additional players, with an optional volume
+// adjustment relative to the main/master volume.
 // The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
 var config = {
   setMainPlayerIP: "192.168.1.109",
   setPlayerGroupArray: [
-    "192.168.1.110", // This additional player will use the same volume as the main sonos player.
-    "192.168.1.111#-10", // This additional player will use the main sonos player's volume, minus 10.
-    "192.168.1.112#20", // This additional player will use the main sonos player's volume, plus 20.
+    "192.168.1.110", // Same volume as the main/master player.
+    "192.168.1.111#-10", // Main/master volume minus 10.
+    "192.168.1.112#20", // Main/master volume plus 20.
   ],
 };
 msg.setConfig = config;

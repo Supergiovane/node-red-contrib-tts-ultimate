@@ -22,6 +22,7 @@ module.exports = function (RED) {
     const sonos = require('sonos');
     const dlnaDiscovery = require('./lib/dlna-discovery'); // 06/2026 SSDP discovery of DLNA/UPnP renderers
     const castDiscovery = require('./lib/googlecast-discovery'); // 06/2026 mDNS discovery of Google Cast devices
+    const airplayDiscovery = require('./lib/airplay-discovery'); // 08/2026 mDNS discovery of HomePod/AirPlay 2 devices
 
     const VOICEAI_API_BASE_URL = "https://dev.voice.ai/api/v1/tts";
 
@@ -355,6 +356,17 @@ module.exports = function (RED) {
                 res.json(list);
             }).catch((error) => {
                 RED.log.warn('ttsultimate-config ' + node.id + ': Error discovering Google Cast devices ' + error.message);
+                res.json("ERRORDISCOVERY");
+            });
+        });
+
+
+        // 08/2026 Discover HomePod devices via AirPlay 2 mDNS.
+        RED.httpAdmin.get("/ttsultimateDiscoverAirPlay", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+            airplayDiscovery.discoverAirPlayDevices().then((devices) => {
+                res.json(devices);
+            }).catch((error) => {
+                RED.log.warn('ttsultimate-config ' + node.id + ': Error discovering AirPlay devices ' + error.message);
                 res.json("ERRORDISCOVERY");
             });
         });

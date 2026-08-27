@@ -131,19 +131,20 @@
             <option value="sonos">Sonos</option>
             <option value="googlecast">Google Cast (Chromecast / Nest)</option>
             <option value="dlna">DLNA / UPnP renderer</option>
+            <option value="airplay">AirPlay 2 (HomePod, experimental)</option>
             <option value="noplayer">No player, only output file name.</option>
         </select>
     </div>
 
     <div id="divCastDlna">
-        <div class="form-row">
-            <label for="node-input-playervolume"><i class="fa fa-volume-up"></i> Volume</label>
-            <input type="text" id="node-input-playervolume" style="width:150px" placeholder="0-100">
-        </div>
         <div class="form-row" id="playerDiscoverRow">
             <label for="playerDiscoverList"><i class="fa fa-search"></i> Discover</label>
             <select id="playerDiscoverList" style="width:250px"><option value="">-- press Discover --</option></select>
             <a id="playerDiscoverBtn" class="red-ui-button" style="width:auto;"><i class="fa fa-refresh"></i> Discover</a>
+        </div>
+        <div class="form-row">
+            <label for="node-input-playervolume"><i class="fa fa-volume-up"></i> Volume</label>
+            <input type="text" id="node-input-playervolume" style="width:150px" placeholder="0-100">
         </div>
         <div class="form-row">
             <label for="node-input-playeripaddress"><i class="fa fa-globe"></i> <span id="playeraddresslabel">Device</span></label>
@@ -337,33 +338,74 @@
           $("#node-input-playertype").val("sonos");
         }
         var playerDiscovered = false; // discover only once per shown section, unless refreshed manually
+        var playerDiscoveryGeneration = 0;
 
-        // Discovery endpoint used by the per-row "Additional players" list (Sonos / Cast / DLNA).
+        // Discovery endpoint used by the main network-player field and, for supported
+        // player types, by each row in the "Additional players" list.
         function currentPlayerDiscoveryUrl() {
           var pt = $("#node-input-playertype").val();
           if (pt === "googlecast") return 'ttsultimateDiscoverCast';
           if (pt === "dlna") return 'ttsultimateDiscoverDLNA';
+          if (pt === "airplay") return 'ttsultimateDiscoverAirPlay';
           return 'sonosgetAllGroups';
         }
 
-        // Discovery for the MAIN player address field (Google Cast IP or DLNA description URL).
+        function supportsAdditionalPlayers(pt) {
+          return pt === "sonos" || pt === "googlecast" || pt === "dlna" || pt === "airplay";
+        }
+
+        // Discovery for the MAIN player address field (Cast, DLNA or AirPlay).
         // All endpoints share the { name, host } shape, so a single code path works.
         function runPlayerDiscovery() {
           var pt = $("#node-input-playertype").val();
-          var noun = pt === "googlecast" ? "Cast devices" : "renderers";
+          var requestGeneration = ++playerDiscoveryGeneration;
+          var noun = pt === "googlecast" ? "Cast devices" : (pt === "airplay" ? "HomePods" : "renderers");
+          // The address field is the persisted value. Keep it selected in the
+          // discovery list when the editor is opened again, just like Sonos.
+          var savedHost = String($("#node-input-playeripaddress").val() || node.playeripaddress || "").trim();
           $("#playerDiscoverList").html('<option value="">Discovering... please wait ~4s</option>');
           $.getJSON(currentPlayerDiscoveryUrl(), function (data) {
+            if (requestGeneration !== playerDiscoveryGeneration || $("#node-input-playertype").val() !== pt) return;
             $("#playerDiscoverList").empty();
             if (typeof data === "string" || !data || data.length === 0) {
-              $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("No " + noun + " found - type manually below"));
+              if (savedHost) {
+                $("#playerDiscoverList").append($("<option></option>")
+                  .attr("value", savedHost)
+                  .text("Saved device (" + savedHost + ") - not discovered"));
+                $("#playerDiscoverList").val(savedHost);
+              } else {
+                $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("No " + noun + " found - type manually below"));
+              }
               return;
             }
             $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("-- select a discovered device --"));
+            var savedHostFound = false;
             data.forEach(function (dev) {
+              var memberHosts = Array.isArray(dev.members) ? dev.members.map(String) : [String(dev.host || "")];
+              if (memberHosts.indexOf(savedHost) !== -1) {
+                savedHostFound = true;
+                savedHost = String(dev.host || savedHost);
+                $("#node-input-playeripaddress").val(savedHost);
+              }
               $("#playerDiscoverList").append($("<option></option>").attr("value", dev.host).text(dev.name + " (" + dev.host + ")"));
             });
+            if (savedHost && !savedHostFound) {
+              $("#playerDiscoverList").append($("<option></option>")
+                .attr("value", savedHost)
+                .text("Saved device (" + savedHost + ") - not discovered"));
+            }
+            $("#playerDiscoverList").val(savedHost || "");
           }).fail(function () {
-            $("#playerDiscoverList").html('<option value="">Discovery failed - type manually below</option>');
+            if (requestGeneration !== playerDiscoveryGeneration || $("#node-input-playertype").val() !== pt) return;
+            $("#playerDiscoverList").empty();
+            if (savedHost) {
+              $("#playerDiscoverList").append($("<option></option>")
+                .attr("value", savedHost)
+                .text("Saved device (" + savedHost + ") - discovery failed"));
+              $("#playerDiscoverList").val(savedHost);
+            } else {
+              $("#playerDiscoverList").append($("<option></option>").attr("value", "").text("Discovery failed - type manually below"));
+            }
           });
         }
 
@@ -378,7 +420,7 @@
         });
 
         // Re-render the additional players rows so each row re-discovers using the
-        // current player type (Sonos groups vs Cast devices), preserving entered hosts.
+        // current player type (Sonos groups vs Cast / DLNA / AirPlay devices), preserving entered hosts.
         function rebuildAdditionalPlayers() {
           try {
             var items = $("#node-input-rule-container").editableList('items');
@@ -397,19 +439,22 @@
         function refreshPlayerSections() {
           var pt = $("#node-input-playertype").val();
           $("#divSonos").toggle(pt === "sonos");
-          $("#divCastDlna").toggle(pt === "googlecast" || pt === "dlna");
-          $("#playerDiscoverRow").toggle(pt === "googlecast" || pt === "dlna");
-          // Additional players are supported for grouped Sonos and multi-room Google Cast / DLNA.
-          $("#divAdditionalPlayers").toggle(pt === "sonos" || pt === "googlecast" || pt === "dlna");
+          $("#divCastDlna").toggle(pt === "googlecast" || pt === "dlna" || pt === "airplay");
+          $("#playerDiscoverRow").toggle(pt === "googlecast" || pt === "dlna" || pt === "airplay");
+          // Additional players are supported for Sonos, Google Cast, DLNA and AirPlay.
+          $("#divAdditionalPlayers").toggle(supportsAdditionalPlayers(pt));
           if (pt === "googlecast") {
             $("#playeraddresslabel").text("Main Chromecast / Nest IP");
             $("#playeraddresshint").text("IP address of the main Google Cast device, e.g. 192.168.1.50");
           } else if (pt === "dlna") {
             $("#playeraddresslabel").text("Renderer description URL");
             $("#playeraddresshint").text("UPnP device description XML URL, e.g. http://192.168.1.50:1400/desc.xml");
+          } else if (pt === "airplay") {
+            $("#playeraddresslabel").text("Master HomePod");
+            $("#playeraddresshint").text("Select the master HomePod. It determines playback events and the overall success/error; additional HomePods are best-effort. A stereo pair appears as one device.");
           }
           // Auto-discover the first time a discoverable section is shown.
-          if ((pt === "googlecast" || pt === "dlna") && !playerDiscovered) {
+          if ((pt === "googlecast" || pt === "dlna" || pt === "airplay") && !playerDiscovered) {
             playerDiscovered = true;
             runPlayerDiscovery();
           }
@@ -419,7 +464,7 @@
         $("#node-input-playertype").change(function () {
           playerDiscovered = false; // force re-discovery for the newly selected type
           $("#playerDiscoverList").html('<option value="">-- press Discover --</option>');
-          rebuildAdditionalPlayers();
+          if (supportsAdditionalPlayers($(this).val())) rebuildAdditionalPlayers();
           refreshPlayerSections();
         });
         // ###########################
@@ -750,29 +795,69 @@
 
 
             var row = $('<div class="form-row"/>').appendTo(container);
-            var oPlayer = $('<label>Discovering.... wait...</label>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
+            var savedHost = String(rule.host || "").trim();
+            // Render a save-safe manual row immediately. Discovery may take several
+            // seconds, and the user must be able to save without losing this value.
+            var oPlayer = $('<input/>', {
+              class: "rowRulePlayerHost",
+              placeholder: "Discovering...",
+              type: "text",
+              style: "width:200px; margin-left: 5px; text-align: left;"
+            }).appendTo(row);
+            oPlayer.val(savedHost);
+            addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
             oPlayer.on("change", function () {
               resizeRule(container);
             });
 
+            // Keep hidden legacy/additional-player values intact when the selected
+            // player type does not expose this list (No player).
+            // This prevents an editor round-trip from replacing an undiscovered host
+            // with null if the user later switches back to the previous player type.
+            if (!supportsAdditionalPlayers($("#node-input-playertype").val())) {
+              return;
+            }
+
             $.getJSON(currentPlayerDiscoveryUrl(), (data) => {
+              savedHost = String(oPlayer.val() || savedHost).trim();
               if ((typeof data === "string" && data == "ERRORDISCOVERY") || !data || data.length === 0) { // 10/04/2020 if error/empty discovery, fallback to manual IP input
-                // Transform the dropdown to a simple input
-                oPlayer.remove();
-                oPlayer = $('<input/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
-                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
+                oPlayer.attr("placeholder", "Discovery unavailable - type manually");
               } else {
                 oPlayer.remove();
-                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).appendTo(row);
-                data.sort().forEach(oGroup => {
+                oPlayer = $('<select/>', { class: "rowRulePlayerHost", type: "text", style: "width:200px; margin-left: 5px; text-align: left;" }).prependTo(row);
+                var savedHostFound = false;
+                // A visible placeholder prevents jQuery .val("") from leaving
+                // selectedIndex=-1 and rendering the completely blank selector
+                // shown after an editor round-trip.
+                oPlayer.append($("<option></option>")
+                  .attr("value", "")
+                  .text("-- select a discovered device --"));
+                data.sort(function (a, b) {
+                  return String(a.name || a.host || "").localeCompare(String(b.name || b.host || ""));
+                }).forEach(oGroup => {
+                  var memberHosts = Array.isArray(oGroup.members) ? oGroup.members.map(String) : [String(oGroup.host || "")];
+                  if (memberHosts.indexOf(savedHost) !== -1) {
+                    savedHostFound = true;
+                    savedHost = String(oGroup.host || savedHost);
+                  }
                   oPlayer.append($("<option></option>")
                     .attr("value", oGroup.host)
                     .text(oGroup.name + " (" + oGroup.host + ")")
                   )
                 });
-                addAdditionalPlayerVolumeUI(row, rule.hostVolumeAdjust);
+                // Keep an offline/manual target selectable even when other devices
+                // were discovered, otherwise opening the editor would erase it.
+                if (savedHost && !savedHostFound) {
+                  oPlayer.prepend($("<option></option>")
+                    .attr("value", savedHost)
+                    .text("Saved device (" + savedHost + ")")
+                  );
+                }
               }
-              oPlayer.val(rule.host);
+              oPlayer.val(savedHost || "");
+            }).fail(() => {
+              // HTTP-level discovery failures must preserve the configured row too.
+              oPlayer.attr("placeholder", "Discovery failed - type manually");
             });
 
             //oPlayer.change();
@@ -801,10 +886,16 @@
         let node = this;
         let rules = $("#node-input-rule-container").editableList('items');
         node.rules = [];
+        let savedPlayerHosts = new Set([String($("#node-input-playeripaddress").val() || "").trim().toLowerCase()]);
         rules.each(function (i) {
           let rule = $(this);
-          let rowRulePlayerHost = rule.find(".rowRulePlayerHost").val();
+          let rowRulePlayerHost = String(rule.find(".rowRulePlayerHost").val() || "").trim();
           let rowRulePlayerHostAdjustVolume = rule.find(".rowRulePlayerHostAdjustVolume").val();
+          // Do not persist placeholder rows: a null host would reopen as a
+          // visually blank selector and can never be played.
+          if (!rowRulePlayerHost) return;
+          if (savedPlayerHosts.has(rowRulePlayerHost.toLowerCase())) return;
+          savedPlayerHosts.add(rowRulePlayerHost.toLowerCase());
           node.rules.push({ host: rowRulePlayerHost, hostVolumeAdjust: rowRulePlayerHostAdjustVolume });
         });
         this.propertyType = $("#node-input-property").typedInput('type');
@@ -826,7 +917,7 @@
 </script>
 
 <script type="text/markdown" data-help-name="ttsultimate">
-<p>This node transforms a text into a speech audio that you can hear natively via Sonos speakers, Google Cast devices (Chromecast / Google Nest), generic DLNA/UPnP renderers, or save it to a file.</p>
+<p>This node transforms text into speech audio that you can hear natively via Sonos speakers, Google Cast devices (Chromecast / Google Nest), generic DLNA/UPnP renderers, AirPlay 2 HomePods, or save to a file.</p>
 
 **General**
 |Property|Description|
@@ -835,14 +926,15 @@
 | Voice | Select your preferred voice. The list depends on the selected TTS engine (Google / ElevenLabs / Voice.ai). Google service without authentication has a limited set of voices. |
 | Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
 | Upload hail | It allows you to upload your own hailing file. |
-| Player | Select the player: **Sonos**, **Google Cast** (Chromecast / Google Nest), **DLNA / UPnP renderer**, or **No player**. If you select No player, only output file name, the node will output a msg with an additional property filesArray, containing an array of all mp3 files ready to be played by third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
+| Player | Select the player: **Sonos**, **Google Cast** (Chromecast / Google Nest), **DLNA / UPnP renderer**, experimental **AirPlay 2** (HomePod), or **No player**. If you select No player, only output file name, the node will output a msg with an additional property filesArray, containing an array of all mp3 files ready to be played by third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
 | Volume | Set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume = "40"; to the node). |
 | Unmute | (Sonos only) Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing msg.unmute = true; to the node). |
 | Resume | (Sonos only) If music was playing prior to TTS messages, the node will try to resume it, but can fail in some cases. Enabla this option to avoid resuming music after TTS message. |
 | Main Sonos Player | Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server). It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator. |
 | Main Chromecast / Nest IP | (Google Cast) IP address of the main Google Cast device (e.g. 192.168.1.50). Press **Discover** to auto-detect the Cast devices on your network and pick one from the list. |
 | Renderer description URL | (DLNA) The full UPnP device description XML URL of the renderer (e.g. http://192.168.1.50:49153/nmrDescription.xml), **not** just the IP. Press **Discover** to auto-detect the DLNA renderers on your network and pick one from the list. |
-| Additional Players | (Sonos / Google Cast / DLNA) Add additional players so your announcement is played on all of them at once. For Sonos they are grouped to the Main Player coordinator; for Google Cast and DLNA the TTS is played on every device in parallel. Use the "ADD" button below the list; for each additional player you can adjust its volume relative to the main volume (-100/+100). |
+| Master HomePod | (AirPlay 2, experimental) Press **Discover** and select the master HomePod, or enter its IP address/hostname. The master determines playback lifecycle/events and the overall success or error. A DHCP reservation is recommended. A HomePod stereo pair is advertised as one device and must be selected only once. |
+| Additional Players | (Sonos / Google Cast / DLNA / AirPlay 2) Add additional players so your announcement is played on all of them. For Sonos they are grouped to the Main Player coordinator; for Google Cast and DLNA the TTS is played on every device in parallel. AirPlay additional HomePods receive independent parallel streams on a best-effort basis: they do not emit the lifecycle events used by the node, and their errors do not replace the master outcome. AirPlay playback is not sample-accurately synchronized. Use the "ADD" button below the list; for each additional player you can adjust its volume relative to the main volume (-100/+100). |
 
 **Google TTS Engines specific options**
 |Property|Description|
@@ -870,9 +962,12 @@
 | Sonos | Native control: grouping, volume, mute/unmute and music resume after the announcement. |
 | Google Cast | Chromecast and Google Nest devices, discovered via mDNS. Set the main device IP and, optionally, additional devices for synchronized multi-room playback. |
 | DLNA / UPnP renderer | Generic UPnP MediaRenderers (smart TVs, AV receivers, etc.), discovered via SSDP. Works with renderers that nest a MediaRenderer sub-device too (e.g. Sonos). Requires the full device description XML URL. |
+| AirPlay 2 (experimental) | HomePod playback over RAOP with mDNS discovery, receiver timing and per-session volume. Select one master HomePod and, optionally, additional HomePods. The master controls lifecycle/events and the overall result; a master failure is emitted on the error output. Additional devices are best-effort independent streams, not a sample-accurately synchronized AirPlay group. A stereo pair exposed by Apple is one endpoint. Previous media is not resumed. |
 | No player | Only generates the mp3 file(s) and outputs their paths in filesArray, to be played by third party nodes. |
 
 For Google Cast and DLNA the device fetches the generated mp3 over HTTP from Node-RED, so the Node-RED host/port (default 1980) must be reachable from the player and on the same subnet (mDNS/SSDP discovery does not cross subnets/VLANs).
+
+For AirPlay 2, Node-RED and all HomePods must be on the same local network with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this experimental version. Docker installations commonly require host networking for discovery and audio transport. TTS Ultimate starts an independent stream to each selected AirPlay endpoint in parallel; this is not a native AirPlay multi-room group, so start times and playback may differ slightly between devices. AirPlay music resume is not supported. HTTP/HTTPS audio payloads must be MP3 and are limited to 10 MB with a 45-second download timeout.
 
 ### Inputs
 
@@ -885,8 +980,8 @@ For Google Cast and DLNA the device fetches the generated mp3 over HTTP from Nod
 : stop (boolean) : If set to true, stops whatever is playing and clears the TTS queue.
 : voiceId (string) : Play a message with custom voice ID (engine-specific).
 : setConfig (json) : This is the property where you can set all the things. It must be a JSON Object with the below specified properties. The setting is retained until the node receives another msg.setConfig or until node-red is restarted.
-: setConfig {setMainPlayerIP} (string) : Sets the main player IP. This will also be the coordinator if you have a group of players.
-: setConfig {setPlayerGroupArray} (array) : Sets the array of players beloging to the group, if any. You can also specify the volume variation from the main volume player, to adapt the additional player's perceived volume to the main sonos player volume. For example, if you have a speaker mounted in celiling, having less perceived volume, you can "push" the volume up, to match the whole perceived volume. Just add # after the IP and a number from -100 to 100 to subtract or add volume compared to the main sonos volume. For example, if the sonos main player volume is 40, you can push this celing speaker's volume to further 10, so it'll have the real volume of 50. See below, the example. Even if you have only one additional player, you need to put it into an array.
+: setConfig {setMainPlayerIP} (string) : Sets the main player IP/host. It is the Sonos coordinator or the master HomePod, depending on the selected player type.
+: setConfig {setPlayerGroupArray} (array) : Sets the additional players, if any. Append `#` and a number from -100 to 100 to adjust an additional player's volume relative to the main/master volume (for example, `192.168.1.111#-10`). Even one additional player must be supplied inside an array.
 
 ### Output
 
