@@ -389,6 +389,8 @@ The master HomePod is authoritative: its playback lifecycle emits the events use
 
 Normal generated/cached TTS files are read directly from the configured storage folder and streamed through RAOP with receiver timing and session volume. An HTTP/HTTPS payload is downloaded by Node-RED with a 45-second timeout and a 10 MB limit, and must contain an MP3 file.
 
+If playback completes but your HomePod remains silent, set `TTS_ULTIMATE_AIRPLAY2_NTP=1` in the Node-RED process environment and restart Node-RED to try the SDK AirPlay 2 transport with explicit NTP timing. This opt-in applies to all AirPlay players in that process and preserves mDNS target discovery. Leave it unset to keep the default RAOP transport; no additional dependencies are required.
+
 Node-RED and all selected HomePods must be on the same local network, with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this version. When Node-RED runs in Docker, host networking is commonly required for discovery and audio transport.
 
 <br/>

@@ -610,7 +610,18 @@ function createAirPlayPlayer(options) {
     async function connectControlDevice(session, modules, usesRaop) {
         for (let attempt = 0; attempt < 2; attempt++) {
             const address = session.address || session.target;
-            const connectingDevice = new modules.sdk.HomePod({ address });
+            // Without a TimingServer, the SDK uses timingProtocol=None.
+            if (!usesRaop && modules.common && !session.timingServer) {
+                session.timingServer = new modules.common.TimingServer();
+                await awaitOperation(session, session.timingServer.listen(), {
+                    timeoutMs: connectTimeoutMs,
+                    timeoutMessage: 'AirPlay: NTP timing server timed out'
+                });
+            }
+            const connectingDevice = new modules.sdk.HomePod({
+                address,
+                ...(!usesRaop && session.timingServer ? { timingServer: session.timingServer } : {})
+            });
             session.device = connectingDevice;
             session.deviceDisconnected = false;
 
@@ -1133,7 +1144,8 @@ function createAirPlayPlayer(options) {
         try {
             const modules = await awaitOperation(session, getModules());
             ensureActive(session);
-            const usesRaop = Boolean(modules.raop && modules.common);
+            const hasRaopDiscovery = Boolean(modules.raop && modules.common);
+            const usesRaop = hasRaopDiscovery && process.env.TTS_ULTIMATE_AIRPLAY2_NTP !== '1';
 
             const sourcePromise = createSourceAfterDecoderWarmup(modules.audio, configuredSource, session);
             sourcePromise.then((lateSource) => {
@@ -1163,7 +1175,7 @@ function createAirPlayPlayer(options) {
             // the current address before the optional MRP control connection; the
             // synthetic service-name .local value is not guaranteed to be an OS-
             // resolvable hostname, especially inside containers.
-            if (usesRaop) {
+            if (hasRaopDiscovery) {
                 await awaitOperation(session, ensureRaopTarget(session, modules), {
                     timeoutMs: connectTimeoutMs,
                     timeoutMessage: 'AirPlay: RAOP discovery timed out for ' + configuredTarget
@@ -1174,7 +1186,7 @@ function createAirPlayPlayer(options) {
                 // connects to its address. Otherwise a reassigned lease could make
                 // the control plane describe a different HomePod before RAOP gets
                 // a chance to invalidate the stale descriptor.
-                if (playOpts.streamBarrier && session.raopTargetFromCache) {
+                if (usesRaop && playOpts.streamBarrier && session.raopTargetFromCache) {
                     await awaitOperation(session, prepareRaopStream(session, modules), {
                         timeoutMs: connectTimeoutMs,
                         timeoutMessage: 'AirPlay: RAOP connection timed out for ' + configuredTarget
@@ -1230,10 +1242,8 @@ function createAirPlayPlayer(options) {
                 await setVolumeBeforeStream(session, modules.sdk, volume);
             ensureActive(session);
 
-            // The SDK's high-level AirPlay 2 realtime sender currently advertises a
-            // different PCM format from the decoded frames and can report completion
-            // even when a HomePod stays silent. RAOP is the package's HomePod audio
-            // path: it negotiates L16, runs an NTP timing server and sets RTSP volume.
+            // RAOP remains the default transport. The opt-in SDK path uses
+            // AirPlay 2 with the explicit NTP server passed during connection.
             if (usesRaop && !session.raopClient) {
                 await awaitOperation(session, prepareRaopStream(session, modules), {
                     timeoutMs: connectTimeoutMs,

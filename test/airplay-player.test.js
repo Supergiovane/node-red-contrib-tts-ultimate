@@ -401,6 +401,64 @@ test('RAOP discovers the requested address, streams with percent volume, and own
     assert.equal(harness.player.activeCount, 0);
 });
 
+test('AirPlay 2 opt-in uses explicit NTP timing and preserves mDNS discovery', async (t) => {
+    const previous = process.env.TTS_ULTIMATE_AIRPLAY2_NTP;
+    process.env.TTS_ULTIMATE_AIRPLAY2_NTP = '1';
+    t.after(() => {
+        if (previous === undefined) delete process.env.TTS_ULTIMATE_AIRPLAY2_NTP;
+        else process.env.TTS_ULTIMATE_AIRPLAY2_NTP = previous;
+    });
+    const options = {
+        useRaop: true,
+        raopResults: [{
+            address: '192.168.1.50',
+            id: 'AABBCCDDEEFF@selected-homepod.local',
+            service: { type: '_raop._tcp', port: 7000 }
+        }]
+    };
+    const target = 'raop-device:aabbccddeeff';
+    const source = '/srv/tts-storage/cache/Announcement.MP3';
+
+    await t.test('streams through the SDK and closes the timing server', async () => {
+        const harness = createHarness(options);
+        const outcome = await harness.player.play(target, source, 35);
+        assert.equal(outcome.status, 'completed');
+        assert.equal(harness.raopClients.length, 0);
+        assert.equal(harness.instances[0].options.address, '192.168.1.50');
+        assert.strictEqual(harness.instances[0].options.timingServer, harness.timingServers[0]);
+        const events = harness.calls.map((call) => call[0]);
+        assert.equal(events.includes('media.streamAudio'), true);
+        assert.equal(events.indexOf('TimingServer.listen') < events.indexOf('connect'), true);
+        assert.equal(events.filter((event) => event === 'TimingServer.close').length, 1);
+        assert.equal(harness.player.activeCount, 0);
+    });
+
+    await t.test('cleans up when NTP cannot start', async () => {
+        const harness = createHarness({ ...options, timingServerListenError: new Error('NTP bind failed') });
+        await assert.rejects(harness.player.play(target, source, 35), /NTP bind failed/);
+        assert.equal(harness.instances.length, 0);
+        assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 1);
+        assert.equal(harness.player.activeCount, 0);
+    });
+
+    await t.test('closes NTP after stopping an active SDK stream', async () => {
+        const started = deferred();
+        const finished = deferred();
+        const harness = createHarness({
+            ...options,
+            streamAudio: () => { started.resolve(); return finished.promise; },
+            stopStreamAudio: () => finished.resolve()
+        });
+        const playback = harness.player.play(target, source, 35);
+        await started.promise;
+        assert.equal(harness.calls.some((call) => call[0] === 'TimingServer.close'), false);
+        await harness.player.stop();
+        assert.equal((await playback).status, 'stopped');
+        assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 1);
+        assert.equal(harness.player.activeCount, 0);
+    });
+});
+
 test('RAOP resolves an AirPlay hardware selector to the matching receiver', async () => {
     const unrelated = {
         address: '192.168.1.49',
