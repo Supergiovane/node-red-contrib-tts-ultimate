@@ -23,6 +23,7 @@ module.exports = function (RED) {
     const dlnaDiscovery = require('./lib/dlna-discovery'); // 06/2026 SSDP discovery of DLNA/UPnP renderers
     const castDiscovery = require('./lib/googlecast-discovery'); // 06/2026 mDNS discovery of Google Cast devices
     const airplayDiscovery = require('./lib/airplay-discovery'); // 08/2026 mDNS discovery of HomePod/AirPlay 2 devices
+    const safePath = require('./lib/safe-path'); // 10/2026 Sanitize file names coming from the editor
 
     const VOICEAI_API_BASE_URL = "https://dev.voice.ai/api/v1/tts";
 
@@ -389,38 +390,43 @@ module.exports = function (RED) {
         });
 
         // 09/03/2020 Delete Hailing
-        RED.httpAdmin.get("/deleteHailingFile", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/deleteHailingFile", RED.auth.needsPermission('TTSConfigNode.write'), function (req, res) {
             // Delete the file
             try {
-                var newPath = path.join(node.TTSRootFolderPath, "hailingpermanentfiles", req.query.FileName);
-                fs.unlinkSync(newPath)
+                // 10/2026 Only bare "Hailing_*.mp3" names inside the hailing folder (no path traversal)
+                var newPath = safePath.existingFilePath(path.join(node.TTSRootFolderPath, "hailingpermanentfiles"), "Hailing_", req.query.FileName, ".mp3");
+                if (newPath !== null) fs.unlinkSync(newPath)
             } catch (error) { }
             res.json({ status: 220 });
         });
 
         // 09/03/2020 Receive new hailing files from html
-        RED.httpAdmin.post("/ttsultimateHailing", function (req, res) {
+        RED.httpAdmin.post("/ttsultimateHailing", RED.auth.needsPermission('TTSConfigNode.write'), function (req, res) {
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
                 try {
-                    if (files.customHailing.name.indexOf(".mp3") !== -1) {
-                        var newPath = path.join(node.TTSRootFolderPath, "hailingpermanentfiles", "Hailing_" + files.customHailing.name);
-                        // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
-                        // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
-                        // Instead of renaming it, i must copy the file and then delete the old one.
-                        try {
-                            fs.unlinkSync(newPath)
-                        } catch (error) {
-                        }
-                        fs.copyFileSync(files.customHailing.path, newPath)
-                        try {
-                            fs.unlinkSync(files.customHailing.path);
-                        } catch (error) {
-                            // Don't care
-                        }
-                        res.json({ status: 220 });
-                        res.end;
+                    // 10/2026 The original file name comes from the client: strip any directory part and require .mp3
+                    var newPath = (err || !files.customHailing) ? null : safePath.uploadPath(path.join(node.TTSRootFolderPath, "hailingpermanentfiles"), "Hailing_", files.customHailing.name, ".mp3");
+                    if (newPath === null) {
+                        if (files && files.customHailing) try { fs.unlinkSync(files.customHailing.path); } catch (error) { }
+                        res.json({ status: 404, message: "Invalid file. Please upload an .mp3 file." });
+                        return;
                     }
+                    // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points,
+                    // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
+                    // Instead of renaming it, i must copy the file and then delete the old one.
+                    try {
+                        fs.unlinkSync(newPath)
+                    } catch (error) {
+                    }
+                    fs.copyFileSync(files.customHailing.path, newPath)
+                    try {
+                        fs.unlinkSync(files.customHailing.path);
+                    } catch (error) {
+                        // Don't care
+                    }
+                    res.json({ status: 220 });
+                    res.end;
                 } catch (error) {
                     RED.log.error("Upload Hailing " + error.message);
                     res.json({ status: 404, message: "Unable to write to the filesystem. PLEASE CHECK THAT THE USER RUNNING NODE-RED, HAS PERMISSIONS TO WRITE TO THE FILESYSTEM." });
@@ -431,12 +437,16 @@ module.exports = function (RED) {
 
 
         // 22/12/2020 Receive the google credential and on the fly set the environment path
-        RED.httpAdmin.post("/ttsultimatesavegooglecredentialsfile", function (req, res) {
+        RED.httpAdmin.post("/ttsultimatesavegooglecredentialsfile", RED.auth.needsPermission('TTSConfigNode.write'), function (req, res) {
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
-                if (err) { };
+                if (err || !files || !files.googleCreds) return;
                 // Allow only json
-                if (files.googleCreds.name.indexOf(".json") !== -1) {
+                if (safePath.cleanFileName(files.googleCreds.name, ".json") === null) {
+                    try { fs.unlinkSync(files.googleCreds.path); } catch (error) { }
+                    return;
+                }
+                try {
                     var newPath = path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials", "googlecredentials.json");
                     // Set the environment variable
                     process.env.GOOGLE_APPLICATION_CREDENTIALS = newPath;
@@ -453,6 +463,8 @@ module.exports = function (RED) {
                     } catch (error) {
                         // Don't care
                     }
+                } catch (error) {
+                    RED.log.error("ttsultimate-config " + node.id + ": Unable to save the Google credentials file: " + error.message);
                 }
             });
             res.json({ status: 220 });
@@ -598,30 +610,33 @@ module.exports = function (RED) {
         // ######################################################
 
         // Receive new files from html
-        RED.httpAdmin.post("/ttsultimateOwnFile", function (req, res) {
+        RED.httpAdmin.post("/ttsultimateOwnFile", RED.auth.needsPermission('TTSConfigNode.write'), function (req, res) {
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
-                if (err) { };
                 // Allow only mp3
                 try {
-                    if (files.customTTS.name.indexOf(".mp3") !== -1) {
-                        var newPath = path.join(node.TTSRootFolderPath, "ttspermanentfiles", "OwnFile_" + files.customTTS.name);
-                        // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points, 
-                        // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
-                        // Instead of renaming it, i must copy the file and then delete the old one.
-                        try {
-                            fs.unlinkSync(newPath)
-                        } catch (error) {
-                        }
-                        fs.copyFileSync(files.customTTS.path, newPath)
-                        try {
-                            fs.unlinkSync(files.customTTS.path);
-                        } catch (error) {
-                            // Don't care
-                        }
-                        res.json({ status: 220 });
-                        res.end;
+                    // 10/2026 The original file name comes from the client: strip any directory part and require .mp3
+                    var newPath = (err || !files.customTTS) ? null : safePath.uploadPath(path.join(node.TTSRootFolderPath, "ttspermanentfiles"), "OwnFile_", files.customTTS.name, ".mp3");
+                    if (newPath === null) {
+                        if (files && files.customTTS) try { fs.unlinkSync(files.customTTS.path); } catch (error) { }
+                        res.json({ status: 404, message: "Invalid file. Please upload an .mp3 file." });
+                        return;
                     }
+                    // 30/12/2020 To avoid XDEV issue: oldpath and newpath are not on the same mounted filesystem. (Linux permits a filesystem to be mounted at multiple points,
+                    // but rename() does not work across different mount points, even if the same filesystem is mounted on both.)
+                    // Instead of renaming it, i must copy the file and then delete the old one.
+                    try {
+                        fs.unlinkSync(newPath)
+                    } catch (error) {
+                    }
+                    fs.copyFileSync(files.customTTS.path, newPath)
+                    try {
+                        fs.unlinkSync(files.customTTS.path);
+                    } catch (error) {
+                        // Don't care
+                    }
+                    res.json({ status: 220 });
+                    res.end;
                 } catch (error) {
                     RED.log.error("OwnFile " + error.message);
                     res.json({ status: 404, message: "Unable to write to the filesystem. PLEASE CHECK THAT THE USER RUNNING NODE-RED, HAS PERMISSIONS TO WRITE TO THE FILESYSTEM." });
@@ -647,12 +662,13 @@ module.exports = function (RED) {
         });
 
         // 27/02/2020 Delete OwnFile_
-        RED.httpAdmin.get("/deleteOwnFile", RED.auth.needsPermission('TTSConfigNode.read'), function (req, res) {
+        RED.httpAdmin.get("/deleteOwnFile", RED.auth.needsPermission('TTSConfigNode.write'), function (req, res) {
             try {
                 if (req.query.FileName == "DELETEallFiles") {
                     // Delete all OwnFiles_
                     try {
                         fs.readdir(path.join(node.TTSRootFolderPath, "ttspermanentfiles"), (err, files) => {
+                            if (err) return;
                             files.forEach(function (file) {
                                 if (file.indexOf("OwnFile_") !== -1) {
                                     RED.log.warn("ttsultimate-config " + node.id + ": Deleted file " + path.join(node.TTSRootFolderPath, "ttspermanentfiles", file));
@@ -667,9 +683,10 @@ module.exports = function (RED) {
                 } else {
                     // Delete only one file
                     try {
-                        var newPath = path.join(node.TTSRootFolderPath, "ttspermanentfiles", req.query.FileName);
+                        // 10/2026 Only bare "OwnFile_*.mp3" names inside the own files folder (no path traversal)
+                        var newPath = safePath.existingFilePath(path.join(node.TTSRootFolderPath, "ttspermanentfiles"), "OwnFile_", req.query.FileName, ".mp3");
                         try {
-                            fs.unlinkSync(newPath)
+                            if (newPath !== null) fs.unlinkSync(newPath)
                         } catch (error) { }
 
                     } catch (error) { }

@@ -785,7 +785,7 @@
         // Delete selected file
         // ##########################################################
         $("#deleteSelectedFile").click(function () {
-          $.getJSON('deleteHailingFile?FileName=' + $("#node-input-sonoshailing").val(), (data) => {
+          $.getJSON('deleteHailingFile?FileName=' + encodeURIComponent($("#node-input-sonoshailing").val()), (data) => {
             node.refreshHailingList();
           });
         });

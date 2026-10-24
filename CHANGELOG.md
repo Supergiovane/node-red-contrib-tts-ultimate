@@ -3,6 +3,19 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 <p>
+<b>Version 3.4.0</b> October 2026<br/>
+
+- SECURITY: the editor endpoints that upload hailing files, own files and the Google credentials file now require Node-RED write permission. Before, they could be called without logging in, even with `adminAuth` enabled.<br/>
+- SECURITY: uploaded file names are reduced to the bare file name and must end with `.mp3` (or `.json` for the Google credentials), so an upload can no longer write files outside the TTS-Ultimate storage folder.<br/>
+- SECURITY: deleting hailing files and own files now requires write permission instead of read permission, and only accepts names of files in their own folder.<br/>
+- CHANGE: users with read-only access to the editor can no longer upload or delete hailing files and own files.<br/>
+- FIX: an upload request without a file, or a failing "delete all files" folder read, no longer crashes Node-RED. A rejected upload now shows an error in the editor instead of hanging.<br/>
+- FIX: file names containing `&` or `#` can now be deleted from the editor.<br/>
+- CHORE: updated "sonos" to ^1.14.3 (axios 1.x, xml2js 0.5) and refreshed the dependency tree with `npm audit fix` (#104).<br/>
+- CHORE: removed a leftover backup file from the npm package.<br/>
+</p>
+
+<p>
 <b>Version 3.3.1 and 3.3.2</b> August 2026<br/>
 
 - FIX: HomePod selections now persist a stable RAOP/mDNS selector instead of a DHCP address. Playback resolves the current endpoint, verifies cached receiver identity when available and retries once after a stale connection, so the same TTS survives a HomePod reboot and IP change.<br/>

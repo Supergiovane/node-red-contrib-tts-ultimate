@@ -114,7 +114,7 @@
             // Delete selected file
             // ##########################################################
             $("#deleteSelectedFile").click(function () {
-                $.getJSON('deleteOwnFile?FileName=' + $("#node-input-selectedFile").val(), (data) => {
+                $.getJSON('deleteOwnFile?FileName=' + encodeURIComponent($("#node-input-selectedFile").val()), (data) => {
                     // Refresh the combo
                     node.refreshListaFiles();
                 });
