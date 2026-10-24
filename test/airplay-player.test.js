@@ -401,15 +401,10 @@ test('RAOP discovers the requested address, streams with percent volume, and own
     assert.equal(harness.player.activeCount, 0);
 });
 
-test('AirPlay 2 opt-in uses explicit NTP timing and preserves mDNS discovery', async (t) => {
-    const previous = process.env.TTS_ULTIMATE_AIRPLAY2_NTP;
-    process.env.TTS_ULTIMATE_AIRPLAY2_NTP = '1';
-    t.after(() => {
-        if (previous === undefined) delete process.env.TTS_ULTIMATE_AIRPLAY2_NTP;
-        else process.env.TTS_ULTIMATE_AIRPLAY2_NTP = previous;
-    });
+test('AirPlay 2 transport uses explicit NTP timing and preserves mDNS discovery', async (t) => {
     const options = {
         useRaop: true,
+        playerOptions: { transport: 'airplay2' },
         raopResults: [{
             address: '192.168.1.50',
             id: 'AABBCCDDEEFF@selected-homepod.local',

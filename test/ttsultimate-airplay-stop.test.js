@@ -28,7 +28,8 @@ function closeNode(node) {
     return new Promise((resolve) => node.emit('close', resolve));
 }
 
-test('AirPlay stop keeps a stale queue invalidated and locked until player cleanup finishes', { timeout: 10000 }, async (t) => {
+for (const playerType of ['airplay', 'airplay2']) {
+test(playerType + ' stop keeps a stale queue invalidated and locked until player cleanup finishes', { timeout: 10000 }, async (t) => {
     const runtimePath = require.resolve('../ttsultimate/ttsultimate');
     const airPlayModule = require('../ttsultimate/lib/airplay-player');
     const originalCreateAirPlayPlayer = airPlayModule.createAirPlayPlayer;
@@ -51,7 +52,11 @@ test('AirPlay stop keeps a stale queue invalidated and locked until player clean
         }
     };
 
-    airPlayModule.createAirPlayPlayer = () => fakeAirPlayPlayer;
+    let playerOptions;
+    airPlayModule.createAirPlayPlayer = (options) => {
+        playerOptions = options;
+        return fakeAirPlayPlayer;
+    };
     delete require.cache[runtimePath];
 
     const sent = [];
@@ -87,7 +92,7 @@ test('AirPlay stop keeps a stale queue invalidated and locked until player clean
     require(runtimePath)(RED);
     const node = new NodeConstructor({
         config: 'tts-config',
-        playertype: 'airplay',
+        playertype: playerType,
         playeripaddress: 'master.local',
         playervolume: '40',
         sonosipaddress: '',
@@ -96,6 +101,8 @@ test('AirPlay stop keeps a stale queue invalidated and locked until player clean
         voice: 'it',
         rules: []
     });
+
+    assert.equal(playerOptions.transport, playerType === 'airplay2' ? 'airplay2' : 'raop');
 
     t.after(async () => {
         stopCleanup.resolve();
@@ -215,3 +222,5 @@ test('AirPlay stop keeps a stale queue invalidated and locked until player clean
         'the master error output'
     );
 });
+
+}

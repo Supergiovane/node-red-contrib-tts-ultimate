@@ -131,7 +131,8 @@
             <option value="sonos">Sonos</option>
             <option value="googlecast">Google Cast (Chromecast / Nest)</option>
             <option value="dlna">DLNA / UPnP renderer</option>
-            <option value="airplay">AirPlay 2 (HomePod, experimental)</option>
+            <option value="airplay">HomePod — RAOP (experimental)</option>
+            <option value="airplay2">HomePod — AirPlay 2 + NTP (experimental)</option>
             <option value="noplayer">No player, only output file name.</option>
         </select>
     </div>
@@ -342,16 +343,20 @@
 
         // Discovery endpoint used by the main network-player field and, for supported
         // player types, by each row in the "Additional players" list.
+        function isAirPlayPlayer(pt) {
+          return pt === "airplay" || pt === "airplay2";
+        }
+
         function currentPlayerDiscoveryUrl() {
           var pt = $("#node-input-playertype").val();
           if (pt === "googlecast") return 'ttsultimateDiscoverCast';
           if (pt === "dlna") return 'ttsultimateDiscoverDLNA';
-          if (pt === "airplay") return 'ttsultimateDiscoverAirPlay';
+          if (isAirPlayPlayer(pt)) return 'ttsultimateDiscoverAirPlay';
           return 'sonosgetAllGroups';
         }
 
         function supportsAdditionalPlayers(pt) {
-          return pt === "sonos" || pt === "googlecast" || pt === "dlna" || pt === "airplay";
+          return pt === "sonos" || pt === "googlecast" || pt === "dlna" || isAirPlayPlayer(pt);
         }
 
         function discoveredPlayerAliases(device) {
@@ -389,7 +394,7 @@
         }
 
         function legacyAirPlayAddressMatch(savedHost, device, playerType) {
-          if (playerType !== "airplay") return null;
+          if (playerType !== "airplay" && playerType !== "airplay2") return null;
           var configuredHost = String(savedHost || "").trim();
           var currentAddress = String(device && device.address || "").trim();
           if (!configuredHost || configuredHost.toLowerCase() !== currentAddress.toLowerCase()) return null;
@@ -407,7 +412,7 @@
         function runPlayerDiscovery() {
           var pt = $("#node-input-playertype").val();
           var requestGeneration = ++playerDiscoveryGeneration;
-          var noun = pt === "googlecast" ? "Cast devices" : (pt === "airplay" ? "HomePods" : "renderers");
+          var noun = pt === "googlecast" ? "Cast devices" : (isAirPlayPlayer(pt) ? "HomePods" : "renderers");
           // The address field is the persisted value. Keep it selected in the
           // discovery list when the editor is opened again, just like Sonos.
           var savedHost = String($("#node-input-playeripaddress").val() || node.playeripaddress || "").trim();
@@ -498,8 +503,8 @@
         function refreshPlayerSections() {
           var pt = $("#node-input-playertype").val();
           $("#divSonos").toggle(pt === "sonos");
-          $("#divCastDlna").toggle(pt === "googlecast" || pt === "dlna" || pt === "airplay");
-          $("#playerDiscoverRow").toggle(pt === "googlecast" || pt === "dlna" || pt === "airplay");
+          $("#divCastDlna").toggle(pt === "googlecast" || pt === "dlna" || isAirPlayPlayer(pt));
+          $("#playerDiscoverRow").toggle(pt === "googlecast" || pt === "dlna" || isAirPlayPlayer(pt));
           // Additional players are supported for Sonos, Google Cast, DLNA and AirPlay.
           $("#divAdditionalPlayers").toggle(supportsAdditionalPlayers(pt));
           if (pt === "googlecast") {
@@ -508,12 +513,12 @@
           } else if (pt === "dlna") {
             $("#playeraddresslabel").text("Renderer description URL");
             $("#playeraddresshint").text("UPnP device description XML URL, e.g. http://192.168.1.50:1400/desc.xml");
-          } else if (pt === "airplay") {
+          } else if (isAirPlayPlayer(pt)) {
             $("#playeraddresslabel").text("Master HomePod");
             $("#playeraddresshint").text("Select the master HomePod. Its stable mDNS identity follows DHCP address changes automatically. A stereo pair appears as one device.");
           }
           // Auto-discover the first time a discoverable section is shown.
-          if ((pt === "googlecast" || pt === "dlna" || pt === "airplay") && !playerDiscovered) {
+          if ((pt === "googlecast" || pt === "dlna" || isAirPlayPlayer(pt)) && !playerDiscovered) {
             playerDiscovered = true;
             runPlayerDiscovery();
           }

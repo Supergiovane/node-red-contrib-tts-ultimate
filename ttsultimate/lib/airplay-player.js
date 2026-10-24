@@ -1145,7 +1145,7 @@ function createAirPlayPlayer(options) {
             const modules = await awaitOperation(session, getModules());
             ensureActive(session);
             const hasRaopDiscovery = Boolean(modules.raop && modules.common);
-            const usesRaop = hasRaopDiscovery && process.env.TTS_ULTIMATE_AIRPLAY2_NTP !== '1';
+            const usesRaop = hasRaopDiscovery && opts.transport !== 'airplay2';
 
             const sourcePromise = createSourceAfterDecoderWarmup(modules.audio, configuredSource, session);
             sourcePromise.then((lateSource) => {
