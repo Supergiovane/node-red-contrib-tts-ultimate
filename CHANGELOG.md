@@ -3,6 +3,19 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 <p>
+<b>Version 3.5.0</b> October 2026<br/>
+
+- FIX: **Sonos music resume rewritten**. Before the announcement the node now saves the real source of the player (music queue, radio, TV, line-in, group), the queue track and position, shuffle/repeat mode and the play state, and restores exactly that afterwards. Before, a playing music queue never restarted, queues of Spotify tracks and radio stations were added to the user's queue again, a grouped player didn't rejoin its group and resuming an additional player could stop the main one.<br/>
+- CHANGE: a paused queue or radio is restored but stays paused. Spotify Connect / AirPlay sessions started from a phone app can't be resumed and are left alone.<br/>
+- CHANGE: the "sonos" package is replaced by a native Sonos client with the same behaviour (same SOAP requests and results), removing "sonos", "axios", "ip" and "xml2js" from the dependency tree (#104).<br/>
+- CHANGE: Google Cast now uses a native Cast client instead of the unmaintained "castv2-client", removing "castv2" and its old "protobufjs" (#104).<br/>
+- CHANGE: ElevenLabs V1 and V2 now use a native REST client instead of the deprecated "elevenlabs" and "elevenlabs-node" packages. Requests are unchanged and cached files stay valid (#104).<br/>
+- CHANGE: "@google-cloud/text-to-speech" updated to 7.2.0 and loaded only when Google TTS is selected (#104).<br/>
+- FIX: a wrong ElevenLabs V2 API key no longer causes an unhandled promise rejection.<br/>
+- NOTE: `npm audit` now reports 0 vulnerabilities for the production dependencies.<br/>
+</p>
+
+<p>
 <b>Version 3.4.0</b> October 2026<br/>
 
 - SECURITY: the editor endpoints that upload hailing files, own files and the Google credentials file now require Node-RED write permission. Before, they could be called without logging in, even with `adminAuth` enabled.<br/>

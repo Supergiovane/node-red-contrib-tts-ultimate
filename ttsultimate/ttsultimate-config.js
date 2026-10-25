@@ -10,16 +10,14 @@ module.exports = function (RED) {
 
 
     // Setting up the engines
-    const GoogleTTS = require('@google-cloud/text-to-speech');
     const GoogleTranslate = require('./lib/googletranslate'); // Native TTS without credentials, limited to 200 chars per row.
-    const elevenlabsTTS = require("elevenlabs-node"); // 03/08/2023
-    const ElevenLabsClient = require("elevenlabs").ElevenLabsClient;
+    const elevenlabs = require('./lib/elevenlabs'); // 10/2026 Native ElevenLabs REST client (replaces "elevenlabs" and "elevenlabs-node")
 
     var fs = require('fs');
     var path = require("path");
     var formidable = require('formidable');
     const oOS = require('os');
-    const sonos = require('sonos');
+    const sonos = require('./lib/sonos-player'); // 10/2026 native client, replaces the "sonos" package
     const dlnaDiscovery = require('./lib/dlna-discovery'); // 06/2026 SSDP discovery of DLNA/UPnP renderers
     const castDiscovery = require('./lib/googlecast-discovery'); // 06/2026 mDNS discovery of Google Cast devices
     const airplayDiscovery = require('./lib/airplay-discovery'); // 08/2026 mDNS discovery of HomePod/AirPlay 2 devices
@@ -109,6 +107,8 @@ module.exports = function (RED) {
                 RED.log.info("ttsultimate-config " + node.id + ": Google credentials are stored in the file " + path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials", "googlecredentials.json"));
                 process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(node.TTSRootFolderPath, "ttsultimategooglecredentials", "googlecredentials.json");
                 try {
+                    // 10/2026 Loaded only when Google TTS is selected (it pulls in the whole gRPC stack)
+                    const GoogleTTS = require('@google-cloud/text-to-speech');
                     node.googleTTS = new GoogleTTS.TextToSpeechClient();
                     RED.log.info("ttsultimate-config " + node.id + ": Google TTS service enabled. ")
                 } catch (error) {
@@ -138,81 +138,30 @@ module.exports = function (RED) {
 
         // #########################################
 
-        // elevenlabsTTS v1 deprecated
-        if (node.ttsservice === "elevenlabs") {
+        // elevenlabsTTS v1 (deprecated) and v2. 10/2026 Both use the native REST client in lib/elevenlabs.
+        if (node.ttsservice === "elevenlabs" || node.ttsservice === "elevenlabsv2") {
+            const isV2 = node.ttsservice === "elevenlabsv2";
+            const sVersion = isV2 ? "elevenlabsv2" : "elevenlabs";
             node.elevenlabsTTSVoiceList = []
-            try {
-                node.elevenlabsTTS = elevenlabsTTS;
-                try {
-                    node.elevenlabsTTS.getVoices(node.credentials.elevenlabsKey).then((res) => {
-                        try {
-                            res.voices.forEach(element => {
-                                node.elevenlabsTTSVoiceList.push({ name: element.labels.accent + " - " + element.name + " (" + element.labels.gender + ")", id: element.voice_id })
-                            });
-                            node.elevenlabsTTSVoiceList.sort(function (a, b) {
-                                let x = a.name.toLowerCase();
-                                let y = b.name.toLowerCase();
-                                if (x < y) { return -1; }
-                                if (x > y) { return 1; }
-                                return 0;
-                            });
-                        } catch (error) {
-                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs 2 voices: ' + error.message);
-                            node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs 2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                        }
-
-                    });
-                } catch (error) {
-                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabs voices: ' + error.message);
-                    node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabs voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                }
-                RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS service enabled.")
-            } catch (error) {
-                RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS service disabled. " + error.message)
-            }
-
-        } else {
-            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
-        }
-
-        // elevenlabsTTS v2
-        if (node.ttsservice === "elevenlabsv2") {
-            const elevenlabsv2 = new ElevenLabsClient({
-                apiKey: node.credentials.elevenlabsKey
+            node.elevenlabsTTS = elevenlabs;
+            elevenlabs.getVoices(node.credentials.elevenlabsKey).then((voices) => {
+                voices.forEach(element => {
+                    const labels = element.labels || {};
+                    const sLanguage = isV2 && labels.language !== undefined ? " (" + labels.language + ")" : "";
+                    node.elevenlabsTTSVoiceList.push({ name: labels.accent + sLanguage + " - " + element.name + " (" + labels.gender + ")", id: element.voice_id })
+                });
+                node.elevenlabsTTSVoiceList.sort(function (a, b) {
+                    let x = a.name.toLowerCase();
+                    let y = b.name.toLowerCase();
+                    if (x < y) { return -1; }
+                    if (x > y) { return 1; }
+                    return 0;
+                });
+            }).catch((error) => {
+                RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting ' + sVersion + ' voices: ' + error.message);
+                node.elevenlabsTTSVoiceList.push({ name: "Error getting " + sVersion + " voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
             });
-            node.elevenlabsTTSVoiceList = []
-            try {
-                node.elevenlabsTTS = elevenlabsv2;
-                try {
-                    node.elevenlabsTTS.voices.getAll().then((res) => {
-                        try {
-                            res.voices.forEach(element => {
-                                node.elevenlabsTTSVoiceList.push({ name: element.labels.accent + (element.labels.language !== undefined ? " (" + element.labels.language + ")" : "") + " - " + element.name + " (" + element.labels.gender + ")", id: element.voice_id })
-                            });
-                            node.elevenlabsTTSVoiceList.sort(function (a, b) {
-                                let x = a.name.toLowerCase();
-                                let y = b.name.toLowerCase();
-                                if (x < y) { return -1; }
-                                if (x > y) { return 1; }
-                                return 0;
-                            });
-                        } catch (error) {
-                            RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabsv2 voices: ' + error.message);
-                            node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabsv2  voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                        }
-
-                    });
-                } catch (error) {
-                    RED.log.error('ttsultimate-config ' + node.id + ': listVoices: Error getting elevenlabsv2 voices: ' + error.message);
-                    node.elevenlabsTTSVoiceList.push({ name: "Error getting elevenlabsv2 voices: " + error.message + " Check cretentials, deploy and restart node-red.", id: "Ivy" })
-                }
-                RED.log.info("ttsultimate-config " + node.id + ": elevenlabsTTS servicev2 enabled.")
-            } catch (error) {
-                RED.log.warn("ttsultimate-config " + node.id + ": elevenlabsTTS servicev2 disabled. " + error.message)
-            }
-
-        } else {
-            //RED.log.info("ttsultimate-config " + node.id + ": Google Translate free service not used.");
+            RED.log.info("ttsultimate-config " + node.id + ": " + sVersion + " service enabled.")
         }
 
         // Voice.ai TTS

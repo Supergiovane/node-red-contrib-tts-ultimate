@@ -5,7 +5,8 @@ module.exports = function (RED) {
 
   var fs = require('fs');
   var path = require('path');
-  const sonos = require('sonos');
+  const sonos = require('./lib/sonos-player'); // 10/2026 native client, replaces the "sonos" package
+  const sonosSnapshot = require('./lib/sonos-snapshot'); // 10/2026 snapshot/restore of the music playing before the TTS
   const { createAirPlayPlayer } = require('./lib/airplay-player');
   const crypto = require("crypto");
   const PLAYER_STOP_TIMEOUT_MS = 10000;
@@ -112,93 +113,13 @@ module.exports = function (RED) {
     }
 
     //#region ASYNC DECLARATIONS
-    // 30/12/2020 we are at the end of this crazy 2020
+    // 10/2026 Snapshot of what the player is doing (source, queue position, state), restored after the TTS
     function getMusicQueue(_oPlayer = node.SonosClient) {
-      return new Promise(function (resolve, reject) {
-        var oRet = null;
-        _oPlayer.currentTrack().then(track => {
-          oRet = track;// .queuePosition || 1; // Get the current track  in the queue.
-          _oPlayer.getCurrentState().then(state => {
-            // A music queue is playing and no TTS is speaking?
-            oRet.state = state;
-            resolve(oRet);
-          }).catch(err => {
-            //console.log('ttsultimate: getCurrentState: Error occurred %j', err);
-            reject(err);
-          })
-        }).catch(err => {
-          reject(err);
-          //console.log('ttsultimate: Error currentTrackoccurred %j', err);
-        });
-      });
+      return sonosSnapshot.takeSnapshot(_oPlayer);
     };
 
 
     let iWaitAfterSync = 100;
-    // 24/08/2021 Sync wrapper
-    function PLAYSync(_toPlay, _oPlayer = node.SonosClient) {
-      return new Promise((resolve, reject) => {
-        _oPlayer.play(_toPlay).then(result => {
-          if (iWaitAfterSync > 2000) console.log("PLAYSYNC")
-          let t = setTimeout(() => {
-            resolve(true);
-          }, iWaitAfterSync);
-        }).catch(err => {
-          RED.log.error("ttsultimate: Error PLAYSync: " + err.message);
-          reject(err);
-        });
-      });
-    }
-
-    // 24/08/2021 Sync wrapper
-    function SEEKSync(_Position, _oPlayer = node.SonosClient) {
-      return new Promise((resolve, reject) => {
-        _oPlayer.seek(_Position).then(result => {
-          if (iWaitAfterSync > 2000) console.log("SEEKSync", _Position)
-          let t = setTimeout(() => {
-            resolve(true);
-          }, iWaitAfterSync);
-        }).catch(err => {
-          //RED.log.error("ttsultimate: Error SEEKSync: " + err.message);
-          reject(err);
-        });
-      });
-    }
-
-    // 24/08/2021 Sync wrapper
-    function SELECTQUEUESync(_oPlayer = node.SonosClient) {
-      return new Promise((resolve, reject) => {
-        _oPlayer.selectQueue().then(result => {
-          if (iWaitAfterSync > 2000) console.log("SELECTQUEUESync")
-          try {
-            STOPSync(); // The SetQueue automatically starts playing, so i need to stop it now!
-          } catch (error) {
-          }
-          let t = setTimeout(() => {
-            resolve(true);
-          }, iWaitAfterSync);
-        }).catch(err => {
-          RED.log.error("ttsultimate: Error SELECTQUEUESync: " + err.message);
-          reject(err);
-        });
-      });
-    }
-
-    // 24/08/2021 Sync wrapper
-    function SELECTTRACKSync(_queuePosition, _oPlayer = node.SonosClient) {
-      return new Promise((resolve, reject) => {
-        _oPlayer.selectTrack(_queuePosition).then(result => {
-          if (iWaitAfterSync > 2000) console.log("SELECTTRACKSync", _queuePosition)
-          let t = setTimeout(() => {
-            resolve(true);
-          }, iWaitAfterSync);
-        }).catch(err => {
-          RED.log.error("ttsultimate: Error SELECTTRACKSync: " + err.message);
-          reject(err);
-        });
-      });
-    }
-
     // 24/08/2021 Sync wrapper
     function STOPSync(_oPlayer = node.SonosClient) {
       return new Promise((resolve, reject) => {
@@ -305,6 +226,7 @@ module.exports = function (RED) {
         let element = node.oAdditionalSonosPlayers[index].oPlayer;
 
         // 02/07/2021 Get the additional's player's volume set by app and the current track, to be set again in ungroupspealers
+        element.additionalPlayerCurrentTrack = null; // 10/2026 never resume a snapshot left over from a previous TTS
         try {
           element.additionalPlayerPreviousVolumeSetByApp = await element.getVolume();
           element.additionalPlayerCurrentTrack = await getMusicQueue(element);
@@ -475,88 +397,9 @@ module.exports = function (RED) {
     }
 
     // 30/12/2020 Supergiovane resume queue for radio, queue music, TV in , line in etc.
-    async function resumeMusicQueue(_oTrack, _oPlayer = node.SonosClient) {
-
-      if (_oTrack !== null) {
-        // Do some checks on the track.
-        if (_oTrack.hasOwnProperty("duration") && _oTrack.duration === 0 ||
-          (_oTrack.uri.startsWith("x-sonosprog-http") || _oTrack.uri.startsWith("x-sonosapi-hls-static") || _oTrack.uri.startsWith("x-sonos-spotify"))) {
-          // Stream
-          _oTrack.trackType = "stream";
-        } else if (_oTrack.hasOwnProperty("duration") && isNaN(_oTrack.duration)) {
-          // Line input
-          _oTrack.trackType = "lineinput";
-        } else {
-          // Music queue
-          _oTrack.trackType = "musicqueue";
-        }
-      } else {
-        // Track is null, nothing to resume.
-        return false;
-      }
-
-      // It's a radio station or a generic stream, not a queue.
-      if (_oTrack.trackType === "stream") {
-        if (_oTrack.state === "playing") {
-          // 03/09/2021 Play if it was playing
-          try {
-            await PLAYSync(_oTrack.uri, _oPlayer);
-          } catch (error) {
-            return error;
-          }
-          try {
-            await delay(1000);
-            await SEEKSync(_oTrack.position, _oPlayer);
-          } catch (error) {
-            // Don't care
-          }
-        }
-      } else {
-        if (_oTrack.trackType === "musicqueue") { // This indicates that is an audio file or stream station
-          try {
-            await SELECTQUEUESync(_oPlayer);
-          } catch (error) {
-            return error;
-          }
-          try {
-            await delay(1000);
-            await SELECTTRACKSync(_oTrack.queuePosition, _oPlayer);
-          } catch (error) {
-            return error;
-          }
-          try {
-            await delay(1000);
-            await SEEKSync(_oTrack.position, _oPlayer);
-          } catch (error) {
-            // Don't care
-          }
-          if (_oTrack.state === "playing") {
-            // 24/08/2021 Play if it was playing
-            try {
-              await PLAYSync(_oPlayer);
-            } catch (error) {
-              return error;
-            }
-          } else {
-            /// 03/09/2021
-            try {
-              await STOPSync(_oPlayer);
-            } catch (error) {
-              return error;
-            }
-          }
-        } else if (_oTrack.trackType === "lineinput") {
-          // Line in, TV in, etc...
-          if (_oTrack.state === "playing") {
-            try {
-              await setAVTransportURISync(_oTrack.uri, _oPlayer);
-            } catch (error) {
-              return error;
-            }
-          }
-        }
-      }
-      let t = setTimeout(() => { return true; }, 5000); // Wait some seconds 
+    // 10/2026 Restores the snapshot taken by getMusicQueue. Returns what was done, throws on errors.
+    async function resumeMusicQueue(_oSnapshot, _oPlayer = node.SonosClient) {
+      return sonosSnapshot.restoreSnapshot(_oPlayer, _oSnapshot, { wait: delay });
     };
 
     // Handle the queue
@@ -1083,11 +926,11 @@ module.exports = function (RED) {
           // Resume music
           if (!node.doNotResumeMusic) {
             try {
-              if (oCurTrack !== null && (!oCurTrack.hasOwnProperty("title") || oCurTrack.title.indexOf(".mp3") === -1)) {
+              if (oCurTrack !== null) {
                 node.setNodeStatus({ fill: 'grey', shape: 'ring', text: "Resuming original queue..." });
-                await resumeMusicQueue(oCurTrack);
+                const sResumed = await resumeMusicQueue(oCurTrack);
                 if (!isCurrentQueue()) return;
-                node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue." });
+                node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue: " + sResumed });
               } else {
                 // 28/08/2021 There was no queue playing. Delete the TTS from the queue
                 node.setNodeStatus({ fill: 'green', shape: 'ring', text: "No queue to resume." });
@@ -1103,11 +946,11 @@ module.exports = function (RED) {
               if (!isCurrentQueue()) return;
               let addPlayer = node.oAdditionalSonosPlayers[index].oPlayer;
               let trackAddPlayer = addPlayer.additionalPlayerCurrentTrack;
-              if (trackAddPlayer !== null) {
+              if (trackAddPlayer !== null && trackAddPlayer !== undefined) {
                 try {
-                  await resumeMusicQueue(trackAddPlayer, addPlayer);
+                  const sResumed = await resumeMusicQueue(trackAddPlayer, addPlayer);
                   if (!isCurrentQueue()) return;
-                  node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue additional player " + addPlayer.host || "" });
+                  node.setNodeStatus({ fill: 'green', shape: 'ring', text: "Done resuming queue additional player " + (addPlayer.host || "") + ": " + sResumed });
                 } catch (error) {
                   // Dont care
                   RED.log.warn("ttsultimate: Error resuming music queue of additional player " + error.message + " " + addPlayer.host || "");
@@ -1448,15 +1291,10 @@ module.exports = function (RED) {
       });
     }
     // 23/12/2020 Google TTS Service
-    function synthesizeSpeechGoogleTTS([ttsService, params]) {
-      return new Promise((resolve, reject) => {
-        ttsService.synthesizeSpeech(params, function (err, data) {
-          if (err !== null) {
-            return reject(err);
-          }
-          resolve(data.audioContent);
-        });
-      });
+    async function synthesizeSpeechGoogleTTS([ttsService, params]) {
+      if (!ttsService) throw new Error("Google TTS service not available. Check the credentials file, deploy and restart node-red.");
+      const [data] = await ttsService.synthesizeSpeech(params);
+      return data.audioContent;
     }
     // 26/12/2020 Google TTS Service
     async function synthesizeSpeechGoogleTranslate(ttsService, params) {
@@ -1545,55 +1383,17 @@ module.exports = function (RED) {
         }
       });
     };
-    // elevenLabs TTS Service
-    function synthesizeSpeechElevenLabs(ttsService, params) {
-      // const params = {
-      //     text: msg,
-      //     voice: node.voiceId
-      // };
-      function stream2buffer(stream) {
-        return new Promise((resolve, reject) => {
-          try {
-            const _buf = [];
-
-            stream.on("data", (chunk) => _buf.push(chunk));
-            stream.on("end", () => resolve(Buffer.concat(_buf)));
-            stream.on("error", (err) => reject(err));
-          } catch (error) {
-          }
-        });
-      }
-      return new Promise((resolve, reject) => {
-        // "model_id": "eleven_multilingual_v1",
-        const stability = params.voice_settings && params.voice_settings.stability !== undefined ? params.voice_settings.stability : null;
-        const similarity = params.voice_settings && params.voice_settings.similarity_boost !== undefined ? params.voice_settings.similarity_boost : null;
-        const model = params.model_id !== undefined && params.model_id !== "" ? params.model_id : "eleven_monolingual_v1";
-        ttsService.textToSpeechStream(node.server.credentials.elevenlabsKey, params.voice, params.text, stability, similarity, model).then((res) => {
-          try {
-            if (res !== undefined) {
-              resolve(stream2buffer(res));
-            } else {
-              reject(new Error("Please check credentials. The stream cannot be read from the elevenlabs TTS server"))
-            }
-          } catch (error) {
-            reject(error)
-          }
-        });
-      });
+    // 10/2026 elevenLabs TTS Service v1 (deprecated). params: { text, voice, model_id, voice_settings }
+    async function synthesizeSpeechElevenLabs(ttsService, params) {
+      // Like the former elevenlabs-node client, unset stability/similarity are sent as 0.
+      const settings = params.voice_settings || {};
+      return ttsService.textToSpeech(node.server.credentials.elevenlabsKey, Object.assign({}, params, {
+        voice_settings: { stability: settings.stability || 0, similarity_boost: settings.similarity_boost || 0 }
+      }));
     }
     // elevenLabs TTS Service
     async function synthesizeSpeechElevenLabsV2(ttsService, params) {
-      try {
-        const audioStream = await ttsService.generate(params);
-        const chunks = [];
-        for await (const chunk of audioStream) {
-          chunks.push(chunk);
-        }
-        const content = Buffer.concat(chunks);
-        return content;
-      } catch (error) {
-        throw (error);
-      }
+      return ttsService.textToSpeech(node.server.credentials.elevenlabsKey, params);
     }
 
     async function synthesizeSpeechVoiceAi(apiKey, params) {
@@ -1624,12 +1424,11 @@ module.exports = function (RED) {
     function playGoogleCastSync(host, url, volume0to100) {
       return new Promise((resolve, reject) => {
         if (!host) { reject(new Error("Google Cast: no device IP address configured")); return; }
-        let CastClient, DefaultMediaReceiver;
+        let CastClient;
         try {
-          CastClient = require("castv2-client").Client;
-          DefaultMediaReceiver = require("castv2-client").DefaultMediaReceiver;
+          CastClient = require("./lib/googlecast-player").CastClient; // 10/2026 native client, replaces castv2-client
         } catch (error) {
-          reject(new Error("castv2-client module not available: " + error.message));
+          reject(new Error("googlecast-player module not available: " + error.message));
           return;
         }
         const client = new CastClient();
@@ -1643,24 +1442,25 @@ module.exports = function (RED) {
         const startTimer = setTimeout(() => { fail(new Error("Google Cast: device did not start playing within 45s (check IP/network)")); }, 45000);
 
         client.on("error", (err) => fail(err));
-        client.connect(host, () => {
-          // Volume is 0..1 on Cast
-          try { client.setVolume({ level: Math.max(0, Math.min(1, volume0to100 / 100)) }, () => { }); } catch (e) { }
-          client.launch(DefaultMediaReceiver, (err, player) => {
-            if (err) { fail(err); return; }
-            let started = false;
-            player.on("status", (status) => {
-              if (!status) return;
-              if (status.playerState === "PLAYING") { started = true; clearTimeout(startTimer); }
-              // IDLE after playback started means the track has finished.
-              if (started && status.playerState === "IDLE") done();
-            });
-            const media = { contentId: url, contentType: "audio/mpeg", streamType: "BUFFERED" };
-            player.load(media, { autoplay: true }, (err2) => {
-              if (err2) fail(err2);
-            });
-          });
+        let started = false;
+        client.on("status", (status) => {
+          if (!status) return;
+          if (status.playerState === "PLAYING") { started = true; clearTimeout(startTimer); }
+          // IDLE after playback started means the track has finished.
+          if (started && status.playerState === "IDLE") done();
         });
+        (async () => {
+          try {
+            await client.connect(host);
+            // Volume is 0..1 on Cast
+            client.setVolume(Math.max(0, Math.min(1, volume0to100 / 100))).catch(() => { });
+            const app = await client.launchDefaultMediaReceiver();
+            const media = { contentId: url, contentType: "audio/mpeg", streamType: "BUFFERED" };
+            await client.load(app, media, true);
+          } catch (error) {
+            fail(error);
+          }
+        })();
       });
     }
 

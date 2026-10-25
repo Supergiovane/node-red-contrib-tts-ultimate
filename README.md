@@ -294,7 +294,7 @@ It can also work **without player**: generate an audio file, cache it, and pass 
 - **Multiple TTS engines**: Google free TTS, Google Cloud TTS, ElevenLabs and Voice.ai voices are supported.
 - **Additional-player playback**: add players for Sonos, Google Cast, DLNA or AirPlay and play one announcement on several devices at once.
 - **Automatic discovery**: find Sonos and DLNA/UPnP renderers via SSDP, and Google Cast devices and HomePods via mDNS.
-- **Music resume**: resume the previous queue after a Sonos announcement where supported. Some radio-station queues may not resume reliably because of Sonos API limitations. AirPlay does not resume previous media.
+- **Music resume**: after a Sonos announcement, the player goes back to what it was doing: the music queue at the same track, position and shuffle/repeat mode, a radio station, TV or line-in, or its group. Playback restarts only if it was playing. Spotify Connect and AirPlay sessions started from a phone app can't be resumed. AirPlay does not resume previous media.
 - **TTS caching**: generated audio is downloaded once and then served from cache. The cache survives reboots and updates.
 - **Offline-ready OwnFile playback**: upload custom audio messages and use them without an internet connection.
 
