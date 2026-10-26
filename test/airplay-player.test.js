@@ -428,6 +428,19 @@ test('AirPlay 2 transport uses explicit NTP timing and preserves mDNS discovery'
         assert.equal(harness.player.activeCount, 0);
     });
 
+    await t.test('sets MRP volume and unmutes before the first audio frame', async () => {
+        const harness = createHarness({
+            ...options,
+            volumeState: { outputDeviceUID: 'homepod-cluster-id', volumeCapabilities: 2 }
+        });
+        await harness.player.play(target, source, 35);
+        const events = harness.calls.map((call) => call[0]);
+        const streamIndex = events.indexOf('media.streamAudio');
+        assert.ok(events.indexOf('volume.set') >= 0 && events.indexOf('volume.set') < streamIndex);
+        assert.ok(events.indexOf('volume.unmute') >= 0 && events.indexOf('volume.unmute') < streamIndex);
+        assert.deepEqual(harness.calls.filter((call) => call[0] === 'volume.set'), [['volume.set', 0.35]]);
+    });
+
     await t.test('cleans up when NTP cannot start', async () => {
         const harness = createHarness({ ...options, timingServerListenError: new Error('NTP bind failed') });
         await assert.rejects(harness.player.play(target, source, 35), /NTP bind failed/);
@@ -452,6 +465,112 @@ test('AirPlay 2 transport uses explicit NTP timing and preserves mDNS discovery'
         assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 1);
         assert.equal(harness.player.activeCount, 0);
     });
+});
+
+test('AirPlay 2 transport rediscovers a stale cached address after DHCP changes', async () => {
+    const beforeRestart = {
+        address: '192.168.1.50',
+        id: 'AABBCCDDEEFF@selected-homepod.local',
+        fqdn: 'AABBCCDDEEFF@selected-homepod.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const afterRestart = Object.assign({}, beforeRestart, { address: '192.168.1.87' });
+    let currentResult = beforeRestart;
+    let moved = false;
+    const harness = createHarness({
+        useRaop: true,
+        raopDiscovery: async () => [currentResult],
+        connect: async (device) => {
+            if (moved && device.options.address === beforeRestart.address) {
+                throw new Error('connect ECONNREFUSED ' + beforeRestart.address);
+            }
+        },
+        playerOptions: { transport: 'airplay2' }
+    });
+
+    await harness.player.play('selected-homepod.local', '/srv/tts-storage/cache/before.mp3', 35);
+    moved = true;
+    currentResult = afterRestart;
+    const outcome = await harness.player.play('selected-homepod.local', '/srv/tts-storage/cache/after.mp3', 35);
+
+    assert.deepEqual(outcome, { status: 'completed', target: 'selected-homepod.local' });
+    assert.equal(harness.raopClients.length, 0);
+    assert.deepEqual(
+        harness.deviceCalls.filter((call) => call[0] === 'connect').map((call) => call[1]),
+        ['192.168.1.50', '192.168.1.50', '192.168.1.87']
+    );
+    assert.deepEqual(
+        harness.deviceCalls.filter((call) => call[0] === 'media.streamAudio').map((call) => call[1]),
+        ['192.168.1.50', '192.168.1.87']
+    );
+    assert.equal(harness.calls.filter((call) => call[0] === 'Discovery.raop.find').length, 2);
+    // Every connection attempt owns an NTP server and none survives playback.
+    assert.equal(harness.timingServers.length, 3);
+    assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 3);
+    assert.strictEqual(harness.instances[2].options.timingServer, harness.timingServers[2]);
+    assert.equal(harness.player.activeCount, 0);
+});
+
+test('AirPlay 2 stream failure invalidates the cached mDNS descriptor', async () => {
+    let failStream = true;
+    const harness = createHarness({
+        useRaop: true,
+        raopResults: [{
+            address: '192.168.1.50',
+            id: 'AABBCCDDEEFF@selected-homepod.local',
+            service: { type: '_raop._tcp', port: 7000 }
+        }],
+        streamAudio: async () => {
+            if (failStream) throw new Error('stream reset');
+        },
+        playerOptions: { transport: 'airplay2' }
+    });
+
+    await assert.rejects(
+        harness.player.play('selected-homepod.local', '/srv/tts-storage/cache/a.mp3', 35),
+        /stream reset/
+    );
+    failStream = false;
+    await harness.player.play('selected-homepod.local', '/srv/tts-storage/cache/b.mp3', 35);
+
+    assert.equal(harness.calls.filter((call) => call[0] === 'Discovery.raop.find').length, 2);
+    assert.equal(harness.player.activeCount, 0);
+});
+
+test('AirPlay 2 playGroup gives every HomePod its own NTP server and closes them all', async () => {
+    const results = ['50', '51', '52'].map((suffix, index) => ({
+        address: '192.168.1.' + suffix,
+        id: 'AABBCCDDEE0' + index + '@homepod-' + suffix + '.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    }));
+    const harness = createHarness({
+        useRaop: true,
+        uniqueSources: true,
+        raopResults: results,
+        receiverInfoForDevice: (address) => ({ psi: 'psi-' + address }),
+        playerOptions: { transport: 'airplay2' }
+    });
+
+    const result = await harness.player.playGroup(
+        { host: 'homepod-50.local', volume: 35 },
+        [
+            { host: 'homepod-51.local', volume: 20 },
+            { host: 'homepod-52.local', volume: 80 }
+        ],
+        '/srv/tts-storage/cache/group.mp3'
+    );
+
+    assert.equal(result.masterResult.status, 'completed');
+    assert.deepEqual(result.additionalResults.map((item) => item.status), ['fulfilled', 'fulfilled']);
+    assert.equal(harness.raopClients.length, 0);
+    assert.equal(harness.instances.length, 3);
+    assert.equal(new Set(harness.instances.map((device) => device.options.timingServer)).size, 3);
+    assert.deepEqual(
+        harness.deviceCalls.filter((call) => call[0] === 'media.streamAudio').map((call) => call[1]).sort(),
+        ['192.168.1.50', '192.168.1.51', '192.168.1.52']
+    );
+    assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 3);
+    assert.equal(harness.player.activeCount, 0);
 });
 
 test('RAOP resolves an AirPlay hardware selector to the matching receiver', async () => {

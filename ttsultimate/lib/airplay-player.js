@@ -607,7 +607,7 @@ function createAirPlayPlayer(options) {
         session.transport = 'sdk';
     }
 
-    async function connectControlDevice(session, modules, usesRaop) {
+    async function connectControlDevice(session, modules, usesRaop, canRediscover) {
         for (let attempt = 0; attempt < 2; attempt++) {
             const address = session.address || session.target;
             // Without a TimingServer, the SDK uses timingProtocol=None.
@@ -635,7 +635,7 @@ function createAirPlayPlayer(options) {
             }, () => { });
 
             try {
-                const staleCachedAttempt = usesRaop && attempt === 0 &&
+                const staleCachedAttempt = canRediscover && attempt === 0 &&
                     session.raopTargetFromCache && staleTargetTimeoutMs > 0;
                 await awaitOperation(session, connectPromise, {
                     timeoutMs: staleCachedAttempt ? staleTargetTimeoutMs : connectTimeoutMs,
@@ -646,7 +646,7 @@ function createAirPlayPlayer(options) {
             } catch (error) {
                 try { connectingDevice.disconnect(); } catch (disconnectError) { }
                 if (session.device === connectingDevice) session.device = null;
-                if (!usesRaop || attempt > 0 || session.stopped) throw error;
+                if (!canRediscover || attempt > 0 || session.stopped) throw error;
 
                 const previous = session.raopDiscoveryResult;
                 await discardPreparedRaop(session);
@@ -1200,7 +1200,7 @@ function createAirPlayPlayer(options) {
             // runs, where its output UID prevents two stereo-pair members from both
             // receiving a stream when an old/manual configuration contains them.
             if (!usesRaop || playOpts.streamBarrier) {
-                await connectControlDevice(session, modules, usesRaop);
+                await connectControlDevice(session, modules, usesRaop, hasRaopDiscovery);
                 ensureActive(session);
             }
 
@@ -1280,9 +1280,15 @@ function createAirPlayPlayer(options) {
                     // Start audio before the fallback retry. The control and streaming
                     // protocols are independent, so this does not imply MRP readiness.
                     streamPromise = Promise.resolve(session.device.media.streamAudio(session.source));
+                    if (hasRaopDiscovery) {
+                        streamPromise = streamPromise.catch((error) => {
+                            raopTargets.delete(normalizeTarget(session.target));
+                            throw error;
+                        });
+                    }
                 }
             } catch (error) {
-                if (usesRaop) raopTargets.delete(normalizeTarget(session.target));
+                if (hasRaopDiscovery) raopTargets.delete(normalizeTarget(session.target));
                 streamPromise = Promise.reject(error);
             }
             session.streamSettledPromise = streamPromise.then(() => { }, () => { }).then(async () => {
