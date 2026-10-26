@@ -83,11 +83,14 @@ module.exports = function (RED) {
     node.stopInProgress = false;
     node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
     node.sonosCoordinatorPreviousVolumeSetByApp = 0; // 05/07/2021 stores the main payer volume set by the sonos app
-    node.playertype = config.playertype === undefined ? "sonos" : config.playertype; // 20/09/2021 Player type
+    // Both HomePod transports share discovery, queueing, volume and stop handling.
+    node.playertype = config.playertype === "airplay2" ? "airplay" :
+      (config.playertype === undefined ? "sonos" : config.playertype);
     node.playeripaddress = (config.playeripaddress || "").trim(); // Cast IP, DLNA description URL, or AirPlay hostname/IP
     node.playervolume = config.playervolume === undefined ? "50" : config.playervolume; // Volume (0-100) for network players
     node.airPlayPlayer = node.playertype === "airplay" ? createAirPlayPlayer({
       allowedLocalRoot: node.userDir,
+      transport: config.playertype === "airplay2" ? "airplay2" : "raop",
       logger: {
         warn: (message) => RED.log.warn("ttsultimate: " + message)
       }

@@ -119,3 +119,27 @@ test('AirPlay editor restores saved master/additional selections visibly', () =>
         'the canonical master must not be saved again as an additional player'
     );
 });
+
+
+test('both HomePod transports share discovery and additional-player controls', () => {
+    const html = fs.readFileSync(editorPath, 'utf8');
+    assert.match(html, /<option value="airplay">HomePod — RAOP \(experimental\)<\/option>/);
+    assert.match(html, /<option value="airplay2">HomePod — AirPlay 2 \+ NTP \(experimental\)<\/option>/);
+    const script = html.match(/<script type="text\/javascript">([\s\S]*?)<\/script>/)[1];
+    let selected;
+    const start = script.indexOf('function isAirPlayPlayer');
+    const end = script.indexOf('function discoveredPlayerAliases');
+    const helpers = new Function('$', script.slice(start, end) +
+        '; return { currentPlayerDiscoveryUrl, supportsAdditionalPlayers };')(
+        () => ({ val: () => selected })
+    );
+    for (selected of ['airplay', 'airplay2']) {
+        assert.equal(helpers.currentPlayerDiscoveryUrl(), 'ttsultimateDiscoverAirPlay');
+        assert.equal(helpers.supportsAdditionalPlayers(selected), true);
+    }
+    const legacyStart = script.indexOf('function discoveredPlayerAliases');
+    const legacyEnd = script.indexOf('// Discovery for the MAIN player address field');
+    const legacyMatch = new Function(script.slice(legacyStart, legacyEnd) +
+        '; return legacyAirPlayAddressMatch;')();
+    assert.equal(legacyMatch('192.168.1.50', { address: '192.168.1.50' }, 'airplay2'), '192.168.1.50');
+});

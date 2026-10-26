@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const airplayDiscovery = require('./airplay-discovery');
 
 const DEFAULT_BACKGROUND_RETRY_INTERVAL_MS = 250;
 const DEFAULT_CANCEL_RETRY_INTERVAL_MS = 50;
@@ -9,6 +10,9 @@ const DEFAULT_CANCEL_RETRY_TIMEOUT_MS = 5000;
 const DEFAULT_CONNECT_TIMEOUT_MS = 45000;
 const DEFAULT_PLAYBACK_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_RAOP_CACHE_TTL_MS = 60 * 1000;
+const DEFAULT_STEREO_PAIR_CACHE_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_SYNC_STREAM_PREROLL_MS = 3000;
+const SYNC_STREAM_FEEDBACK_INTERVAL_MS = 2000;
 const DEFAULT_REMOTE_AUDIO_MAX_BYTES = 10 * 1024 * 1024;
 const DEFAULT_SOURCE_TIMEOUT_MS = 45000;
 const DEFAULT_STALE_TARGET_TIMEOUT_MS = 5000;
@@ -25,8 +29,9 @@ function loadModules() {
             import('@basmilius/apple-sdk'),
             import('@basmilius/apple-audio-source'),
             import('@basmilius/apple-raop'),
-            import('@basmilius/apple-common')
-        ]).then(([sdk, audio, raop, common]) => ({ sdk, audio, raop, common }));
+            import('@basmilius/apple-common'),
+            import('@basmilius/apple-airplay').catch(() => null)
+        ]).then(([sdk, audio, raop, common, airplay]) => ({ sdk, audio, raop, common, airplay }));
     }
     return modulesPromise;
 }
@@ -328,7 +333,11 @@ function createAirPlayPlayer(options) {
     const volumeReadyTimeoutMs = opts.volumeReadyTimeoutMs === undefined ? DEFAULT_VOLUME_READY_TIMEOUT_MS : opts.volumeReadyTimeoutMs;
     const volumeRetryIntervalMs = opts.volumeRetryIntervalMs === undefined ? DEFAULT_VOLUME_RETRY_INTERVAL_MS : opts.volumeRetryIntervalMs;
     const staleTargetTimeoutMs = opts.staleTargetTimeoutMs === undefined ? DEFAULT_STALE_TARGET_TIMEOUT_MS : opts.staleTargetTimeoutMs;
+    const syncStreamPrerollMs = opts.syncStreamPrerollMs === undefined ? DEFAULT_SYNC_STREAM_PREROLL_MS : opts.syncStreamPrerollMs;
+    const stereoPairCacheTtlMs = opts.stereoPairCacheTtlMs === undefined ? DEFAULT_STEREO_PAIR_CACHE_TTL_MS : opts.stereoPairCacheTtlMs;
     const raopTargets = new Map();
+    const stereoPairs = new Map();
+    let stopGeneration = 0;
 
     function warn(message) {
         if (typeof logger.warn === 'function') logger.warn(message);
@@ -607,10 +616,21 @@ function createAirPlayPlayer(options) {
         session.transport = 'sdk';
     }
 
-    async function connectControlDevice(session, modules, usesRaop) {
+    async function connectControlDevice(session, modules, usesRaop, canRediscover) {
         for (let attempt = 0; attempt < 2; attempt++) {
             const address = session.address || session.target;
-            const connectingDevice = new modules.sdk.HomePod({ address });
+            // Without a TimingServer, the SDK uses timingProtocol=None.
+            if (!usesRaop && modules.common && !session.timingServer) {
+                session.timingServer = new modules.common.TimingServer();
+                await awaitOperation(session, session.timingServer.listen(), {
+                    timeoutMs: connectTimeoutMs,
+                    timeoutMessage: 'AirPlay: NTP timing server timed out'
+                });
+            }
+            const connectingDevice = new modules.sdk.HomePod({
+                address,
+                ...(!usesRaop && session.timingServer ? { timingServer: session.timingServer } : {})
+            });
             session.device = connectingDevice;
             session.deviceDisconnected = false;
 
@@ -624,7 +644,7 @@ function createAirPlayPlayer(options) {
             }, () => { });
 
             try {
-                const staleCachedAttempt = usesRaop && attempt === 0 &&
+                const staleCachedAttempt = canRediscover && attempt === 0 &&
                     session.raopTargetFromCache && staleTargetTimeoutMs > 0;
                 await awaitOperation(session, connectPromise, {
                     timeoutMs: staleCachedAttempt ? staleTargetTimeoutMs : connectTimeoutMs,
@@ -635,7 +655,7 @@ function createAirPlayPlayer(options) {
             } catch (error) {
                 try { connectingDevice.disconnect(); } catch (disconnectError) { }
                 if (session.device === connectingDevice) session.device = null;
-                if (!usesRaop || attempt > 0 || session.stopped) throw error;
+                if (!canRediscover || attempt > 0 || session.stopped) throw error;
 
                 const previous = session.raopDiscoveryResult;
                 await discardPreparedRaop(session);
@@ -939,6 +959,7 @@ function createAirPlayPlayer(options) {
             const device = session.device;
             try {
                 if (session.raopClient) session.raopClient.stop();
+                else if (session.syncStream) session.syncStream.abort();
                 else if (device && device.media) device.media.stopStreamAudio();
             } catch (error) { }
 
@@ -1122,6 +1143,8 @@ function createAirPlayPlayer(options) {
             streamSettled: true,
             streamSettledPromise: Promise.resolve(),
             streamStarted: false,
+            syncProtocol: null,
+            syncStream: null,
             target: configuredTarget,
             timingServer: null,
             transport: 'sdk'
@@ -1133,7 +1156,8 @@ function createAirPlayPlayer(options) {
         try {
             const modules = await awaitOperation(session, getModules());
             ensureActive(session);
-            const usesRaop = Boolean(modules.raop && modules.common);
+            const hasRaopDiscovery = Boolean(modules.raop && modules.common);
+            const usesRaop = hasRaopDiscovery && opts.transport !== 'airplay2';
 
             const sourcePromise = createSourceAfterDecoderWarmup(modules.audio, configuredSource, session);
             sourcePromise.then((lateSource) => {
@@ -1163,7 +1187,7 @@ function createAirPlayPlayer(options) {
             // the current address before the optional MRP control connection; the
             // synthetic service-name .local value is not guaranteed to be an OS-
             // resolvable hostname, especially inside containers.
-            if (usesRaop) {
+            if (hasRaopDiscovery) {
                 await awaitOperation(session, ensureRaopTarget(session, modules), {
                     timeoutMs: connectTimeoutMs,
                     timeoutMessage: 'AirPlay: RAOP discovery timed out for ' + configuredTarget
@@ -1174,7 +1198,7 @@ function createAirPlayPlayer(options) {
                 // connects to its address. Otherwise a reassigned lease could make
                 // the control plane describe a different HomePod before RAOP gets
                 // a chance to invalidate the stale descriptor.
-                if (playOpts.streamBarrier && session.raopTargetFromCache) {
+                if (usesRaop && playOpts.streamBarrier && session.raopTargetFromCache) {
                     await awaitOperation(session, prepareRaopStream(session, modules), {
                         timeoutMs: connectTimeoutMs,
                         timeoutMessage: 'AirPlay: RAOP connection timed out for ' + configuredTarget
@@ -1188,7 +1212,7 @@ function createAirPlayPlayer(options) {
             // runs, where its output UID prevents two stereo-pair members from both
             // receiving a stream when an old/manual configuration contains them.
             if (!usesRaop || playOpts.streamBarrier) {
-                await connectControlDevice(session, modules, usesRaop);
+                await connectControlDevice(session, modules, usesRaop, hasRaopDiscovery);
                 ensureActive(session);
             }
 
@@ -1203,7 +1227,10 @@ function createAirPlayPlayer(options) {
                     playOpts.streamBarrier.arrive(session, () => {
                         // Resolve at barrier release, not arrival: another HomePod
                         // may publish the shared cluster while this one is waiting.
-                        const outputDeviceUID = resolveOutputDeviceUID(session);
+                        // An AirPlay 2 realtime stream is played only by the receiver
+                        // it is sent to, so stereo members are distinct outputs here.
+                        const outputDeviceUID = opts.transport === 'airplay2' ?
+                            '' : resolveOutputDeviceUID(session);
                         return outputDeviceUID ?
                             'output:' + outputDeviceUID :
                             'host:' + (session.address || session.target);
@@ -1230,10 +1257,8 @@ function createAirPlayPlayer(options) {
                 await setVolumeBeforeStream(session, modules.sdk, volume);
             ensureActive(session);
 
-            // The SDK's high-level AirPlay 2 realtime sender currently advertises a
-            // different PCM format from the decoded frames and can report completion
-            // even when a HomePod stays silent. RAOP is the package's HomePod audio
-            // path: it negotiates L16, runs an NTP timing server and sets RTSP volume.
+            // RAOP remains the default transport. The opt-in SDK path uses
+            // AirPlay 2 with the explicit NTP server passed during connection.
             if (usesRaop && !session.raopClient) {
                 await awaitOperation(session, prepareRaopStream(session, modules), {
                     timeoutMs: connectTimeoutMs,
@@ -1266,13 +1291,21 @@ function createAirPlayPlayer(options) {
                         // RaopClient owns the AudioSource start/stop lifecycle.
                         session.sourceStopped = true;
                     });
+                } else if (playOpts.syncStream && modules.airplay) {
+                    streamPromise = playOpts.syncStream.join(session, modules);
                 } else {
                     // Start audio before the fallback retry. The control and streaming
                     // protocols are independent, so this does not imply MRP readiness.
                     streamPromise = Promise.resolve(session.device.media.streamAudio(session.source));
+                    if (hasRaopDiscovery) {
+                        streamPromise = streamPromise.catch((error) => {
+                            raopTargets.delete(normalizeTarget(session.target));
+                            throw error;
+                        });
+                    }
                 }
             } catch (error) {
-                if (usesRaop) raopTargets.delete(normalizeTarget(session.target));
+                if (hasRaopDiscovery) raopTargets.delete(normalizeTarget(session.target));
                 streamPromise = Promise.reject(error);
             }
             session.streamSettledPromise = streamPromise.then(() => { }, () => { }).then(async () => {
@@ -1301,6 +1334,7 @@ function createAirPlayPlayer(options) {
             if (playOpts.sourceBarrier) playOpts.sourceBarrier.withdraw(session);
             if (playOpts.streamBarrier) playOpts.streamBarrier.withdraw(session);
             if (playOpts.playbackBarrier) playOpts.playbackBarrier.withdraw(session);
+            if (playOpts.syncStream) playOpts.syncStream.withdraw(session);
             if (session.stopped && session.stopReason !== 'user') {
                 await stopSession(session);
             } else {
@@ -1327,6 +1361,169 @@ function createAirPlayPlayer(options) {
         await stopSessions((session) => session.scope === scope, 'group-complete');
     }
 
+    // Streams one source to every HomePod of a group in lockstep through a shared
+    // NTP clock. Independent AirPlay 2 streams each anchor their own clock when
+    // they start, which is audible as an echo between nearby HomePods.
+    function createSyncStream(expectedParticipants) {
+        let expected = expectedParticipants;
+        let started = false;
+        let aborted = false;
+        let modules;
+        let wakePreroll = () => { };
+        const joined = new Map();
+        const withdrawn = new Set();
+
+        async function prepareTarget(session, timingServer) {
+            const discoveryResult = session.device && session.device.airplay &&
+                session.device.airplay.discoveryResult;
+            if (!discoveryResult) throw new Error('AirPlay: no AirPlay service known for ' + session.target);
+            const protocol = new modules.airplay.Protocol(discoveryResult);
+            session.syncProtocol = protocol;
+            protocol.useTimingServer(timingServer);
+            await protocol.connect();
+            await protocol.fetchInfo();
+            await protocol.pairing.start();
+            const keys = await protocol.pairing.transient();
+            protocol.controlStream.enableEncryption(keys.accessoryToControllerKey, keys.controllerToAccessoryKey);
+            await protocol.setupEventStreamForAudioStreaming(keys.sharedSecret, keys.pairingId);
+            return protocol;
+        }
+
+        function disconnectProtocol(session) {
+            const protocol = session.syncProtocol;
+            session.syncProtocol = null;
+            if (!protocol) return;
+            try { protocol.disconnect(); } catch (error) { }
+        }
+
+        async function run() {
+            const entries = Array.from(joined.entries());
+            const leader = (entries.find(([session]) => session.role === 'master') || entries[0])[0];
+            const prepared = await Promise.allSettled(entries.map(([session]) =>
+                prepareTarget(session, leader.timingServer)
+            ));
+            const targets = [];
+            prepared.forEach((result, index) => {
+                const [session, entry] = entries[index];
+                if (result.status === 'fulfilled' && !aborted) {
+                    targets.push({ entry, protocol: result.value, session });
+                    return;
+                }
+                disconnectProtocol(session);
+                entry.reject(aborted ? session.stopError || stoppedError() : result.reason);
+            });
+            if (targets.length === 0) return;
+
+            // HomePods estimate the NTP offset from a short burst right after SETUP.
+            // Starting audio at once leaves an audible echo on the first announcement
+            // after idle; a short pause lets the receivers settle first.
+            if (syncStreamPrerollMs > 0 && !aborted) {
+                await new Promise((resolve) => {
+                    const timer = setTimeout(resolve, syncStreamPrerollMs);
+                    wakePreroll = () => {
+                        clearTimeout(timer);
+                        resolve();
+                    };
+                });
+            }
+            if (aborted) {
+                targets.forEach((target) => {
+                    disconnectProtocol(target.session);
+                    target.entry.reject(target.session.stopError || stoppedError());
+                });
+                return;
+            }
+
+            const owner = targets.find((target) => target.session === leader) || targets[0];
+            const source = owner.session.source;
+            // An abort ends the stream like a finished file, so every receiver
+            // still gets its silence padding and an orderly TEARDOWN.
+            const abortableSource = {
+                readFrames: (count) => aborted ? Promise.resolve(null) : source.readFrames(count)
+            };
+            const feedback = setInterval(() => {
+                targets.forEach((target) => {
+                    Promise.resolve().then(() => target.protocol.feedback()).catch(() => { });
+                });
+            }, SYNC_STREAM_FEEDBACK_INTERVAL_MS);
+            try {
+                const multiplexer = new modules.airplay.AudioMultiplexer(owner.protocol.context);
+                targets.forEach((target) => multiplexer.addTarget(target.protocol));
+                await multiplexer.stream(abortableSource);
+                targets.forEach((target) => target.entry.resolve());
+            } catch (error) {
+                targets.forEach((target) => target.entry.reject(error));
+            } finally {
+                clearInterval(feedback);
+                targets.forEach((target) => disconnectProtocol(target.session));
+            }
+        }
+
+        function startIfReady() {
+            if (started || joined.size < expected || joined.size === 0) return;
+            started = true;
+            run().catch((error) => {
+                joined.forEach((entry) => entry.reject(error));
+            });
+        }
+
+        return {
+            join(session, loadedModules) {
+                modules = loadedModules;
+                let entry;
+                const promise = new Promise((resolve, reject) => { entry = { resolve, reject }; });
+                joined.set(session, entry);
+                session.syncStream = this;
+                startIfReady();
+                return promise;
+            },
+            withdraw(session) {
+                if (started || joined.has(session) || withdrawn.has(session)) return;
+                withdrawn.add(session);
+                expected = Math.max(0, expected - 1);
+                startIfReady();
+            },
+            abort() {
+                aborted = true;
+                wakePreroll();
+            }
+        };
+    }
+
+    async function discoverStereoDevices() {
+        if (typeof opts.discoverDevices === 'function') return opts.discoverDevices();
+        const modules = await getModules();
+        return airplayDiscovery.discoverAirPlayDevices({ commonModule: modules.common });
+    }
+
+    // Returns the other members of the stereo pair that contains host. Discovery
+    // failures are not fatal: the configured HomePod still plays on its own.
+    async function resolveStereoPartners(host) {
+        const key = normalizeTarget(host);
+        const cached = stereoPairs.get(key);
+        if (cached && cached.expiresAt > Date.now()) return cached.partners;
+
+        let partners = [];
+        try {
+            const devices = await discoverStereoDevices();
+            const pair = (Array.isArray(devices) ? devices : []).find((device) =>
+                Array.isArray(device.memberHosts) && device.memberHosts.length > 1 &&
+                [device.host, device.address].concat(device.memberHosts, device.members || [])
+                    .some((candidate) => normalizeTarget(candidate) === key)
+            );
+            if (pair) {
+                partners = pair.memberHosts.filter((member) => normalizeTarget(member) !== key);
+            }
+        } catch (error) {
+            warn('AirPlay: stereo pair discovery failed for ' + host + ': ' + error.message);
+            return partners;
+        }
+        if (stereoPairCacheTtlMs > 0) {
+            stereoPairs.set(key, { expiresAt: Date.now() + stereoPairCacheTtlMs, partners });
+        }
+        return partners;
+    }
+
     async function playGroup(masterTarget, additionalTargets, source) {
         const master = masterTarget || {};
         const masterHost = String(master.host || '').trim();
@@ -1346,6 +1543,30 @@ function createAirPlayPlayer(options) {
             additional.push({ host, volume: clampVolume(item.volume) });
         });
 
+        // A stereo pair forwards AirPlay 2 realtime audio to neither member, so
+        // stream to every member. The partners follow their configured target's volume.
+        if (opts.transport === 'airplay2') {
+            const configured = [{ host: masterHost, volume: clampVolume(master.volume) }].concat(additional);
+            const generation = stopGeneration;
+            const partnerLists = await Promise.all(configured.map((target) => resolveStereoPartners(target.host)));
+            // No session exists yet, so a stop during discovery must be honoured here.
+            if (generation !== stopGeneration) {
+                return {
+                    additionalResults: [],
+                    master: { host: masterHost, volume: clampVolume(master.volume) },
+                    masterResult: { reason: 'user', status: 'stopped', target: masterHost }
+                };
+            }
+            partnerLists.forEach((partners, index) => {
+                partners.forEach((host) => {
+                    const key = host.toLowerCase();
+                    if (seenHosts.has(key)) return;
+                    seenHosts.add(key);
+                    additional.push({ host, volume: configured[index].volume, stereoPartner: true });
+                });
+            });
+        }
+
         // Each target gets its own HomePod and audio-source instance. The scope lets
         // the master clean up only its companions, without racing a new priority item.
         const scope = Symbol('airplay-group');
@@ -1354,12 +1575,15 @@ function createAirPlayPlayer(options) {
             createOutputBarrier(1 + additional.length) : null;
         const playbackBarrier = additional.length > 0 ?
             createStartBarrier(1 + additional.length) : null;
+        const syncStream = opts.transport === 'airplay2' && additional.length > 0 ?
+            createSyncStream(1 + additional.length) : null;
         const masterPromise = play(masterHost, configuredSource, clampVolume(master.volume), {
             playbackBarrier,
             role: 'master',
             scope,
             sourceBarrier,
-            streamBarrier
+            streamBarrier,
+            syncStream
         });
         const additionalPromises = additional.map((target) =>
             play(target.host, configuredSource, target.volume, {
@@ -1367,7 +1591,8 @@ function createAirPlayPlayer(options) {
                 role: 'additional',
                 scope,
                 sourceBarrier,
-                streamBarrier
+                streamBarrier,
+                syncStream
             }).then(
                 (playResult) => playResult && playResult.status === 'skipped' ?
                     { reason: playResult.reason, status: 'skipped', target } :
@@ -1397,6 +1622,7 @@ function createAirPlayPlayer(options) {
     }
 
     async function stop() {
+        stopGeneration++;
         await stopSessions(() => true, 'user');
     }
 
@@ -1429,6 +1655,8 @@ module.exports = {
     DEFAULT_REMOTE_AUDIO_MAX_BYTES,
     DEFAULT_SOURCE_TIMEOUT_MS,
     DEFAULT_STALE_TARGET_TIMEOUT_MS,
+    DEFAULT_STEREO_PAIR_CACHE_TTL_MS,
+    DEFAULT_SYNC_STREAM_PREROLL_MS,
     DEFAULT_VOLUME_TIMEOUT_MS,
     DEFAULT_VOLUME_RETRY_INTERVAL_MS,
     clampVolume,
