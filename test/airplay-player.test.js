@@ -42,6 +42,10 @@ function createHarness(options) {
         sourceSequence += 1;
         const source = {
             id: kind + '-source-' + sourceSequence,
+            async readFrames() {
+                calls.push(['source.readFrames', source.id]);
+                return Buffer.alloc(4);
+            },
             async stop() {
                 calls.push(['source.stop', source.id]);
                 if (opts.sourceStopError) throw opts.sourceStopError;
@@ -75,6 +79,15 @@ function createHarness(options) {
                 opts.volumeStateForDevice(deviceOptions.address) :
                 opts.volumeState;
             if (volumeState) this.airplay = { state: volumeState };
+            if (opts.syncAirplay) {
+                this.airplay = Object.assign(this.airplay || {}, {
+                    discoveryResult: {
+                        address: deviceOptions.address,
+                        id: deviceOptions.address,
+                        service: { type: '_airplay._tcp', port: 7000 }
+                    }
+                });
+            }
             this.volume = {
                 set: async (value) => {
                     volumeSetCalls += 1;
@@ -258,8 +271,70 @@ function createHarness(options) {
         };
     }
 
+    const syncProtocols = [];
+    if (opts.syncAirplay) {
+        class Protocol {
+            constructor(discoveryResult) {
+                this.discoveryResult = discoveryResult;
+                this.context = { logger: {} };
+                this.pairing = {
+                    start: async () => { },
+                    transient: async () => ({
+                        accessoryToControllerKey: 'a2c',
+                        controllerToAccessoryKey: 'c2a',
+                        pairingId: 'pairing-id',
+                        sharedSecret: 'secret'
+                    })
+                };
+                this.controlStream = { enableEncryption() { } };
+                calls.push(['Protocol', discoveryResult.address]);
+                syncProtocols.push(this);
+            }
+
+            useTimingServer(timingServer) {
+                this.timingServer = timingServer;
+            }
+
+            async connect() {
+                calls.push(['Protocol.connect', this.discoveryResult.address]);
+                if (opts.protocolConnect) return opts.protocolConnect(this);
+            }
+
+            async fetchInfo() { }
+
+            async setupEventStreamForAudioStreaming() {
+                calls.push(['Protocol.setup', this.discoveryResult.address]);
+            }
+
+            async feedback() { }
+
+            disconnect() {
+                calls.push(['Protocol.disconnect', this.discoveryResult.address]);
+            }
+        }
+
+        class AudioMultiplexer {
+            constructor() {
+                this.targets = [];
+            }
+
+            addTarget(protocol) {
+                this.targets.push(protocol);
+            }
+
+            async stream(source) {
+                calls.push(['AudioMultiplexer.stream', this.targets.map((target) => target.discoveryResult.address)]);
+                if (opts.multiplexStream) return opts.multiplexStream(source, this);
+                await source.readFrames(352);
+            }
+        }
+
+        modules.airplay = { AudioMultiplexer, Protocol };
+    }
+
     const player = createAirPlayPlayer(Object.assign({
         allowedLocalRoot: '/srv/tts-storage',
+        syncStreamPrerollMs: 0,
         connectTimeoutMs: 0,
         sourceTimeoutMs: 0,
         playbackTimeoutMs: 0,
@@ -302,6 +377,7 @@ function createHarness(options) {
         raopClients,
         remoteSource,
         sources,
+        syncProtocols,
         timingServers,
         warnings,
         get loadCalls() {
@@ -571,6 +647,238 @@ test('AirPlay 2 playGroup gives every HomePod its own NTP server and closes them
     );
     assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 3);
     assert.equal(harness.player.activeCount, 0);
+});
+
+test('AirPlay 2 playGroup streams to every member of a stereo pair', async (t) => {
+    const leader = {
+        address: '192.168.1.238',
+        id: '569485BBB482@TV Soggiorno.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const partner = {
+        address: '192.168.1.185',
+        id: '0ABD67009290@TV Soggiorno.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    };
+    const pairDevice = {
+        name: 'TV Soggiorno',
+        host: 'raop-device:569485bbb482',
+        address: '192.168.1.238',
+        members: ['192.168.1.238', '192.168.1.185'],
+        memberHosts: ['raop-device:569485bbb482', 'raop-device:0abd67009290']
+    };
+    const options = (extra) => {
+        const harness = { discoveries: 0 };
+        harness.options = {
+            useRaop: true,
+            uniqueSources: true,
+            raopResults: [leader, partner],
+            // Both members report the shared stereo cluster as their output.
+            volumeState: { outputDeviceUID: 'stereo-cluster', volumeCapabilities: 2 },
+            ...extra,
+            playerOptions: {
+                transport: 'airplay2',
+                discoverDevices: async () => {
+                    harness.discoveries += 1;
+                    if (extra && extra.discoverDevices) return extra.discoverDevices();
+                    return [pairDevice];
+                },
+                ...(extra && extra.playerOptions)
+            }
+        };
+        return harness;
+    };
+
+    await t.test('the partner is added with the master volume and is not a stereo duplicate', async () => {
+        const setup = options();
+        const harness = createHarness(setup.options);
+        const result = await harness.player.playGroup(
+            { host: 'raop-device:569485bbb482', volume: 30 }, [], '/srv/tts-storage/cache/pair.mp3'
+        );
+        assert.equal(result.masterResult.status, 'completed');
+        assert.deepEqual(result.additionalResults.map((item) => [item.status, item.target.host, item.target.volume]), [
+            ['fulfilled', 'raop-device:0abd67009290', 30]
+        ]);
+        assert.deepEqual(
+            harness.deviceCalls.filter((call) => call[0] === 'media.streamAudio').map((call) => call[1]).sort(),
+            ['192.168.1.185', '192.168.1.238']
+        );
+        assert.deepEqual(
+            harness.deviceCalls.filter((call) => call[0] === 'volume.set').map((call) => call[2]),
+            [0.3, 0.3]
+        );
+        assert.equal(harness.player.activeCount, 0);
+
+        await harness.player.playGroup(
+            { host: 'raop-device:569485bbb482', volume: 30 }, [], '/srv/tts-storage/cache/pair.mp3'
+        );
+        assert.equal(setup.discoveries, 1, 'the pair membership is cached between announcements');
+    });
+
+    await t.test('a member already configured as additional player is not streamed twice', async () => {
+        const setup = options();
+        const harness = createHarness(setup.options);
+        const result = await harness.player.playGroup(
+            { host: 'raop-device:569485bbb482', volume: 30 },
+            [{ host: 'raop-device:0abd67009290', volume: 50 }],
+            '/srv/tts-storage/cache/pair.mp3'
+        );
+        assert.deepEqual(result.additionalResults.map((item) => [item.target.host, item.target.volume]), [
+            ['raop-device:0abd67009290', 50]
+        ]);
+        assert.equal(harness.deviceCalls.filter((call) => call[0] === 'media.streamAudio').length, 2);
+    });
+
+    await t.test('a discovery failure still plays the configured HomePod', async () => {
+        const setup = options({ discoverDevices: async () => { throw new Error('mDNS unavailable'); } });
+        const harness = createHarness(setup.options);
+        const result = await harness.player.playGroup(
+            { host: 'raop-device:569485bbb482', volume: 30 }, [], '/srv/tts-storage/cache/pair.mp3'
+        );
+        assert.equal(result.masterResult.status, 'completed');
+        assert.deepEqual(result.additionalResults, []);
+        assert.match(harness.warnings.join('\n'), /stereo pair discovery failed.*mDNS unavailable/);
+    });
+
+    await t.test('a stop during pair discovery prevents a late playback', async () => {
+        const discovery = deferred();
+        const setup = options({ discoverDevices: () => discovery.promise });
+        const harness = createHarness(setup.options);
+        const playback = harness.player.playGroup(
+            { host: 'raop-device:569485bbb482', volume: 30 }, [], '/srv/tts-storage/cache/pair.mp3'
+        );
+        await harness.player.stop();
+        discovery.resolve([pairDevice]);
+        const result = await playback;
+        assert.equal(result.masterResult.status, 'stopped');
+        assert.equal(harness.instances.length, 0);
+    });
+
+    await t.test('RAOP keeps a stereo pair as one output', async () => {
+        const setup = options({ playerOptions: { transport: 'raop' } });
+        const harness = createHarness(setup.options);
+        await harness.player.playGroup(
+            { host: 'raop-device:569485bbb482', volume: 30 }, [], '/srv/tts-storage/cache/pair.mp3'
+        );
+        assert.equal(setup.discoveries, 0);
+        assert.equal(harness.raopClients.length, 1);
+    });
+});
+
+test('AirPlay 2 groups stream one source in lockstep through a shared NTP clock', async (t) => {
+    const results = ['50', '51'].map((suffix, index) => ({
+        address: '192.168.1.' + suffix,
+        id: 'AABBCCDDEE0' + index + '@homepod-' + suffix + '.local',
+        service: { type: '_raop._tcp', port: 7000 }
+    }));
+    const options = (extra) => ({
+        useRaop: true,
+        uniqueSources: true,
+        syncAirplay: true,
+        raopResults: results,
+        ...extra,
+        playerOptions: {
+            transport: 'airplay2',
+            discoverDevices: async () => [],
+            ...(extra && extra.playerOptions)
+        }
+    });
+    const playGroup = (harness) => harness.player.playGroup(
+        { host: 'homepod-50.local', volume: 30 },
+        [{ host: 'homepod-51.local', volume: 40 }],
+        '/srv/tts-storage/cache/group.mp3'
+    );
+
+    await t.test('every HomePod joins one multiplexed stream fed by the master source', async () => {
+        const harness = createHarness(options());
+        const result = await playGroup(harness);
+
+        assert.equal(result.masterResult.status, 'completed');
+        assert.deepEqual(result.additionalResults.map((item) => item.status), ['fulfilled']);
+        assert.equal(harness.calls.some((call) => call[0] === 'media.streamAudio'), false);
+        assert.deepEqual(
+            harness.calls.filter((call) => call[0] === 'AudioMultiplexer.stream').map((call) => call[1].sort()),
+            [['192.168.1.50', '192.168.1.51']]
+        );
+        const masterDevice = harness.instances.find((device) => device.options.address === '192.168.1.50');
+        assert.equal(harness.syncProtocols.length, 2);
+        harness.syncProtocols.forEach((protocol) => {
+            assert.strictEqual(protocol.timingServer, masterDevice.options.timingServer);
+        });
+        const readSources = harness.calls.filter((call) => call[0] === 'source.readFrames').map((call) => call[1]);
+        assert.equal(new Set(readSources).size, 1, 'a single decoded source feeds every receiver');
+        assert.deepEqual(
+            harness.calls.filter((call) => call[0] === 'Protocol.disconnect').map((call) => call[1]).sort(),
+            ['192.168.1.50', '192.168.1.51']
+        );
+        assert.equal(harness.calls.filter((call) => call[0] === 'TimingServer.close').length, 2);
+        assert.equal(harness.player.activeCount, 0);
+    });
+
+    await t.test('a HomePod that cannot open its stream session leaves the others playing', async () => {
+        const harness = createHarness(options({
+            protocolConnect: async (protocol) => {
+                if (protocol.discoveryResult.address === '192.168.1.51') throw new Error('stream session refused');
+            }
+        }));
+        const result = await playGroup(harness);
+
+        assert.equal(result.masterResult.status, 'completed');
+        assert.equal(result.additionalResults[0].status, 'rejected');
+        assert.match(result.additionalResults[0].reason.message, /stream session refused/);
+        assert.deepEqual(
+            harness.calls.filter((call) => call[0] === 'AudioMultiplexer.stream').map((call) => call[1]),
+            [['192.168.1.50']]
+        );
+        assert.equal(harness.calls.filter((call) => call[0] === 'Protocol.disconnect').length, 2);
+        assert.equal(harness.player.activeCount, 0);
+    });
+
+    await t.test('stop ends the shared stream like a finished file', async () => {
+        const streaming = deferred();
+        let framesAfterStop = 0;
+        const harness = createHarness(options({
+            multiplexStream: async (source) => {
+                streaming.resolve();
+                while (await source.readFrames(352)) {
+                    await new Promise((resolve) => setImmediate(resolve));
+                }
+                framesAfterStop = 1;
+            }
+        }));
+        const playback = playGroup(harness);
+        await streaming.promise;
+        await harness.player.stop();
+        const result = await playback;
+
+        assert.equal(result.masterResult.status, 'stopped');
+        assert.equal(framesAfterStop, 1, 'the multiplexer saw the end of the source and finished normally');
+        assert.equal(harness.calls.filter((call) => call[0] === 'Protocol.disconnect').length, 2);
+        assert.equal(harness.player.activeCount, 0);
+    });
+
+    await t.test('stop during the pre-roll pause never starts the audio', async () => {
+        const harness = createHarness(options({ playerOptions: { syncStreamPrerollMs: 60000 } }));
+        const playback = playGroup(harness);
+        const deadline = Date.now() + 1000;
+        while (harness.calls.filter((call) => call[0] === 'Protocol.setup').length < 2 && Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+        await harness.player.stop();
+        const result = await playback;
+
+        assert.equal(result.masterResult.status, 'stopped');
+        assert.equal(harness.calls.some((call) => call[0] === 'AudioMultiplexer.stream'), false);
+        assert.equal(harness.calls.filter((call) => call[0] === 'Protocol.disconnect').length, 2);
+        assert.equal(harness.player.activeCount, 0);
+    });
+
+    await t.test('a single HomePod keeps its own SDK stream', async () => {
+        const harness = createHarness(options());
+        await harness.player.playGroup({ host: 'homepod-50.local', volume: 30 }, [], '/srv/tts-storage/cache/one.mp3');
+        assert.equal(harness.syncProtocols.length, 0);
+        assert.equal(harness.calls.filter((call) => call[0] === 'media.streamAudio').length, 1);
+    });
 });
 
 test('RAOP resolves an AirPlay hardware selector to the matching receiver', async () => {
