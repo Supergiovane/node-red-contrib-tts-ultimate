@@ -123,7 +123,7 @@ test('AirPlay editor restores saved master/additional selections visibly', () =>
 
 test('both HomePod transports share discovery and additional-player controls', () => {
     const html = fs.readFileSync(editorPath, 'utf8');
-    assert.match(html, /<option value="airplay">HomePod \(AirPlay 2, experimental\)<\/option>/);
+    assert.match(html, /<option value="airplay">HomePod \(AirPlay 2\)<\/option>/);
     assert.match(html, /<option value="airplayraop">HomePod — RAOP \(legacy\)<\/option>/);
     assert.doesNotMatch(html, /<option value="airplay2">/, 'the pre-release value is only accepted, not offered');
     const script = html.match(/<script type="text\/javascript">([\s\S]*?)<\/script>/)[1];

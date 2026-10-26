@@ -219,7 +219,7 @@
 Here you can set all parameters you need. All nodes will refer to this config node, so you need to set it only once.<br/> 
 IF YOU RUN NODE-RED BEHIND DOCKER OR SOMETHING ELSE, BE AWARE: <br/>
 PORTS USED BY THE NODE ARE 1980 (DEFAULT, HTTP FILE SERVER) AND 1400 (FOR SONOS DISCOVERY). <br/>
-PLEASE ALLOW MDNS AND LOCAL TCP/UDP TRAFFIC AS WELL (USED FOR GOOGLE CAST, DLNA/UPNP AND EXPERIMENTAL AIRPLAY/HOMEPOD SUPPORT)
+PLEASE ALLOW MDNS AND LOCAL TCP/UDP TRAFFIC AS WELL (USED FOR GOOGLE CAST, DLNA/UPNP AND AIRPLAY/HOMEPOD SUPPORT)
 
 	**TTS Service**<br/>
 	You can choose between Google (without credentials), Google TTS (require credentials and registration to google), ElevenLabs or Voice.ai TTS engines.<br/>
@@ -263,7 +263,7 @@ set IP of your node-red machine. Write **AUTODISCOVER** to allow the node to aut
 
 **Host Port**<br/>
 Sonos, Google Cast and DLNA/UPnP renderers connect to this port to fetch the TTS audio. Default 1980. Choose a free port. Do not use 1880 or any other port already in use on your computer. The port must be reachable from those players on your network. AirPlay audio is streamed from Node-RED using separate local network connections instead of being fetched by the HomePod from this HTTP port.<br/>
-Experimental AirPlay 2 support requires Node-RED and all selected HomePods to be on the same local network with mDNS and local TCP/UDP traffic available. Docker installations commonly require host networking. In the Apple Home app, allow speaker and TV access for anyone on the same network and disable the AirPlay password.
+AirPlay 2 support requires Node-RED and all selected HomePods to be on the same local network with mDNS and local TCP/UDP traffic available. Docker installations commonly require host networking. In the Apple Home app, allow speaker and TV access for anyone on the same network and disable the AirPlay password.
 
 **TTS Cache**
 <br/>

@@ -3,7 +3,14 @@
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://www.paypal.me/techtoday)
 
 <p>
-<b>Version 3.5.0-beta.0</b> October 2026 (beta, install with `npm i node-red-contrib-tts-ultimate@beta`)<br/>
+<b>Version 3.5.0</b> October 2026<br/>
+
+- FIX: **HomePod playback is audible again**. The HomePod player now streams over AirPlay 2 with NTP timing. The previous RAOP transport reported completed playback but stayed silent on current HomePods. Existing flows switch automatically (#105, thanks @inakietxeba).<br/>
+- NEW: both HomePods of a **stereo pair** now play. Select the pair once as before; the other HomePod is found through mDNS.<br/>
+- NEW: several HomePods, including both members of a stereo pair, play **one synchronized stream**, so nearby HomePods no longer echo. Audio starts about 3 seconds after the HomePods are ready. A single HomePod starts immediately.<br/>
+- FIX: HomePod playback rediscovers the HomePod after a restart or a DHCP address change, and one HomePod that cannot play no longer stops the others.<br/>
+- CHANGE: the HomePod player is no longer experimental. The old RAOP transport stays available for this release as **HomePod — RAOP (legacy)** and will be removed in the next one.<br/>
+- CHANGE: "@basmilius/apple-airplay" 0.13.4 is now a direct dependency (same version the Apple SDK already used).<br/>
 
 - FIX: **Sonos music resume rewritten**. Before the announcement the node now saves the real source of the player (music queue, radio, TV, line-in, group), the queue track and position, shuffle/repeat mode and the play state, and restores exactly that afterwards. Before, a playing music queue never restarted, queues of Spotify tracks and radio stations were added to the user's queue again, a grouped player didn't rejoin its group and resuming an additional player could stop the main one.<br/>
 - CHANGE: a paused queue or radio is restored but stays paused. Spotify Connect / AirPlay sessions started from a phone app can't be resumed and are left alone.<br/>
