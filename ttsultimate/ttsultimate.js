@@ -83,14 +83,17 @@ module.exports = function (RED) {
     node.stopInProgress = false;
     node.currentMSGbeingSpoken = {}; // Stores the current message being spoken
     node.sonosCoordinatorPreviousVolumeSetByApp = 0; // 05/07/2021 stores the main payer volume set by the sonos app
-    // Both HomePod transports share discovery, queueing, volume and stop handling.
-    node.playertype = config.playertype === "airplay2" ? "airplay" :
+    // HomePod transports share discovery, queueing, volume and stop handling.
+    // "airplay" uses AirPlay 2 + NTP, "airplay2" is its pre-release alias and
+    // "airplayraop" keeps the legacy RAOP transport, which is silent on current HomePods.
+    const airPlayTransport = config.playertype === "airplayraop" ? "raop" : "airplay2";
+    node.playertype = config.playertype === "airplay2" || config.playertype === "airplayraop" ? "airplay" :
       (config.playertype === undefined ? "sonos" : config.playertype);
     node.playeripaddress = (config.playeripaddress || "").trim(); // Cast IP, DLNA description URL, or AirPlay hostname/IP
     node.playervolume = config.playervolume === undefined ? "50" : config.playervolume; // Volume (0-100) for network players
     node.airPlayPlayer = node.playertype === "airplay" ? createAirPlayPlayer({
       allowedLocalRoot: node.userDir,
-      transport: config.playertype === "airplay2" ? "airplay2" : "raop",
+      transport: airPlayTransport,
       logger: {
         warn: (message) => RED.log.warn("ttsultimate: " + message)
       }

@@ -28,7 +28,7 @@ function closeNode(node) {
     return new Promise((resolve) => node.emit('close', resolve));
 }
 
-for (const playerType of ['airplay', 'airplay2']) {
+for (const playerType of ['airplay', 'airplay2', 'airplayraop']) {
     test(playerType + ' stop keeps a stale queue invalidated and locked until player cleanup finishes', { timeout: 10000 }, async (t) => {
         const runtimePath = require.resolve('../ttsultimate/ttsultimate');
         const airPlayModule = require('../ttsultimate/lib/airplay-player');
@@ -102,7 +102,7 @@ for (const playerType of ['airplay', 'airplay2']) {
             rules: []
         });
 
-        assert.equal(playerOptions.transport, playerType === 'airplay2' ? 'airplay2' : 'raop');
+        assert.equal(playerOptions.transport, playerType === 'airplayraop' ? 'raop' : 'airplay2');
 
         t.after(async () => {
             stopCleanup.resolve();

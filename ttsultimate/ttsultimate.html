@@ -131,8 +131,8 @@
             <option value="sonos">Sonos</option>
             <option value="googlecast">Google Cast (Chromecast / Nest)</option>
             <option value="dlna">DLNA / UPnP renderer</option>
-            <option value="airplay">HomePod — RAOP (experimental)</option>
-            <option value="airplay2">HomePod — AirPlay 2 + NTP (experimental)</option>
+            <option value="airplay">HomePod (AirPlay 2, experimental)</option>
+            <option value="airplayraop">HomePod — RAOP (legacy)</option>
             <option value="noplayer">No player, only output file name.</option>
         </select>
     </div>
@@ -337,6 +337,9 @@
         if (node.playertype === undefined) {
           node.playertype = "sonos";
           $("#node-input-playertype").val("sonos");
+        } else if (node.playertype === "airplay2") {
+          // Pre-release value of the AirPlay 2 + NTP transport, now the default HomePod player.
+          $("#node-input-playertype").val("airplay");
         }
         var playerDiscovered = false; // discover only once per shown section, unless refreshed manually
         var playerDiscoveryGeneration = 0;
@@ -344,7 +347,7 @@
         // Discovery endpoint used by the main network-player field and, for supported
         // player types, by each row in the "Additional players" list.
         function isAirPlayPlayer(pt) {
-          return pt === "airplay" || pt === "airplay2";
+          return pt === "airplay" || pt === "airplay2" || pt === "airplayraop";
         }
 
         function currentPlayerDiscoveryUrl() {
@@ -394,7 +397,7 @@
         }
 
         function legacyAirPlayAddressMatch(savedHost, device, playerType) {
-          if (playerType !== "airplay" && playerType !== "airplay2") return null;
+          if (playerType !== "airplay" && playerType !== "airplay2" && playerType !== "airplayraop") return null;
           var configuredHost = String(savedHost || "").trim();
           var currentAddress = String(device && device.address || "").trim();
           if (!configuredHost || configuredHost.toLowerCase() !== currentAddress.toLowerCase()) return null;
@@ -1007,15 +1010,15 @@
 | Voice | Select your preferred voice. The list depends on the selected TTS engine (Google / ElevenLabs / Voice.ai). Google service without authentication has a limited set of voices. |
 | Hailing | Before the first TTS message of the message queues, the node will play an "hailing" sound. You can select the hailing, upload your own, or totally disable it. |
 | Upload hail | It allows you to upload your own hailing file. |
-| Player | Select the player: **Sonos**, **Google Cast** (Chromecast / Google Nest), **DLNA / UPnP renderer**, experimental **AirPlay 2** (HomePod), or **No player**. If you select No player, only output file name, the node will output a msg with an additional property filesArray, containing an array of all mp3 files ready to be played by third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
+| Player | Select the player: **Sonos**, **Google Cast** (Chromecast / Google Nest), **DLNA / UPnP renderer**, experimental **HomePod (AirPlay 2)**, the legacy **HomePod — RAOP**, or **No player**. If you select No player, only output file name, the node will output a msg with an additional property filesArray, containing an array of all mp3 files ready to be played by third party nodes. Please see below the OUTPUT MESSAGES FROM THE NODE section. |
 | Volume | Set the preferred TTS volume, from "0" to "100" (can be overridden by passing msg.volume = "40"; to the node). |
 | Unmute | (Sonos only) Unmute the main and the addotional players, then restore the previous mute state once finished. (Can be overridden by passing msg.unmute = true; to the node). |
 | Resume | (Sonos only) If music was playing prior to TTS messages, the node will try to resume it, but can fail in some cases. Enabla this option to avoid resuming music after TTS message. |
 | Main Sonos Player | Select your Sonos primary player. (It's strongly suggested to set a fixed IP for this player; you can reserve an IP using the DHCP Reservation function of your router/firewall's DHCP Server). It's possibile to group players, so your announcement can be played on all selected players. For this to happen, you need to select your primary coordinator player. All other players will be then controlled by this coordinator. |
 | Main Chromecast / Nest IP | (Google Cast) IP address of the main Google Cast device (e.g. 192.168.1.50). Press **Discover** to auto-detect the Cast devices on your network and pick one from the list. |
 | Renderer description URL | (DLNA) The full UPnP device description XML URL of the renderer (e.g. http://192.168.1.50:49153/nmrDescription.xml), **not** just the IP. Press **Discover** to auto-detect the DLNA renderers on your network and pick one from the list. |
-| Master HomePod | (AirPlay 2, experimental) Press **Discover** and select the master HomePod. TTS Ultimate stores a stable RAOP/mDNS selector and resolves the current address at playback time, so DHCP address changes are handled automatically. Manual IP addresses/hostnames remain supported; in flows saved with a legacy numeric HomePod IP, reselect the HomePod in **Discover** and save once. The master determines playback lifecycle/events and the overall success or error. A HomePod stereo pair is advertised as one device and must be selected only once. |
-| Additional Players | (Sonos / Google Cast / DLNA / AirPlay 2) Add additional players so your announcement is played on all of them. For Sonos they are grouped to the Main Player coordinator; for Google Cast and DLNA the TTS is played on every device in parallel. AirPlay additional HomePods receive independent parallel streams on a best-effort basis: they do not emit the lifecycle events used by the node, and their errors do not replace the master outcome. AirPlay playback is not sample-accurately synchronized. Use the "ADD" button below the list; for each additional player you can adjust its volume relative to the main volume (-100/+100). |
+| Master HomePod | (HomePod, experimental) Press **Discover** and select the master HomePod. TTS Ultimate stores a stable RAOP/mDNS selector and resolves the current address at playback time, so DHCP address changes are handled automatically. Manual IP addresses/hostnames remain supported; in flows saved with a legacy numeric HomePod IP, reselect the HomePod in **Discover** and save once. The master determines playback lifecycle/events and the overall success or error. A HomePod stereo pair is advertised as one device and must be selected only once; with AirPlay 2 both of its HomePods play. |
+| Additional Players | (Sonos / Google Cast / DLNA / AirPlay 2) Add additional players so your announcement is played on all of them. For Sonos they are grouped to the Main Player coordinator; for Google Cast and DLNA the TTS is played on every device in parallel. Additional HomePods are best-effort: they do not emit the lifecycle events used by the node, and their errors do not replace the master outcome. With AirPlay 2 all HomePods play one synchronized stream; with legacy RAOP they receive independent, unsynchronized streams. Use the "ADD" button below the list; for each additional player you can adjust its volume relative to the main volume (-100/+100). |
 
 **Google TTS Engines specific options**
 |Property|Description|
@@ -1043,12 +1046,13 @@
 | Sonos | Native control: grouping, volume, mute/unmute and music resume after the announcement. |
 | Google Cast | Chromecast and Google Nest devices, discovered via mDNS. Set the main device IP and, optionally, additional devices for synchronized multi-room playback. |
 | DLNA / UPnP renderer | Generic UPnP MediaRenderers (smart TVs, AV receivers, etc.), discovered via SSDP. Works with renderers that nest a MediaRenderer sub-device too (e.g. Sonos). Requires the full device description XML URL. |
-| AirPlay 2 (experimental) | HomePod playback over RAOP with mDNS discovery, automatic address refresh after DHCP changes, receiver timing and per-session volume. Select one master HomePod and, optionally, additional HomePods. The master controls lifecycle/events and the overall result; a master failure is emitted on the error output. Additional devices are best-effort independent streams, not a sample-accurately synchronized AirPlay group. A stereo pair exposed by Apple is one endpoint. Previous media is not resumed. |
+| HomePod (AirPlay 2, experimental) | HomePod playback over AirPlay 2 with NTP timing, mDNS discovery and automatic address refresh after DHCP changes. Select one master HomePod and, optionally, additional HomePods. The master controls lifecycle/events and the overall result; a master failure is emitted on the error output. Both HomePods of a stereo pair play, and several HomePods play one synchronized stream that starts about 3 seconds after they are ready. Previous media is not resumed. |
+| HomePod — RAOP (legacy) | The previous RAOP transport, kept for one release. It reports completed playback but stays silent on current HomePods; prefer AirPlay 2. |
 | No player | Only generates the mp3 file(s) and outputs their paths in filesArray, to be played by third party nodes. |
 
 For Google Cast and DLNA the device fetches the generated mp3 over HTTP from Node-RED, so the Node-RED host/port (default 1980) must be reachable from the player and on the same subnet (mDNS/SSDP discovery does not cross subnets/VLANs).
 
-For AirPlay 2, Node-RED and all HomePods must be on the same local network with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this experimental version. Docker installations commonly require host networking for discovery and audio transport. TTS Ultimate starts an independent stream to each selected AirPlay endpoint in parallel; this is not a native AirPlay multi-room group, so start times and playback may differ slightly between devices. AirPlay music resume is not supported. HTTP/HTTPS audio payloads must be MP3 and are limited to 10 MB with a 45-second download timeout.
+For AirPlay 2, Node-RED and all HomePods must be on the same local network with mDNS and local TCP/UDP traffic available. In the Apple Home app, set speaker and TV access to **Anyone on the Same Network** and disable the AirPlay password for this experimental version. Docker installations commonly require host networking for discovery and audio transport. With legacy RAOP, TTS Ultimate starts an independent stream to each selected AirPlay endpoint, so start times may differ slightly between devices. AirPlay music resume is not supported. HTTP/HTTPS audio payloads must be MP3 and are limited to 10 MB with a 45-second download timeout.
 
 ### Inputs
 
